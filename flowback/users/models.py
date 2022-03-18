@@ -13,6 +13,7 @@ from taggit.managers import TaggableManager
 
 from flowback.base.models import TimeStampedModel
 
+
 class CustomUserManager(BaseUserManager):
 
     def create_user(self, email, password=None):
