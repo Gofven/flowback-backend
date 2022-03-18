@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../../FlowbackV2/backend/.idea/backend.iml" filepath="$PROJECT_DIR$/../../FlowbackV2/backend/.idea/backend.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/flowback-backend-master.iml" filepath="$PROJECT_DIR$/.idea/flowback-backend-master.iml" />
       <module fileurl="file://$PROJECT_DIR$/../flowback-frontend-master/.idea/flowback-frontend-master.iml" filepath="$PROJECT_DIR$/../flowback-frontend-master/.idea/flowback-frontend-master.iml" />
     </modules>
