@@ -6,7 +6,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 class ProbabilityUser(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.CASCADE, unique=True)
     trust = models.IntegerField(default=50,
-                                validators=[MinValueValidator(0),
+                                validators=[MinValueValidator(1),
                                             MaxValueValidator(100)])
 
 
