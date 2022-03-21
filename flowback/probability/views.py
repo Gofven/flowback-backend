@@ -5,7 +5,7 @@ from flowback.common.mixins import ApiErrorsMixin
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.probability.models import ProbabilityPost, ProbabilityVote
 from flowback.probability.selectors import probability_post_list
-from flowback.probability.services import probability_vote_create, probability_vote_delete
+from flowback.probability.services import probability_vote_create, probability_vote_delete, probability_count_votes
 
 
 class ProbabilityPostListApi(ApiErrorsMixin, APIView):
@@ -19,9 +19,14 @@ class ProbabilityPostListApi(ApiErrorsMixin, APIView):
         title = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
+        score = serializers.SerializerMethodField()
+
         class Meta:
             model = ProbabilityPost
             fields = 'title', 'description'
+
+        def get_score(self, obj):
+            return probability_count_votes(post=obj.post)
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -44,7 +49,7 @@ class ProbabilityVoteCreateApi(APIView):
     class InputSerializer(serializers.ModelSerializer):
         class Meta:
             model = ProbabilityVote
-            fields = 'post'
+            fields = 'post', 'vote'
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
