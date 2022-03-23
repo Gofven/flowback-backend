@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+import sys
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -20,7 +22,7 @@ load_dotenv()
 import environ
 
 BASE_DIR = os.path.dirname((os.path.dirname(__file__)))
-print(BASE_DIR)
+PROJECT_ROOT = sys.path.insert(0, os.path.join(BASE_DIR, 'flowback'))
 env = environ.Env(DEBUG=(bool, False))
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 DUMMY = os.getenv('DUMMY', 'True') == 'True'
@@ -55,6 +57,7 @@ INSTALLED_APPS = [
     'flowback.base',
     'flowback.users',
     'flowback.polls',
+    'flowback.chat',
     'flowback.notifications',
     'whitenoise.runserver_nostatic',
     'channels',
