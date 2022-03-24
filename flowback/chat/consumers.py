@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from flowback.chat.models import GroupMessage
+from .models import GroupMessage
 from flowback.users.models import User, Group
 from flowback.users.services import group_user_permitted
 
