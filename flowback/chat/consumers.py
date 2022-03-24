@@ -1,62 +1,82 @@
 import json
 from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer
+from channels.db import database_sync_to_async
+from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
+from django.http import Http404
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
-from flowback.users.models import User
+from flowback.chat.models import GroupMessage
+from flowback.users.models import User, Group
+from flowback.users.services import group_user_permitted
 
 
-class ChatConsumer(WebsocketConsumer):
-    def connect(self):
+class GroupChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope['user']
+        self.group_id = self.scope['url_route']['kwargs']['group_id']
+
         if self.scope['user'].is_anonymous:
-            self.close()
+            await self.close()
 
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = 'chat_%s' % self.room_name
+        self.group = await self.group_channel_connect()
 
         # Join room group
-        async_to_sync(self.channel_layer.group_add)(
-            self.room_group_name,
+        await self.channel_layer.group_add(
+            self.group_id,
             self.channel_name
         )
 
-        self.accept()
+        await self.accept()
 
-    def disconnect(self, close_code):
+    async def disconnect(self, close_code):
         # Leave room group
-        async_to_sync(self.channel_layer.group_discard)(
-            self.room_group_name,
+        await self.channel_layer.group_discard(
+            self.group_id,
             self.channel_name
         )
 
     # Receive message from WebSocket
-    def receive(self, text_data):
+    async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
 
         # Send message to room group
-        async_to_sync(self.channel_layer.group_send)(
-            self.room_group_name,
+        await self.channel_layer.group_send(
+            self.group_id,
             {
                 'type': 'chat_message',
-                'message': message,
-                'user': self.scope['user']
+                'message': message
             }
         )
 
     # Receive message from room group
-    def chat_message(self, event):
+    async def chat_message(self, message: str):
         class OutputSerializer(serializers.ModelSerializer):
             class Meta:
                 model = User
                 fields = 'username', 'image'
 
-        message = event['message']
-        user = event['user']
-        data = OutputSerializer(user).data
+        data = OutputSerializer(self.user).data
 
         # Send message to WebSocket
-        self.send(text_data=json.dumps({
+        await self.send(text_data=json.dumps({
             'message': message,
             'user': data
         }))
+
+    @database_sync_to_async
+    def group_channel_connect(self):
+        group = get_object_or_404(Group, pk=self.group_id)
+        group_user_permitted(user=self.user.id,
+                             group=self.group_id,
+                             permission='member')
+
+        return group
+
+    @database_sync_to_async
+    def group_channel_message(self, message):
+        GroupMessage.objects.create(user=self.user,
+                                    group=self.group,
+                                    message=message)
