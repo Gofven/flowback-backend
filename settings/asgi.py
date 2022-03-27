@@ -11,11 +11,12 @@ from flowback.chat import routing
 
 
 application = ProtocolTypeRouter({
-        'websocket': AllowedHostsOriginValidator(
-            TokenAuthMiddleware(
-                URLRouter(
-                    routing.websockets_urlpatterns
-                )
+    'http': get_asgi_application(),
+    'websocket': AllowedHostsOriginValidator(
+        TokenAuthMiddleware(
+            URLRouter(
+                routing.websockets_urlpatterns
             )
         )
-    })
+    )
+})
