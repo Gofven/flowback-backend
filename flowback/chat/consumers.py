@@ -43,6 +43,8 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
 
+        self.group_channel_message(message)
+
         # Send message to room group
         await self.channel_layer.group_send(
             self.chat_id,
@@ -53,18 +55,17 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
         )
 
     # Receive message from room group
-    async def chat_message(self, message: str):
+    async def chat_message(self, content: dict):
         class OutputSerializer(serializers.ModelSerializer):
             class Meta:
                 model = User
                 fields = 'username', 'image'
 
         data = OutputSerializer(self.user).data
-        self.group_channel_message(message)
 
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
-            'message': message,
+            'message': content.get('message'),
             'user': data
         }))
 
@@ -133,7 +134,7 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
         )
 
     # Receive message from room group
-    async def chat_message(self, message: str):
+    async def chat_message(self, content: dict):
         class OutputSerializer(serializers.ModelSerializer):
             class Meta:
                 model = User
@@ -143,7 +144,7 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
 
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
-            'message': message,
+            'message': content.get('message'),
             'user': data
         }))
 
