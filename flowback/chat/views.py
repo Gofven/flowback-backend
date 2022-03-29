@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from rest_framework.views import APIView
 
-from flowback.chat.selectors import group_message_list, group_message_preview
+from flowback.chat.selectors import group_message_list, group_message_preview, direct_message_list, \
+    direct_message_preview
 from flowback.chat.models import GroupMessage
 from flowback.common.mixins import ApiErrorsMixin
 from flowback.common.pagination import get_paginated_response, LimitOffsetPagination
@@ -22,7 +23,7 @@ class GroupMessageListApi(ApiErrorsMixin, APIView):
 
         class Meta:
             model = GroupMessage
-            fields = 'username', 'image' 'message', 'created_at'
+            fields = 'username', 'user_id', 'image', 'message', 'created_at'
 
     def get(self, request, group: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -51,7 +52,7 @@ class GroupMessagePreviewApi(ApiErrorsMixin, APIView):
 
         class Meta:
             model = GroupMessage
-            fields = 'username', 'image' 'message', 'created_at'
+            fields = 'group_id', 'username', 'user_id', 'image', 'message', 'created_at'
 
     def get(self, request):
         messages = group_message_preview(user=request.user.id)
@@ -80,15 +81,15 @@ class DirectMessageListApi(ApiErrorsMixin, APIView):
 
         class Meta:
             model = GroupMessage
-            fields = 'username', 'image' 'message', 'created_at'
+            fields = 'username', 'image', 'message', 'created_at'
 
-    def get(self, request, group: int):
+    def get(self, request, target: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
 
-        messages = group_message_list(user=request.user.id,
-                                      group=group,
-                                      filters=filter_serializer.validated_data)
+        messages = direct_message_list(user=request.user.id,
+                                       target=target,
+                                       filters=filter_serializer.validated_data)
 
         return get_paginated_response(
             pagination_class=self.Pagination,
@@ -105,14 +106,15 @@ class DirectMessagePreviewApi(ApiErrorsMixin, APIView):
 
     class OutputSerializer(serializers.ModelSerializer):
         username = serializers.CharField(source='user__username')
+        target_username = serializers.CharField(source='target__username')
         image = serializers.ImageField(source='user__image')
 
         class Meta:
             model = GroupMessage
-            fields = 'username', 'image' 'message', 'created_at'
+            fields = 'username', 'user_id', 'target_username', 'target_id', 'image', 'message', 'created_at'
 
     def get(self, request):
-        messages = group_message_preview(user=request.user.id)
+        messages = direct_message_preview(user=request.user.id)
 
         return get_paginated_response(
             pagination_class=self.Pagination,
