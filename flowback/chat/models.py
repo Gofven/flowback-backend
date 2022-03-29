@@ -11,13 +11,10 @@ class GroupMessage(TimeStampedModel):
 
 
 class DirectMessage(TimeStampedModel):
-    user_one = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_one')
-    user_two = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_two')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='direct_user')
+    target = models.ForeignKey(User, on_delete=models.CASCADE, related_name='direct_target')
     message = models.TextField()
 
     def clean(self):
-        if self.user_one == self.user_two:
+        if self.user == self.target:
             raise ValidationError("user_one and user_two cannot be the same")
-
-    class Meta:
-        unique_together = "user_one", "user_two"
