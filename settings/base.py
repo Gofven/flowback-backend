@@ -107,26 +107,17 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
-if os.getenv('db_mode', 'sqlite') == 'postgres':
-    DATABASES = {
-         'default': {
-             'ENGINE': 'django.db.backends.postgresql',
+DATABASES = {
+     'default': {
+         'ENGINE': 'django.db.backends.postgresql',
 
-             'NAME': env('DB_NAME', default='db'),
-             'USER': env('DB_USER', default='postgres'),
-             'PASSWORD': env('DB_PASS', default='password'),
-             'HOST': env('DB_HOST', default='localhost'),  # Or an IP Address that your DB is hosted on
+         'NAME': env('DB_NAME', default='db'),
+         'USER': env('DB_USER', default='postgres'),
+         'PASSWORD': env('DB_PASS', default='password'),
+         'HOST': env('DB_HOST', default='localhost'),  # Or an IP Address that your DB is hosted on
 
-         }
      }
-
-else:
-    DATABASES = {
-       'default': {
-           'ENGINE': 'django.db.backends.sqlite3',
-           'NAME': os.path.join(BASE_DIR, "db.sqlite3"),
-       }
-    }
+}
 
 #db_from_env = dj_database_url.config(conn_max_age=600)
 #DATABASES['default'].update(db_from_env)
