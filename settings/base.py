@@ -101,6 +101,11 @@ ASGI_APPLICATION = "settings.asgi.application"
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    } if not env('REDIS_HOST', default=None) else {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(env('REDIS_HOST'), env('REDIS_PORT'))],
+        },
     },
 }
 
