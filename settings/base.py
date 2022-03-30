@@ -104,26 +104,16 @@ CHANNEL_LAYERS = {
     },
 }
 
-# Database
-# https://docs.djangoproject.com/en/1.11/ref/settings/#databases
-
-# DATABASES = {
-#      'default': {
-#          'ENGINE': 'django.db.backends.postgresql',
-#
-#          'NAME': 'wwt',
-#          'USER': 'postgres',
-#          'PASSWORD': '0000',
-#          'HOST': env('FLOWBACK_DB_HOST', default='localhost'),  # Or an IP Address that your DB is hosted on
-#
-#      }
-#  }
+# https://docs.djangoproject.com/en/4.0/ref/databases/#postgresql-notes
 
 DATABASES = {
-   'default': {
-       'ENGINE': 'django.db.backends.sqlite3',
-       'NAME': os.path.join(BASE_DIR, "db.sqlite3"),
-   }
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'OPTIONS': {
+            'service': 'flowback_service',
+            'passfile': '.flowback_pgpass',
+        },
+    }
 }
 
 #db_from_env = dj_database_url.config(conn_max_age=600)
