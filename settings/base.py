@@ -110,7 +110,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'OPTIONS': {
-            'service': 'flowback_service',
+            'service': env('DB_SERVICE', default='flowback'),
             'passfile': '.flowback_pgpass',
         },
     }
