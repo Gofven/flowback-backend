@@ -129,7 +129,7 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
             await self.get_message_target(data.get('target')),
             {
                 'type': 'chat_message',
-                'sender': self.user,
+                'sender': self.user.id,
                 'message': data.get('message'),
             }
         )
