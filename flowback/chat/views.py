@@ -18,8 +18,8 @@ class GroupMessageListApi(ApiErrorsMixin, APIView):
         created_at = serializers.DateTimeField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
-        username = serializers.CharField(source='user__username')
-        image = serializers.ImageField(source='user__image')
+        username = serializers.CharField(source='user.username')
+        image = serializers.ImageField(source='user.image')
 
         class Meta:
             model = GroupMessage
@@ -76,8 +76,8 @@ class DirectMessageListApi(ApiErrorsMixin, APIView):
         created_at = serializers.DateTimeField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
-        username = serializers.CharField(source='user__username')
-        image = serializers.ImageField(source='user__image')
+        username = serializers.CharField(source='user.username')
+        image = serializers.ImageField(source='user.image')
 
         class Meta:
             model = GroupMessage

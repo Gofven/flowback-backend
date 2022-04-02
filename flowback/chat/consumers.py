@@ -129,6 +129,7 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
             await self.get_message_target(data.get('target')),
             {
                 'type': 'chat_message',
+                'sender': self.user,
                 'message': data.get('message'),
             }
         )
@@ -140,7 +141,7 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
                 model = User
                 fields = 'username', 'image'
 
-        data = OutputSerializer(self.user).data
+        data = OutputSerializer(content.get('sender')).data
 
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
