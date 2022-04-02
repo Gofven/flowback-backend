@@ -43,6 +43,11 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
 
+        class OutputSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = User
+                fields = 'username', 'image'
+
         await self.group_channel_message(message)
 
         # Send message to room group
@@ -50,23 +55,17 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
             self.chat_id,
             {
                 'type': 'chat_message',
+                'user': OutputSerializer(self.user).data,
                 'message': message
             }
         )
 
     # Receive message from room group
     async def chat_message(self, content: dict):
-        class OutputSerializer(serializers.ModelSerializer):
-            class Meta:
-                model = User
-                fields = 'username', 'image'
-
-        data = OutputSerializer(self.user).data
-
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
             'message': content.get('message'),
-            'user': data
+            'user': content.get('user')
         }))
 
     @database_sync_to_async
@@ -119,6 +118,11 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
             message = serializers.CharField()
             target = serializers.IntegerField()
 
+        class OutputSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = User
+                fields = 'username', 'image'
+
         serializer = FilterSerializer(data=json.loads(text_data))
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -129,24 +133,18 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
             await self.get_message_target(data.get('target')),
             {
                 'type': 'chat_message',
-                'sender': self.user.id,
+                'user': OutputSerializer(self.user).data,
                 'message': data.get('message'),
             }
         )
 
     # Receive message from room group
     async def chat_message(self, content: dict):
-        class OutputSerializer(serializers.ModelSerializer):
-            class Meta:
-                model = User
-                fields = 'username', 'image'
-
-        data = OutputSerializer(content.get('sender')).data
 
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
             'message': content.get('message'),
-            'user': data
+            'user': content.get('user')
         }))
 
     @database_sync_to_async
