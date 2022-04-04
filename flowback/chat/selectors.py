@@ -42,7 +42,7 @@ def direct_message_list(*, user: int, target: int, filters=None):
 
     qs = DirectMessage.objects.filter(Q(user=user, target=target), Q(user=target, target=user)).all()
 
-    return BaseDirectMessageFilter(filters, qs)
+    return BaseDirectMessageFilter(filters, qs).qs
 
 
 def direct_message_preview(*, user: int):
