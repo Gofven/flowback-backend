@@ -115,6 +115,6 @@ class DirectMessagePreviewApi(ApiErrorsMixin, APIView):
     def get(self, request):
         messages = direct_message_preview(user=request.user.id)
 
-        data = self.OutputSerializer(data=messages, many=True).data
+        data = self.OutputSerializer(messages, many=True).data
 
         return Response(data)
