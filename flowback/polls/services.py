@@ -154,7 +154,10 @@ def check_poll(poll: Poll):
             final_score=Sum(F('final_score_positive') - F('final_score_negative'))
         ).order_by('-final_score').first()
         print(top.final_score_positive, top.final_score_negative)
-        success = bool(top and top.type != adapter.proposal.Type.DROP)
+        success = bool(top
+                       and top.final_score_positive
+                       and top.final_score_positive
+                       and top.type != adapter.proposal.Type.DROP)
 
         result_file = json.dumps(create_poll_receipt(poll=poll.id), indent=4)
         result_hash = hashlib.sha512(result_file.encode('utf-8')).hexdigest()
