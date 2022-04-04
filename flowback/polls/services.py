@@ -155,8 +155,8 @@ def check_poll(poll: Poll):
         ).order_by('-final_score').first()
         print(top.final_score_positive, top.final_score_negative)
         success = bool(top
-                       and top.final_score_positive == 0.0
-                       and top.final_score_positive == 0.0
+                       and top.final_score_positive != 0.0
+                       and top.final_score_positive != 0.0
                        and top.type != adapter.proposal.Type.DROP)
 
         result_file = json.dumps(create_poll_receipt(poll=poll.id), indent=4)
