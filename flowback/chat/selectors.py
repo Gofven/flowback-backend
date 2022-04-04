@@ -47,4 +47,4 @@ def direct_message_list(*, user: int, target: int, filters=None):
 
 def direct_message_preview(*, user: int):
     return DirectMessage.objects.filter(Q(user=user) | Q(target=user))\
-           .order_by('user', 'target', '-created_at').distinct('user', 'target')
+           .order_by('user', 'target', 'created_at').distinct('user', 'target')
