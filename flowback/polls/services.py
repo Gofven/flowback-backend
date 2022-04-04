@@ -153,7 +153,7 @@ def check_poll(poll: Poll):
         top = counter_proposals.annotate(
             final_score=Sum(F('final_score_positive') - F('final_score_negative'))
         ).order_by('-final_score').first()
-        print(top)
+        print(top.final_score_positive, top.final_score_negative)
         success = bool(top and top.type != adapter.proposal.Type.DROP)
 
         result_file = json.dumps(create_poll_receipt(poll=poll.id), indent=4)
