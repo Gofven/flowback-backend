@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from flowback.chat.selectors import group_message_list, group_message_preview, direct_message_list, \
@@ -101,9 +102,6 @@ class DirectMessageListApi(ApiErrorsMixin, APIView):
 
 
 class DirectMessagePreviewApi(ApiErrorsMixin, APIView):
-    class Pagination(LimitOffsetPagination):
-        default_limit = 1
-
     class OutputSerializer(serializers.ModelSerializer):
         username = serializers.CharField(source='user.username')
         target_username = serializers.CharField(source='target.username')
@@ -117,10 +115,6 @@ class DirectMessagePreviewApi(ApiErrorsMixin, APIView):
     def get(self, request):
         messages = direct_message_preview(user=request.user.id)
 
-        return get_paginated_response(
-            pagination_class=self.Pagination,
-            serializer_class=self.OutputSerializer,
-            queryset=messages,
-            request=request,
-            view=self
-        )
+        data = self.OutputSerializer(data=messages)
+
+        return Response(data)
