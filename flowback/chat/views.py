@@ -105,9 +105,10 @@ class DirectMessagePreviewApi(ApiErrorsMixin, APIView):
         default_limit = 1
 
     class OutputSerializer(serializers.ModelSerializer):
-        username = serializers.CharField(source='user__username')
-        target_username = serializers.CharField(source='target__username')
-        image = serializers.ImageField(source='user__image')
+        username = serializers.CharField(source='user.username')
+        target_username = serializers.CharField(source='target.username')
+        target_id = serializers.IntegerField(source='target.id')
+        image = serializers.ImageField(source='user.image')
 
         class Meta:
             model = GroupMessage
