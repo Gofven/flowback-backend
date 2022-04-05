@@ -153,7 +153,6 @@ def check_poll(poll: Poll):
         top = counter_proposals.annotate(
             final_score=Sum(F('final_score_positive') - F('final_score_negative'))
         ).order_by('-final_score').first()
-        print(top.final_score_positive, top.final_score_negative)
         success = bool(top
                        and top.final_score_positive != 0.0
                        and top.final_score_positive != 0.0
