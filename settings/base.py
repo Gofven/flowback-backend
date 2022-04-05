@@ -116,9 +116,9 @@ DATABASES = {
      'default': {
          'ENGINE': 'django.db.backends.postgresql',
 
-         'NAME': env('DB_NAME', default='db'),
+         'NAME': env('DB_NAME', default='flowback'),
          'USER': env('DB_USER', default='postgres'),
-         'PASSWORD': env('DB_PASS', default='password'),
+         'PASSWORD': env('DB_PASS', default=''),
          'HOST': env('DB_HOST', default='localhost'),  # Or an IP Address that your DB is hosted on
 
      }
