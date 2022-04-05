@@ -17,6 +17,7 @@ class GroupMessageListApi(ApiErrorsMixin, APIView):
         user = serializers.IntegerField(required=False)
         message = serializers.CharField(required=False)
         created_at = serializers.DateTimeField(required=False)
+        o = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
         username = serializers.CharField(source='user.username')
@@ -75,6 +76,7 @@ class DirectMessageListApi(ApiErrorsMixin, APIView):
         user = serializers.IntegerField(required=False)
         message = serializers.CharField(required=False)
         created_at = serializers.DateTimeField(required=False)
+        o = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
         username = serializers.CharField(source='user.username')
