@@ -8,11 +8,11 @@ class BaseProbabilityPostFilter(django_filters.FilterSet):
 
     class Meta:
         model = ProbabilityPost
-        fields = 'id'
+        fields = 'title'
 
 
 def probability_post_list(*, filters=None):
     filters = filters or {}
-    qs = ProbabilityPost.objects.all()
+    qs = ProbabilityPost.objects.all().order_by('-created_at')
 
     return BaseProbabilityPostFilter(filters, qs)

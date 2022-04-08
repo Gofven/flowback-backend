@@ -1,16 +1,18 @@
 from django.db import models
+
+from flowback.base.models import TimeStampedModel
 from settings.base import AUTH_USER_MODEL
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
-class ProbabilityUser(models.Model):
+class ProbabilityUser(TimeStampedModel):
     user = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.CASCADE, unique=True)
     trust = models.IntegerField(default=50,
                                 validators=[MinValueValidator(1),
                                             MaxValueValidator(100)])
 
 
-class ProbabilityPost(models.Model):
+class ProbabilityPost(TimeStampedModel):
     title = models.CharField()
     description = models.CharField()
 
@@ -19,7 +21,7 @@ class ProbabilityPost(models.Model):
     result = models.BooleanField()
 
 
-class ProbabilityVote(models.Model):
+class ProbabilityVote(TimeStampedModel):
     user = models.ForeignKey(ProbabilityUser, on_delete=models.CASCADE)
     post = models.ForeignKey(ProbabilityPost, on_delete=models.CASCADE)
     vote = models.PositiveSmallIntegerField(validators=[MinValueValidator(0),

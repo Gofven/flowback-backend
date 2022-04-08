@@ -23,7 +23,7 @@ class ProbabilityPostListApi(ApiErrorsMixin, APIView):
 
         class Meta:
             model = ProbabilityPost
-            fields = 'title', 'description'
+            fields = 'title', 'description', 'active', 'finished', 'result', 'created_at'
 
         def get_score(self, obj):
             return probability_count_votes(post=obj.post)
@@ -49,7 +49,7 @@ class ProbabilityVoteCreateApi(APIView):
     class InputSerializer(serializers.ModelSerializer):
         class Meta:
             model = ProbabilityVote
-            fields = 'post', 'vote'
+            fields = 'post', 'vote', 'score'
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
