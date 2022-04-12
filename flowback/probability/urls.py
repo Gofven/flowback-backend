@@ -1,13 +1,15 @@
 from django.urls import path, include
 
-from flowback.probability.views import ProbabilityPostListApi, ProbabilityVoteCreateApi, ProbabilityVoteDeleteApi
+from flowback.probability.views import ProbabilityPostListApi, ProbabilityVoteCreateApi, ProbabilityVoteDeleteApi, \
+    ProbabilityVoteGetApi
 
-notification_patterns = [
+probability_patterns = [
     path('', ProbabilityPostListApi.as_view(), name='probability-list'),
-    path('vote_create/', ProbabilityVoteCreateApi.as_view(), name='probability-vote-create'),
-    path('vote_delete/', ProbabilityVoteDeleteApi.as_view(), name='probability-vote-delete')
+    path('vote/<int:vote>', ProbabilityVoteGetApi, name='probability-vote-get'),
+    path('vote/create', ProbabilityVoteCreateApi.as_view(), name='probability-vote-create'),
+    path('vote/delete', ProbabilityVoteDeleteApi.as_view(), name='probability-vote-delete')
 ]
 
 urlpatterns = [
-    path('probability/', include((notification_patterns, 'probability')))
+    path('probability/', include((probability_patterns, 'prediction')))
 ]

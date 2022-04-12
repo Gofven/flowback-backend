@@ -6,15 +6,15 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class ProbabilityUser(TimeStampedModel):
-    user = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.CASCADE, unique=True)
+    user = models.OneToOneField(AUTH_USER_MODEL, on_delete=models.CASCADE)
     trust = models.IntegerField(default=50,
                                 validators=[MinValueValidator(1),
                                             MaxValueValidator(100)])
 
 
 class ProbabilityPost(TimeStampedModel):
-    title = models.CharField()
-    description = models.CharField()
+    title = models.CharField(max_length=255)
+    description = models.TextField()
 
     active = models.BooleanField()
     finished = models.BooleanField()
