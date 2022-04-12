@@ -65,12 +65,9 @@ class ProbabilityVoteGetApi(APIView):
 class ProbabilityVoteCreateApi(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    class InputSerializer(serializers.ModelSerializer):
-        post = serializers.IntegerField(source='post.id')
-
-        class Meta:
-            model = ProbabilityVote
-            fields = 'post', 'score'
+    class InputSerializer(serializers.Serializer):
+        post = serializers.IntegerField()
+        score = serializers.IntegerField()
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
@@ -84,12 +81,8 @@ class ProbabilityVoteCreateApi(APIView):
 class ProbabilityVoteDeleteApi(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    class InputSerializer(serializers.ModelSerializer):
-        post = serializers.IntegerField(source='post.id')
-
-        class Meta:
-            model = ProbabilityVote
-            fields = 'post'
+    class InputSerializer(serializers.Serializer):
+        post = serializers.IntegerField()
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
