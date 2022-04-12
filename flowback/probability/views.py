@@ -47,6 +47,8 @@ class ProbabilityVoteGetApi(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     class OutputSerializer(serializers.ModelSerializer):
+        post = serializers.IntegerField(source='post.id')
+
         class Meta:
             model = ProbabilityVote
             fields = 'post', 'vote', 'score'
@@ -64,6 +66,8 @@ class ProbabilityVoteCreateApi(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     class InputSerializer(serializers.ModelSerializer):
+        post = serializers.IntegerField(source='post.id')
+
         class Meta:
             model = ProbabilityVote
             fields = 'post', 'score'
@@ -81,6 +85,8 @@ class ProbabilityVoteDeleteApi(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     class InputSerializer(serializers.ModelSerializer):
+        post = serializers.IntegerField(source='post.id')
+
         class Meta:
             model = ProbabilityVote
             fields = 'post'
