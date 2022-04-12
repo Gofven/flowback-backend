@@ -24,8 +24,8 @@ class ProbabilityPost(TimeStampedModel):
 class ProbabilityVote(TimeStampedModel):
     user = models.ForeignKey(ProbabilityUser, on_delete=models.CASCADE)
     post = models.ForeignKey(ProbabilityPost, on_delete=models.CASCADE)
-    vote = models.PositiveSmallIntegerField(validators=[MinValueValidator(0),
-                                                        MaxValueValidator(5)])
+    score = models.PositiveSmallIntegerField(validators=[MinValueValidator(0),
+                                                         MaxValueValidator(5)])
 
     class Meta:
         unique_together = 'user', 'post'
