@@ -11,5 +11,5 @@ probability_patterns = [
 ]
 
 urlpatterns = [
-    path('probability/', include((probability_patterns, 'prediction')))
+    path('prediction/', include((probability_patterns, 'prediction')))
 ]
