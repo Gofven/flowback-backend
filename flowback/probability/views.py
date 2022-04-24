@@ -5,7 +5,7 @@ from flowback.common.mixins import ApiErrorsMixin
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.probability.models import ProbabilityPost, ProbabilityVote
 from flowback.probability.selectors import probability_post_list, probability_get_vote
-from flowback.probability.services import probability_vote_create, probability_vote_delete, probability_count_votes
+from flowback.probability.services import probability_vote_create, probability_vote_delete, probability_post_check
 
 
 class ProbabilityPostListApi(ApiErrorsMixin, APIView):
@@ -19,19 +19,19 @@ class ProbabilityPostListApi(ApiErrorsMixin, APIView):
         title = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
-        score = serializers.SerializerMethodField()
+        id = serializers.SerializerMethodField()
 
         class Meta:
             model = ProbabilityPost
-            fields = 'title', 'description', 'active', 'finished', 'result', 'created_at'
+            fields = 'id', 'title', 'description', 'active', 'finished', 'result', 'created_at'
 
-        def get_score(self, obj):
-            return probability_count_votes(post=obj.post)
+        def get_id(self, obj):
+            probability_post_check(post=obj.id)
+            return obj.id
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
-
         probability_posts = probability_post_list(filters=filter_serializer.validated_data)
 
         return get_paginated_response(
@@ -51,15 +51,13 @@ class ProbabilityVoteGetApi(APIView):
 
         class Meta:
             model = ProbabilityVote
-            fields = 'post', 'vote', 'score'
+            fields = 'post', 'score'
 
     def get(self, request, post: int):
         vote = probability_get_vote(user=request.user.id, post=post)
 
-        serializer = self.OutputSerializer(data=vote)
-        serializer.is_valid(raise_exception=True)
-
-        return Response(status=status.HTTP_201_CREATED)
+        serializer = self.OutputSerializer(vote)
+        return Response(data=serializer.data)
 
 
 class ProbabilityVoteCreateApi(APIView):

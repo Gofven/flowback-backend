@@ -8,19 +8,19 @@ from flowback.probability.models import ProbabilityPost, ProbabilityUser, Probab
 def probability_vote_create(*, user: int, post: int, score: int):
     probability_post_check(post=post)
 
-    user = ProbabilityUser.objects.get_or_create(user=user)
+    user = ProbabilityUser.objects.get_or_create(user=user)[0]
     post = get_object_or_404(ProbabilityPost, pk=post)
 
     if not (post.active or post.finished):
         return ValidationError('Post is inactive or finished.')
 
-    ProbabilityVote.objects.create(user=user, post=post.id, score=score)
+    ProbabilityVote.objects.update_or_create(user=user, post=post, defaults=dict(score=score))
 
 
 def probability_vote_delete(*, user: int, post: int):
     probability_post_check(post=post)
 
-    vote = get_object_or_404(ProbabilityVote, user=user, post=post)
+    vote = get_object_or_404(ProbabilityVote, user__user=user, post=post)
 
     if not (vote.post.active or vote.post.finished):
         return ValidationError('Post is inactive, or finished.')
@@ -34,7 +34,7 @@ def probability_count_votes(*, post: int):
 
     # Get the average votes, multiply by 20 at the end
     return ProbabilityVote.objects.filter(post=post).aggregate(
-        total=((Sum('vote') * 20) * (Sum('user__trust') / 100)) / total_votes
+        total=((Sum('score') * 20) * (Sum('user__trust') / 100)) / total_votes
     ).get('total')
 
 
