@@ -33,9 +33,12 @@ def probability_count_votes(*, post: int):
     total_votes = ProbabilityVote.objects.filter(post=post).count()
 
     # Get the average votes, multiply by 20 at the end
-    return ProbabilityVote.objects.filter(post=post).aggregate(
-        total=((Sum('score') * 20) * (Sum('user__trust') / 100)) / total_votes
-    ).get('total')
+    print(ProbabilityVote.objects.filter(post=post).aggregate(total=Sum(F('score') * F('user__trust'))).get('total'))
+    val = ProbabilityVote.objects.filter(post=post).aggregate(
+        total=(Sum(F('score') * 20) * Sum(F('user__trust') * 0.01)) / total_votes
+    )
+
+    return val.get('total')
 
 
 def probability_post_finish(*, post: int):
