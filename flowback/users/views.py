@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, get_list_or_404
 from rest_framework import decorators, viewsets, status, serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -37,7 +38,7 @@ from flowback.users.serializer import CreateFriendRequestSerializer, GetAllFrien
     GetAllFriendsRoomSerializer
 from flowback.polls.serializer import SearchPollSerializer
 from flowback.users.services import group_member_update, group_user_permitted, mail_all_group_members, leave_group
-from settings.base import EMAIL_HOST_USER, DEBUG
+from settings.base import EMAIL_HOST_USER, DEBUG, NOREG
 
 
 class UserViewSet(viewsets.ViewSet):
@@ -52,6 +53,10 @@ class UserViewSet(viewsets.ViewSet):
         data = request.data
         # serializer for sign up user for first step
         serializer = OnboardUserFirstSerializer(data=data)
+
+        if NOREG:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
         if serializer.is_valid(raise_exception=False):
             verification_code = randint(100000, 999999)
             user_onboard = OnboardUser.objects.filter(email=serializer.validated_data.get('email')).first()
@@ -124,6 +129,10 @@ class UserViewSet(viewsets.ViewSet):
         data = request.data
         # serializer for final step for sign up the user
         serializer = OnboardUserSecondSerializer(data=data)
+
+        if NOREG:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
         if serializer.is_valid(raise_exception=False):
             user_onboard = OnboardUser.objects.filter(email=serializer.validated_data.get('email')).first()
             if user_onboard:
@@ -150,6 +159,10 @@ class UserViewSet(viewsets.ViewSet):
 
     @decorators.action(detail=False, methods=['post'], url_path="sign_up_three")
     def sign_up_three(self, request, *args, **kwargs):
+
+        if NOREG:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
         data = request.data
         user_onboard = OnboardUser.objects.filter(email=data.get('email')).first()
         if user_onboard:
@@ -210,6 +223,29 @@ class CurrentUserViewSet(viewsets.GenericViewSet):
         data = serializer.data
         result = success_response(data=data, message="")
         return Created(result)
+
+    @decorators.action(detail=False, methods=['get'], url_path='get_public_key')
+    def get_public_key_api(self, request):
+        class OutputSerializer(serializers.Serializer):
+            address = serializers.CharField(allow_null=True, allow_blank=True)
+            public_key = serializers.CharField(allow_null=True, allow_blank=True)
+
+        user = request.user
+        return Response(data=OutputSerializer(user).data)
+
+    @decorators.action(detail=False, methods=['post'], url_path='update_public_key')
+    def update_public_key_api(self, request):
+        class InputSerializer(serializers.Serializer):
+            address = serializers.CharField(allow_null=True, allow_blank=True)
+            public_key = serializers.CharField(allow_null=True, default=None)
+
+        user = request.user
+        serializer = InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user.public_key = serializer.validated_data.get('public_key')
+        user.address = serializer.validated_data.get('address')
+        user.save()
+        return Response(status=status.HTTP_200_OK)
 
     @decorators.action(detail=False, methods=['post'], url_path='get-my-data')
     def get_logged_in_user(self, request):
@@ -415,7 +451,6 @@ class UserGroupViewSet(viewsets.ViewSet):
         mail_all_group_members(user=user.id, group=pk, **serializer.validated_data)
 
         return Response(status=status.HTTP_201_CREATED)
-
 
     @decorators.action(detail=True, methods=['post', 'update'], url_path="group_member_update")
     def group_member_update_api(self, request, pk):
@@ -638,6 +673,9 @@ class UserGroupViewSet(viewsets.ViewSet):
         # get group object by group id
         group = Group.objects.filter(id=data.get('group')).first()
         if group:
+            if not data.get('key') and group.blockchain:
+                return ValidationError('Group requires key to join')
+
             # check the join type of group
             if not group.members_request == 'direct_join':
                 # sent request to owner and admin to join the group
@@ -645,7 +683,8 @@ class UserGroupViewSet(viewsets.ViewSet):
                 serializer = CreateGroupRequestSerializer(data=data)
                 if serializer.is_valid(raise_exception=False):
                     serializer.save()
-                    group_member_update(target=user.id, group=group.id)
+                    group_member_update(target=user.id, group=group.id,
+                                        key=data.get('key'))
                     result = success_response(data=None, message="")
                     return Created(result)
                 result = failed_response(data=serializer.errors, message="")
@@ -657,7 +696,8 @@ class UserGroupViewSet(viewsets.ViewSet):
                 else:
                     group.members.add(user)
                 group.save()
-                group_member_update(target=user.id, group=group.id)
+                group_member_update(target=user.id, group=group.id,
+                                    key=data.get('key'))
                 result = success_response(data={}, message="")
                 return Ok(result)
         result = failed_response(data={}, message="Group does not exist.")
@@ -666,7 +706,19 @@ class UserGroupViewSet(viewsets.ViewSet):
     @decorators.action(detail=True, methods=['post'], url_path='leave_group')
     def leave_group_api(self, request, pk):
         user = request.user
-        leave_group(user=user.id, group=pk)
+        leave_group(target=user.id, group=pk)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @decorators.action(detail=True, methods=['post'], url_path='kick_group_user')
+    def kick_group_user_api(self, request, pk):
+        class InputSerializer(serializers.Serializer):
+            target = serializers.IntegerField()
+
+        user = request.user
+        serializer = InputSerializer(data=request.data)
+
+        serializer.is_valid(raise_exception=True)
+        leave_group(user=user.id, group=pk, **serializer.validated_data)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @decorators.action(detail=False, methods=['post'], url_path='get_group_join_requests')

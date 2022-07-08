@@ -176,9 +176,9 @@ class MyGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = (
-        'id', 'created_by', 'title', 'description', 'image', 'cover_image', 'tags', 'country', 'city', 'public',
-        'members_request', 'poll_approval', 'active', 'deleted', 'total_members', 'group_join_status', 'user_type',
-        'room_name', 'created_at')
+        'id', 'created_by', 'title', 'description', 'blockchain', 'image', 'cover_image', 'tags', 'country', 'city',
+        'public', 'members_request', 'poll_approval', 'active', 'deleted', 'total_members',
+        'group_join_status', 'user_type', 'room_name', 'created_at')
 
     def get_city(self, obj):
         if obj.city and obj.city != 'undefined':
@@ -261,7 +261,8 @@ class GroupDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = (
-        'id', 'created_by', 'title', 'description', 'image', 'cover_image', 'user_type', 'tags', 'country', 'city',
+        'id', 'created_by', 'title', 'description', 'blockchain',
+        'image', 'cover_image', 'user_type', 'tags', 'country', 'city',
         'public', 'members_request', 'poll_approval', 'active', 'deleted', 'total_members', 'room_name',
         'group_join_status')
 

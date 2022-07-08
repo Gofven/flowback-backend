@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+import sys
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -20,10 +22,11 @@ load_dotenv()
 import environ
 
 BASE_DIR = os.path.dirname((os.path.dirname(__file__)))
-print(BASE_DIR)
+PROJECT_ROOT = sys.path.insert(0, os.path.join(BASE_DIR, 'flowback'))
 env = environ.Env(DEBUG=(bool, False))
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 DUMMY = os.getenv('DUMMY', 'True') == 'True'
+NOREG = os.getenv('NOREG', 'False') == 'True'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
@@ -54,7 +57,9 @@ INSTALLED_APPS = [
     'flowback.base',
     'flowback.users',
     'flowback.polls',
+    'flowback.chat',
     'flowback.notifications',
+    'flowback.probability',
     'whitenoise.runserver_nostatic',
     'channels',
 ]
@@ -97,29 +102,27 @@ ASGI_APPLICATION = "settings.asgi.application"
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    } if not env('REDIS_HOST', default=None) else {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(env('REDIS_HOST'), env('REDIS_PORT'))],
+        },
     },
 }
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
-# DATABASES = {
-#      'default': {
-#          'ENGINE': 'django.db.backends.postgresql',
-#
-#          'NAME': 'wwt',
-#          'USER': 'postgres',
-#          'PASSWORD': '0000',
-#          'HOST': env('FLOWBACK_DB_HOST', default='localhost'),  # Or an IP Address that your DB is hosted on
-#
-#      }
-#  }
-
 DATABASES = {
-   'default': {
-       'ENGINE': 'django.db.backends.sqlite3',
-       'NAME': os.path.join(BASE_DIR, "db.sqlite3"),
-   }
+     'default': {
+         'ENGINE': 'django.db.backends.postgresql',
+
+         'NAME': env('DB_NAME', default='flowback'),
+         'USER': env('DB_USER', default='postgres'),
+         'PASSWORD': env('DB_PASS', default=''),
+         'HOST': env('DB_HOST', default='localhost'),  # Or an IP Address that your DB is hosted on
+
+     }
 }
 
 #db_from_env = dj_database_url.config(conn_max_age=600)
@@ -162,11 +165,8 @@ AUTH_USER_MODEL = 'users.User'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
-STATIC_URL = '/static/'
-print(STATIC_URL)
+STATIC_URL = '/static_backend/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
-print(BASE_DIR)
-print(STATIC_ROOT)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 SESSION_COOKIE_NAME = 'sessionid_flowback'

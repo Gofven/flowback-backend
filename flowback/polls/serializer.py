@@ -205,6 +205,7 @@ class GroupPollDetailsSerializer(serializers.ModelSerializer):
         model = Poll
         fields = ('id', 'group', 'user_type', 'title', 'description',
                   'tags', 'files', 'accepted', 'accepted_at', 'success',
+                  'result_hash', 'result_file', 'result_token',
                   'end_time', 'created_at', 'modified_at', 'created_by',
                   'modified_by', 'vote_details', "voting_status",
                   "discussion", 'comments_details', 'type', 'voting_type',
@@ -386,22 +387,12 @@ class PollProposalEventCreateSerializer(serializers.ModelSerializer):
 class PollProposalGetSerializer(serializers.ModelSerializer):
     user = SimpleUserSerializer()
     comments_details = serializers.SerializerMethodField()
-    final_score_positive = serializers.SerializerMethodField()
-    final_score_negative = serializers.SerializerMethodField()
 
     class Meta:
         model = PollProposal
         fields = ('id', 'poll', 'proposal', 'user', 'file',
                   'final_score_positive', 'final_score_negative',
                   'created_at', 'comments_details')
-
-    def get_final_score_positive(self, obj):
-        score = obj.final_score_positive
-        return score if obj.poll.VotingType != Poll.VotingType.CARDINAL else score / 1000000
-
-    def get_final_score_negative(self, obj):
-        score = obj.final_score_negative
-        return score if obj.poll.VotingType != Poll.VotingType.CARDINAL else score / 1000000
 
     def get_comments_details(self, obj):
         proposal_comments = PollProposalComments.objects.filter(counter_proposal=obj).order_by(
@@ -439,7 +430,7 @@ class PollProposalIndexCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PollProposalIndex
-        fields = ('proposal', 'user', 'priority', 'is_positive')
+        fields = ('proposal', 'user', 'priority', 'is_positive', 'hash')
 
     def get_unique_together_validators(self):
         return []
@@ -449,7 +440,7 @@ class PollProposalEventIndexCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PollProposalEventIndex
-        fields = ('proposal', 'user', 'priority', 'is_positive')
+        fields = ('proposal', 'user', 'priority', 'is_positive', 'hash')
 
     def get_unique_together_validators(self):
         return []

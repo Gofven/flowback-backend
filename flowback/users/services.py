@@ -51,7 +51,8 @@ def group_member_update(
         user: int = None,
         target: int,
         group: int,
-        allow_vote: bool = False
+        allow_vote: bool = False,
+        key: str = None
 ) -> bool:
 
     if user:
@@ -80,29 +81,36 @@ def mail_all_group_members(
         .exclude(user__email=user.email)\
         .values_list('user__email', flat=True)
 
-    mail.EmailMessage(
+    msg = mail.EmailMessage(
         subject=subject,
         body=message,
         from_email=EMAIL_HOST_USER,
         bcc=mailing_list
-    ).send(fail_silently=True)
+    )
+    msg.content_subtype = 'html'
+    msg.send(fail_silently=True)
 
     return True
 
 
 def leave_group(
         *,
-        user: int,
-        group: int
+        target: int,
+        user: int = None,
+        group: int,
 ):
-    group_user_permitted(user=user, group=group, permission='member')
+
+    if user:
+        group_user_permitted(user=user, group=group, permission='admin')
+
+    group_user_permitted(user=target, group=group, permission='member')
     group = get_object_or_404(Group, id=group)
-    member = get_object_or_404(GroupMembers, user__id=user, group=group)
+    member = get_object_or_404(GroupMembers, user__id=target, group=group)
 
     member.delete()
-    group.owners.filter(user=user).delete()
-    group.admins.filter(user=user).delete()
-    group.moderators.filter(user=user).delete()
-    group.delegators.filter(user=user).delete()
-    group.members.filter(user=user).delete()
+    group.owners.remove(target)
+    group.admins.remove(target)
+    group.moderators.remove(target)
+    group.delegators.remove(target)
+    group.members.remove(target)
 

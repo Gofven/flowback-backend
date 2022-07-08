@@ -6,4 +6,4 @@ class BaseConfig(AppConfig):
     """
     'base' app configuration
     """
-    name = 'base'
+    name = 'flowback.base'

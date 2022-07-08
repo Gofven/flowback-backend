@@ -10,6 +10,8 @@ from flowback.users.views import UserViewSet, UserLogin, CurrentUserViewSet, Use
     LocationViewSet, FriendsViewSet, GroupChatViewSet
 from flowback.polls.views import GroupPollViewSet
 from flowback.notifications.urls import urlpatterns as notification_urls
+from flowback.chat.urls import urlpatterns as chat_urls
+from flowback.probability.urls import urlpatterns as probability_urls
 
 default_router = DefaultRouter(trailing_slash=False)
 singleton_router = SingletonRouter(trailing_slash=False)
@@ -21,7 +23,7 @@ default_router.register("location", LocationViewSet, basename="location")
 default_router.register("friend", FriendsViewSet, basename="friend")
 default_router.register('group_chat', GroupChatViewSet, basename='group_chat')
 
-urlpatterns = default_router.urls + singleton_router.urls + notification_urls + [
+urlpatterns = default_router.urls + singleton_router.urls + notification_urls + chat_urls + probability_urls + [
     path("login", UserLogin.as_view(), name="user-login"),
     path("logout", UserLogout.as_view(), name="user-logout"),
     url(r'^password_reset/validate_token/',

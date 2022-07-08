@@ -13,6 +13,7 @@ from taggit.managers import TaggableManager
 
 from flowback.base.models import TimeStampedModel
 
+
 class CustomUserManager(BaseUserManager):
 
     def create_user(self, email, password=None):
@@ -58,6 +59,8 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
             'unique': _("A user with that username already exists."),
         },
     )
+    address = models.TextField(null=True, blank=True)
+    public_key = models.TextField(null=True, blank=True)
     user_type = models.CharField(_('User Type'), max_length=45, db_index=True,
                                  choices=USER_TYPE_CHOICES, default=NORMAL_USER)
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
@@ -139,6 +142,7 @@ class Group(TimeStampedModel):
         (NEEDS_MODERATION, _('Needs Moderation')),
     )
 
+    blockchain = models.BooleanField(default=False)
     owners = models.ManyToManyField(User, related_name="group_owners")
     admins = models.ManyToManyField(User, related_name="group_admins")
     moderators = models.ManyToManyField(User, related_name="group_moderators")
@@ -166,6 +170,7 @@ class Group(TimeStampedModel):
 class GroupMembers(TimeStampedModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    key = models.TextField(null=True, blank=True)
     allow_vote = models.BooleanField(default=False)
 
     class Meta:
