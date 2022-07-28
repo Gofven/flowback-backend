@@ -30,6 +30,11 @@ def probability_vote_delete(*, user: int, post: int):
 
 def probability_count_votes(*, post: int):
     post = get_object_or_404(ProbabilityPost, pk=post)
+
+    # If the vote has been concluded, return the saved result
+    if post.finished and not post.active:
+        return post.score
+
     total_votes = ProbabilityVote.objects.filter(post=post).count()
 
     # Get the average votes, multiply by 20 at the end
@@ -45,6 +50,9 @@ def probability_post_finish(*, post: int):
     post = get_object_or_404(ProbabilityPost, pk=post)
     votes = ProbabilityVote.objects.filter(post=post).prefetch_related('user').all()
 
+    post.score = probability_count_votes(post=post.id)
+
+
     # Round values to steps of 20 then divide by 20 to have same values as ProbabilityVote models
     average = round(probability_count_votes(post=post.id) / 20)
 
@@ -58,6 +66,9 @@ def probability_post_finish(*, post: int):
 
     ProbabilityUser.objects.bulk_update([x.user for x in votes], ['trust'])
 
+    post.active = False
+    post.save()
+
 
 def probability_post_check(*, post: int):
     post = get_object_or_404(ProbabilityPost, pk=post)
@@ -66,5 +77,3 @@ def probability_post_check(*, post: int):
 
     if post.finished and post.active:
         probability_post_finish(post=post.id)
-        post.active = False
-        post.save()

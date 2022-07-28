@@ -16,6 +16,7 @@ class ProbabilityPost(TimeStampedModel):
     title = models.CharField(max_length=255)
     description = models.TextField()
 
+    score = models.IntegerField(null=True, blank=True)
     active = models.BooleanField()
     finished = models.BooleanField()
     result = models.BooleanField()
