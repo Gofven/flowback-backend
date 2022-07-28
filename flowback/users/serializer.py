@@ -75,7 +75,8 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'bio', 'image', 'cover_image', 'phone_number', 'country',
+        fields = ('id', 'email', 'first_name', 'last_name', 'username',
+                  'bio', 'image', 'cover_image', 'phone_number', 'country',
                   'city', 'website', 'friendship_status')
 
     def get_user(self):

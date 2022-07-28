@@ -54,8 +54,8 @@ class ProbabilityUserGetApi(APIView):
             model = ProbabilityUser
             fields = 'weight',
 
-    def get(self, request):
-        user = probability_get_user(user=request.user.id)
+    def get(self, request, user_id=None):
+        user = probability_get_user(user=user_id or request.user.id)
         serializer = self.OutputSerializer(user)
         return Response(data=serializer.data)
 

@@ -5,7 +5,8 @@ from flowback.probability.views import ProbabilityPostListApi, ProbabilityVoteCr
 
 probability_patterns = [
     path('', ProbabilityPostListApi.as_view(), name='probability-list'),
-    path('user', ProbabilityUserGetApi.as_view(), name='probability-user'),
+    path('user/', ProbabilityUserGetApi.as_view(), name='probability-user'),
+    path('user/<int:user_id>', ProbabilityUserGetApi.as_view(), name='probability-user'),
     path('vote/<int:post>', ProbabilityVoteGetApi.as_view(), name='probability-vote-get'),
     path('vote/create', ProbabilityVoteCreateApi.as_view(), name='probability-vote-create'),
     path('vote/delete', ProbabilityVoteDeleteApi.as_view(), name='probability-vote-delete'),
