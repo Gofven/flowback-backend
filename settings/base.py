@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'flowback.chat',
     'flowback.notifications',
     'flowback.probability',
+    'flowback.todo'
     'whitenoise.runserver_nostatic',
     'channels',
 ]
