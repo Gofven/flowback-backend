@@ -122,5 +122,5 @@ whitenoise==5.2.0
 widgetsnbextension==3.5.1
 yarl==1.6.2
 zope.interface==5.2.0
-channels==3.0.4
+channels==3.0.3
 channels_redis==3.4.0
