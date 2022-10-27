@@ -14,13 +14,14 @@ def poll_create(*, user_id: int, group_id: int,
                 start_date: datetime,
                 end_date: datetime,
                 poll_type: int,
+                public: bool,
                 tag: int,
                 dynamic: bool
                 ) -> Poll:
     group_user = group_user_permissions(user=user_id, group=group_id, permissions=['create_poll', 'admin'])
     poll = Poll(created_by=group_user, title=title, description=description,
                 start_date=start_date, end_date=end_date,
-                poll_type=poll_type, tag_id=tag, dynamic=dynamic)
+                poll_type=poll_type, public=public, tag_id=tag, dynamic=dynamic)
     poll.full_clean()
     poll.save()
 
@@ -214,11 +215,11 @@ def poll_refresh(*, poll_id: int) -> None:
 # TODO setup celery
 def poll_refresh_cheap(*, poll_id: int) -> None:
     poll = get_object(Poll, id=poll_id)
+    if poll.end_date <= timezone.now():
+        poll.finished = True
+        poll.save()
 
     if poll.finished and not poll.result or poll.dynamic and not poll.finished:
-        if poll.end_date <= timezone.now():
-            poll.finished = True
-            poll.save()
         poll_proposal_vote_count(poll_id=poll_id)
         poll.refresh_from_db()
         poll.result = True
