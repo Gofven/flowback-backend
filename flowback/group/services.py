@@ -5,11 +5,15 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from backend.settings import env, EMAIL_HOST_USER
 from rest_framework.exceptions import ValidationError
+
+from flowback.notification.services import NotificationManager
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupUserDelegator, GroupTags, GroupPermissions, \
     GroupUserDelegate, GroupUserDelegatePool
 from flowback.group.selectors import group_user_permissions
 from flowback.common.services import model_update, get_object
+
+notification = NotificationManager(sender_type='group', possible_categories=['group'])
 
 
 def group_create(*, user: int, name: str, description: str, image: str, cover_image: str, hide_poll_users: bool,
@@ -30,7 +34,7 @@ def group_create(*, user: int, name: str, description: str, image: str, cover_im
 
 
 def group_update(*, user: int, group: int, data) -> Group:
-    user = group_user_permissions(group=group, user=user, permissions=['admin'])
+    group_user = group_user_permissions(group=group, user=user, permissions=['admin'])
     non_side_effect_fields = ['name', 'description', 'image', 'cover_image', 'hide_poll_users',
                               'public', 'direct_join', 'default_permission']
 
@@ -38,9 +42,12 @@ def group_update(*, user: int, group: int, data) -> Group:
     if default_permission := data.get('default_permission'):
         data['default_permission'] = get_object(GroupPermissions, id=default_permission, author_id=group)
 
-    group, has_updated = model_update(instance=user.group,
+    group, has_updated = model_update(instance=group_user.group,
                                       fields=non_side_effect_fields,
                                       data=data)
+
+    notification.create(sender_id=group.id, action=notification.Action.create, category='group',
+                        message=f'{group_user.user.username} updated the group information')
 
     return group
 
