@@ -25,8 +25,9 @@ def notification_delete_channel(*, sender_type: str, sender_id: int, category: s
 # tag (Action), sender_type (Name), sender_id (identifier)
 # Notification subscription handled outside, notification management handled inside
 def notification_create(*, action: str, category: str, sender_type: str, sender_id: int,
-                        message: str, timestamp: int = None, related_id: int = None) -> NotificationObject:
+                        message: str, timestamp: datetime = None, related_id: int = None) -> NotificationObject:
     channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
+    timestamp = timestamp or timezone.now()
     notification_object = NotificationObject.objects.create(channel=channel,
                                                             action=action,
                                                             message=message,
@@ -51,9 +52,8 @@ def notification_delete(*, category: str, sender_type: str, sender_id: int,
 
 
 def notification_mark_read(*, fetched_by: int, notification_ids: list[int]) -> Notification:
-    notification = get_object(Notification, user_id=fetched_by, id__in=notification_ids)
-    notification.update(read=True)
-    return notification
+    notifications = Notification.objects.filter(user_id=fetched_by, id__in=notification_ids).update(read=True)
+    return notifications
 
 
 # TODO doesnt consider future notifications

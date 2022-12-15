@@ -65,10 +65,9 @@ class NotificationSubscriptionListAPI(APIView):
         channel_category = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-        action = serializers.CharField(source='notification_object.action')
-        channel_type = serializers.CharField(source='notification_object.channel.type')
-        channel_id = serializers.IntegerField(source='notification_object.channel_id')
-        channel_category = serializers.CharField(source='notification_object.channel.category')
+        type = serializers.CharField(source='channel.sender_type')
+        id = serializers.IntegerField(source='channel.id')
+        category = serializers.CharField(source='channel.category')
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -84,7 +83,7 @@ class NotificationSubscriptionListAPI(APIView):
 
 class NotificationMarkReadAPI(APIView):
     class InputSerializer(serializers.Serializer):
-        notification_id_list = serializers.ListField(child=serializers.IntegerField())
+        notification_ids = serializers.ListField(child=serializers.IntegerField())
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
