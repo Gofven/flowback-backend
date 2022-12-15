@@ -8,18 +8,19 @@ from flowback.user.models import User
 # Add get_or_create on every app startup for channels:
 # https://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only
 class NotificationChannel(BaseModel):
-    action = models.CharField()
-    category = models.CharField()
-    sender_type = models.CharField()
+    category = models.CharField(max_length=255)
+    sender_type = models.CharField(max_length=255)
     sender_id = models.IntegerField()
 
     class Meta:
-        unique_together = ('action', 'sender_type', 'sender_id')
+        unique_together = ('category', 'sender_type', 'sender_id')
 
 
 class NotificationObject(BaseModel):
-    message = models.CharField()
-    timestamp = models.DateField(default=timezone.now)
+    related_id = models.IntegerField(null=True, blank=True)
+    action = models.CharField(max_length=255)
+    message = models.TextField()
+    timestamp = models.DateTimeField(default=timezone.now)
     channel = models.ForeignKey(NotificationChannel, on_delete=models.CASCADE)
 
 

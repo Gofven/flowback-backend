@@ -1,6 +1,14 @@
 from flowback.common.services import get_object, model_update
 from flowback.kanban.models import KanbanEntry
 from flowback.group.selectors import group_user_permissions
+from flowback.notification.services import NotificationManager
+
+kanban_notification = NotificationManager(sender_type='kanban', possible_categories=['kanban'])
+
+
+def kanban_notification_subscribe(*, user_id: int, group: int, categories: list[str]):
+    group_user_permissions(user=user_id, group=group)
+    kanban_notification.channel_subscribe(user_id=user_id, sender_id=group, category=categories)
 
 
 def kanban_entry_create(*,
@@ -18,11 +26,14 @@ def kanban_entry_create(*,
     kanban.full_clean()
     kanban.save()
 
+    kanban_notification.create(sender_id=kanban.id, action=kanban_notification.Action.create, category='kanban',
+                               message=f'User {created_by.user.username} created a kanban in {created_by.group.name}')
+
     return kanban
 
 
 def kanban_entry_update(*, fetched_by: int, group_id: int, kanban_entry_id: int, data) -> KanbanEntry:
-    group_user_permissions(group=group_id, user=fetched_by)
+    group_user = group_user_permissions(group=group_id, user=fetched_by)
     kanban = get_object(KanbanEntry, id=kanban_entry_id)
 
     if data.get('assignee_id'):
@@ -34,11 +45,17 @@ def kanban_entry_update(*, fetched_by: int, group_id: int, kanban_entry_id: int,
                                        fields=non_side_effect_fields,
                                        data=data)
 
+    kanban_notification.create(sender_id=kanban.id, action=kanban_notification.Action.update, category='kanban',
+                               message=f'User {group_user.user.username} updated a kanban in {group_user.group.name}')
+
     return kanban
 
 
 def kanban_entry_delete(*, fetched_by: int, group_id: int, kanban_entry_id: int) -> None:
-    group_user_permissions(group=group_id, user=fetched_by)
+    group_user = group_user_permissions(group=group_id, user=fetched_by)
     kanban = get_object(KanbanEntry, id=kanban_entry_id).delete()
+
+    kanban_notification.create(sender_id=kanban.id, action=kanban_notification.Action.delete, category='kanban',
+                               message=f'User {group_user.user.username} deleted a kanban in {group_user.group.name}')
 
     kanban.delete()

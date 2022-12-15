@@ -22,6 +22,7 @@ from flowback.user.urls import user_patterns
 from flowback.group.urls import group_patterns
 from flowback.poll.urls import poll_patterns
 from flowback.chat.urls import chat_patterns
+from flowback.notification.urls import notification_patterns
 from django.conf.urls.static import static
 
 urlpatterns = [
@@ -32,6 +33,7 @@ urlpatterns = [
     path('group/<int:group>/poll/', include((poll_patterns, 'poll'))),
     path('group/<int:group_id>/kanban/', include((kanban_patterns, 'kanban'))),
     path('home/kanban', include((kanban_patterns, 'home_kanban'))),
+    path('notification', include((notification_patterns, 'notification'))),
     path('home/polls', PollListApi.as_view(), name='home_polls'),
     path('poll/user/schedule', PollUserScheduleListAPI.as_view(), name='poll_user_schedule')
 ]

@@ -87,7 +87,7 @@ def direct_message_list(*, user: User, target: int, filters=None):
 def direct_message_preview(*, user: User, filters=None):
     filters = filters or {}
     qs = DirectMessage.objects.filter(Q(user=user) | Q(target=user)
-                                      ).order_by('user', 'target', 'created_at').distinct('user', 'target')
+                                      ).order_by('user', 'target', '-created_at').distinct('user', 'target')
 
     return BaseDirectMessagePreviewFilter(filters, qs).qs
 

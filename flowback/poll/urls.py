@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (PollListApi,
+                    PollNotificationSubscribeApi,
                     PollCreateAPI,
                     PollUpdateAPI,
                     PollDeleteAPI, PollProposalListAPI, PollProposalDeleteAPI, PollProposalCreateAPI,
@@ -11,6 +12,7 @@ from .views import (PollListApi,
 poll_patterns = [
     path('list', PollListApi.as_view(), name='polls'),
     path('create', PollCreateAPI.as_view(), name='poll_create'),
+    path('<int:poll>/subscribe', PollNotificationSubscribeApi.as_view(), name='poll_subscribe'),
     path('<int:poll>/update', PollUpdateAPI.as_view(), name='poll_update'),
     path('<int:poll>/delete', PollDeleteAPI.as_view(), name='poll_delete'),
     path('<int:poll>/proposals', PollProposalListAPI.as_view(), name='poll_proposals'),
