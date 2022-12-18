@@ -1,6 +1,7 @@
 from django.urls import path
 
-from .views.group import GroupListApi, GroupDetailApi, GroupCreateApi, GroupUpdateApi, GroupDeleteApi, GroupMailApi
+from .views.group import GroupListApi, GroupDetailApi, GroupCreateApi, GroupUpdateApi, GroupDeleteApi, GroupMailApi, \
+    GroupNotificationSubscribeApi
 from .views.user import (GroupUserListApi,
                          GroupUserUpdateApi,
                          GroupJoinApi,
@@ -30,6 +31,7 @@ group_patterns = [
     path('create', GroupCreateApi.as_view(), name='group_create'),
     path('<int:group>/update', GroupUpdateApi.as_view(), name='group_update'),
     path('<int:group>/delete', GroupDeleteApi.as_view(), name='group_delete'),
+    path('<int:group>/subscribe', GroupNotificationSubscribeApi.as_view()),
     path('<int:group>/mail', GroupMailApi.as_view(), name='group_mail'),
 
     path('<int:group>/users', GroupUserListApi.as_view(), name='group_users'),

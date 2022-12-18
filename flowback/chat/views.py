@@ -132,6 +132,7 @@ class DirectMessagePreviewApi(APIView):
 
     class OutputSerializer(serializers.ModelSerializer):
         username = serializers.CharField(source='user.username')
+        user_id = serializers.IntegerField(source='user.id')
         target_username = serializers.CharField(source='target.username')
         target_id = serializers.IntegerField(source='target.id')
         profile_image = serializers.ImageField(source='user.profile_image')
