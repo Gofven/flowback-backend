@@ -5,14 +5,29 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from backend.settings import env, EMAIL_HOST_USER
 from rest_framework.exceptions import ValidationError
+
+from flowback.notification.services import NotificationManager
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupUserDelegator, GroupTags, GroupPermissions, \
     GroupUserDelegate, GroupUserDelegatePool
 from flowback.group.selectors import group_user_permissions
 from flowback.common.services import model_update, get_object
 
+group_notification = NotificationManager(sender_type='group', possible_categories=['group', 'members', 'invite',
+                                                                                   'delegate', 'poll', 'kanban',
+                                                                                   'schedule'])
 
-def group_create(*, user: int, name: str, description: str, image: str, cover_image: str,
+
+def group_notification_subscribe(*, user_id: int, group: int, categories: list[str]):
+    user = group_user_permissions(user=user_id, group=group)
+
+    if 'invite' in categories and (not user.is_admin or not user.permission.invite_user):
+        raise ValidationError('Permission denied for invite notifications')
+
+    group_notification.channel_subscribe(user_id=user_id, sender_id=group, category=categories)
+
+
+def group_create(*, user: int, name: str, description: str, image: str, cover_image: str, hide_poll_users: bool,
                  public: bool, direct_join: bool) -> Group:
 
     user = get_object(User, id=user)
@@ -21,7 +36,7 @@ def group_create(*, user: int, name: str, description: str, image: str, cover_im
         raise ValidationError('Permission denied')
 
     group = Group(created_by=user, name=name, description=description, image=image,
-                  cover_image=cover_image, public=public, direct_join=direct_join)
+                  cover_image=cover_image, hide_poll_users=hide_poll_users, public=public, direct_join=direct_join)
     group.full_clean()
     group.save()
     GroupUser.objects.create(user=user, group=group, is_admin=True)
@@ -30,17 +45,20 @@ def group_create(*, user: int, name: str, description: str, image: str, cover_im
 
 
 def group_update(*, user: int, group: int, data) -> Group:
-    user = group_user_permissions(group=group, user=user, permissions=['admin'])
-    non_side_effect_fields = ['name', 'description', 'image', 'cover_image', 'public',
-                              'direct_join', 'default_permission']
+    group_user = group_user_permissions(group=group, user=user, permissions=['admin'])
+    non_side_effect_fields = ['name', 'description', 'image', 'cover_image', 'hide_poll_users',
+                              'public', 'direct_join', 'default_permission']
 
     # Check if group_permission exists to allow for a new default_permission
     if default_permission := data.get('default_permission'):
         data['default_permission'] = get_object(GroupPermissions, id=default_permission, author_id=group)
 
-    group, has_updated = model_update(instance=user.group,
+    group, has_updated = model_update(instance=group_user.group,
                                       fields=non_side_effect_fields,
                                       data=data)
+
+    group_notification.create(sender_id=group.id, action=group_notification.Action.update, category='group',
+                              message=f'{group_user.user.username} updated the group information in {group.name}')
 
     return group
 
@@ -111,12 +129,16 @@ def group_join(*, user: int, group: int) -> Union[GroupUser, GroupUserInvite]:
 
     if not group.direct_join:
         user_status = GroupUserInvite(user=user, group=group, external=True)
+        group_notification.create(sender_id=group.id, action=group_notification.Action.update,
+                                  category='invite', message=f'User {user.username} requested to join {group.name}')
 
     else:
         user_status = GroupUser(user=user, group=group)
 
     user_status.full_clean()
     user_status.save()
+    group_notification.create(sender_id=group.id, action=group_notification.Action.create,
+                              category='members', message=f'User {user.username} joined the group {group.name}')
 
     return user_status
 
@@ -145,11 +167,15 @@ def group_leave(*, user: int, group: int) -> None:
 
     user.delete()
 
+    group_notification.create(sender_id=group, action=group_notification.Action.create,
+                              category='members', message=f'User {user.user.username} left the group {user.group.name}')
+
 
 def group_invite(*, user: int, group: int, to: int) -> GroupUserInvite:
     group = group_user_permissions(group=group, user=user, permissions=['admin', 'invite_user']).group
     get_object(GroupUser, error_message='User is already in the group', reverse=True, group=group, user=to)
     invite = GroupUserInvite(user_id=to, group_id=group.id, external=False)
+
     invite.full_clean()
     invite.save()
 
@@ -298,6 +324,9 @@ def group_user_delegate_pool_create(*, user: int, group: int) -> GroupUserDelega
     user_delegate.full_clean()
     user_delegate.save()
 
+    group_notification.create(sender_id=group, action=group_notification.Action.update, category='delegate',
+                              message=f'{group_user.user.username} is now a delegate in {group_user.group.name}')
+
     return delegate_pool
 
 
@@ -306,5 +335,9 @@ def group_user_delegate_pool_delete(*, user: int, group: int):
 
     delegate_user = get_object(GroupUserDelegate, group_user=group_user, group_id=group)
     delegate_pool = get_object(GroupUserDelegatePool, id=delegate_user.pool_id)
+
+    group_notification.create(sender_id=group, action=group_notification.Action.update, category='delegate',
+                              message=f'{group_user.user.username} has resigned from being a delegate in '
+                                      f'{group_user.group.name}')
 
     delegate_pool.delete()

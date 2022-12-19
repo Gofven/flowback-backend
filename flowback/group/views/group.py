@@ -5,7 +5,8 @@ from rest_framework.views import APIView
 
 from flowback.group.models import Group
 from flowback.group.selectors import group_list, group_detail
-from flowback.group.services import group_delete, group_update, group_create, group_mail
+from flowback.group.services import group_delete, group_update, group_create, group_mail, group_notification, \
+    group_notification_subscribe
 
 
 class GroupListApi(APIView):
@@ -29,6 +30,7 @@ class GroupListApi(APIView):
                       'created_by',
                       'active',
                       'direct_join',
+                      'hide_poll_users',
                       'name',
                       'description',
                       'image',
@@ -61,6 +63,7 @@ class GroupDetailApi(APIView):
                       'active',
                       'direct_join',
                       'public',
+                      'hide_poll_users',
                       'default_permission',
                       'name',
                       'description',
@@ -80,7 +83,7 @@ class GroupCreateApi(APIView):
     class InputSerializer(serializers.ModelSerializer):
         class Meta:
             model = Group
-            fields = ('name', 'description', 'image', 'cover_image', 'direct_join', 'public')
+            fields = ('name', 'description', 'image', 'cover_image', 'hide_poll_users', 'direct_join', 'public')
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
@@ -98,6 +101,7 @@ class GroupUpdateApi(APIView):
         image = serializers.ImageField(required=False)
         cover_image = serializers.ImageField(required=False)
         public = serializers.BooleanField(required=False)
+        hide_poll_users = serializers.BooleanField(required=False)
         direct_join = serializers.BooleanField(required=False)
         default_permission = serializers.IntegerField(required=False, allow_null=True)
 
@@ -111,6 +115,17 @@ class GroupUpdateApi(APIView):
 class GroupDeleteApi(APIView):
     def post(self, request, group: int):
         group_delete(user=request.user.id, group=group)
+        return Response(status=status.HTTP_200_OK)
+
+
+class GroupNotificationSubscribeApi(APIView):
+    class InputSerializer(serializers.Serializer):
+        categories = serializers.MultipleChoiceField(choices=group_notification.possible_categories)
+
+    def post(self, request, group: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        group_notification_subscribe(user_id=request.user.id, group=group, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 
