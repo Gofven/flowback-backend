@@ -8,8 +8,7 @@ from rest_framework import serializers, status
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.kanban.models import KanbanEntry
 from flowback.kanban.selectors import kanban_list
-from flowback.kanban.services import kanban_entry_create, kanban_entry_update, kanban_entry_delete, \
-    kanban_notification_subscribe, kanban_notification
+from flowback.kanban.services import kanban_entry_create, kanban_entry_update, kanban_entry_delete
 
 
 class KanbanEntryListApi(APIView):
@@ -98,15 +97,4 @@ class KanbanEntryUpdateAPI(APIView):
 class KanbanEntryDeleteAPI(APIView):
     def post(self, request, group_id: int, kanban_entry_id: int):
         kanban_entry_delete(fetched_by=request.user, group_id=group_id, kanban_entry_id=kanban_entry_id)
-        return Response(status=status.HTTP_200_OK)
-
-
-class KanbanNotificationSubscribeApi(APIView):
-    class InputSerializer(serializers.Serializer):
-        categories = serializers.MultipleChoiceField(choices=kanban_notification.possible_categories)
-
-    def post(self, request, group: int):
-        serializer = self.InputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        kanban_notification_subscribe(user_id=request.user.id, group=group, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK)

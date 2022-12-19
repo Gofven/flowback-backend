@@ -18,7 +18,7 @@ def poll_notification_subscribe(*, user_id: int, group_id: int, poll_id: int, ca
     group_user = group_user_permissions(user=user_id, group=group_id)
     poll = get_object(Poll, id=poll_id)
 
-    if group_user.group.id != poll.group.id:
+    if group_user.group.id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
 
     poll_notification.channel_subscribe(user_id=user_id, sender_id=poll.id, category=categories)
@@ -69,7 +69,7 @@ def poll_create(*, user_id: int,
                              timestamp=end_date)
 
     if poll_type == Poll.PollType.SCHEDULE:
-        group_notification.create(sender_id=group_id, action=group_notification.Action.update, category='poll',
+        group_notification.create(sender_id=group_id, action=group_notification.Action.update, category='schedule',
                                   message=f'Poll {poll.title} has finished, group schedule has been updated')
 
     return poll
