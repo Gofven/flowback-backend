@@ -14,7 +14,8 @@ from flowback.group.selectors import group_user_permissions
 from flowback.common.services import model_update, get_object
 
 group_notification = NotificationManager(sender_type='group', possible_categories=['group', 'members', 'invite',
-                                                                                   'delegate', 'poll'])
+                                                                                   'delegate', 'poll', 'kanban',
+                                                                                   'schedule'])
 
 
 def group_notification_subscribe(*, user_id: int, group: int, categories: list[str]):

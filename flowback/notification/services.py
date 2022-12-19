@@ -56,14 +56,20 @@ def notification_mark_read(*, fetched_by: int, notification_ids: list[int]) -> N
     return notifications
 
 
-# TODO doesnt consider future notifications
 def notification_channel_subscribe(*,
                                    user_id: int,
                                    category: str,
                                    sender_type: str,
                                    sender_id: int) -> NotificationSubscription:
     channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
+    get_object(NotificationSubscription, user_id=user_id, channel=channel,
+               error_message='User is already subscribed', reverse=True)
     subscription = NotificationSubscription(user_id=user_id, channel=channel)
+    future_notifications = [Notification(user_id=user_id, notification_object=notification_object)
+                            for notification_object
+                            in NotificationObject.objects.filter(channel=channel,
+                                                                 timestamp__gte=timezone.now()).all()]
+    Notification.objects.bulk_create(future_notifications)
     subscription.full_clean()
     subscription.save()
     return subscription
@@ -74,6 +80,9 @@ def notification_channel_unsubscribe(*, user_id: int, category: str,
     channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
     subscription = get_object(NotificationSubscription, user_id=user_id, channel=channel)
     subscription.delete()
+    Notification.objects.filter(user_id=user_id,
+                                channel=channel,
+                                notification_object__timestamp__gte=timezone.now()).delete()
     return
 
 
