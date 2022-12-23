@@ -44,9 +44,9 @@ def notification_delete(*, category: str, sender_type: str, sender_id: int,
                         related_id: int = None, timestamp: datetime = None,
                         timestamp__lt: datetime = None, timestamp__gt: datetime = None, action: str = None):
     channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
-    notifications = NotificationObject.objects.filter(channel=channel, action=action, related_id=related_id,
-                                                      timestamp=timestamp, timestamp__lt=timestamp__lt,
-                                                      timestamp__gt=timestamp__gt)
+    filters = {a: b for a, b in dict(channel=channel, action=action, related_id=related_id, timestamp=timestamp,
+                                     timestamp__lt=timestamp__lt, timestamp__gt=timestamp__gt).items() if b is not None}
+    notifications = NotificationObject.objects.filter(**filters)
 
     notifications.delete()
 

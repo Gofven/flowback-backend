@@ -79,7 +79,7 @@ def poll_update(*, user_id: int, group_id: int, poll_id: int, data) -> Poll:
     group_user = group_user_permissions(user=user_id, group=group_id)
     poll = get_object(Poll, id=poll_id)
 
-    if not poll.created_by == group_user or not group_user.is_admin or group_id != poll.group.id:
+    if not poll.created_by == group_user or not group_user.is_admin or group_id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
 
     non_side_effect_fields = ['title', 'description']
@@ -96,7 +96,8 @@ def poll_delete(*, user_id: int, group_id: int, poll_id: int) -> None:
     group_user = group_user_permissions(user=user_id, group=group_id)
     poll = get_object(Poll, id=poll_id)
 
-    if not poll.created_by == group_user or not group_user.is_admin or poll.group.id != poll.group.id:
+    if not poll.created_by == group_user or not group_user.is_admin\
+            or poll.created_by.group.id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
 
     if (poll.created_by == group_user and not group_user.is_admin
@@ -106,17 +107,18 @@ def poll_delete(*, user_id: int, group_id: int, poll_id: int) -> None:
     if poll.finished:
         raise ValidationError('Only site admins (or above) can delete finished polls')
 
-    if timezone.now() <= poll.start_date():
+    # Remove future notifications
+    if timezone.now() <= poll.start_date:
         group_notification.delete(sender_id=group_id, category='poll', related_id=poll.id)
 
-    if timezone.now() <= poll.proposal_end_date():
-        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.proposal_end_date())
-    elif timezone.now() <= poll.prediction_end_date():
-        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.prediction_end_date())
-    elif timezone.now() <= poll.delegate_vote_end_date():
-        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.delegate_vote_end_date())
-    elif timezone.now() <= poll.end_date():
-        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.end_date())
+    if timezone.now() <= poll.proposal_end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.proposal_end_date)
+    elif timezone.now() <= poll.prediction_end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.prediction_end_date)
+    elif timezone.now() <= poll.delegate_vote_end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.delegate_vote_end_date)
+    elif timezone.now() <= poll.end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.end_date)
 
     poll.delete()
 
@@ -127,7 +129,7 @@ def poll_proposal_create(*, user_id: int, group_id: int, poll_id: int,
     group_user = group_user_permissions(user=user_id, group=group_id)
     poll = get_object(Poll, id=poll_id)
 
-    if group_user.group.id != poll.group.id:
+    if group_user.group.id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
 
     if poll.proposal_end_date <= timezone.now():
@@ -163,7 +165,7 @@ def poll_proposal_delete(*, user_id: int, group_id: int, poll_id: int, proposal_
     if not proposal.created_by == group_user:
         raise ValidationError('Permission denied')
 
-    if group_user.group.id != proposal.poll.group.id:
+    if group_user.group.id != proposal.poll.created_by.group.id:
         raise ValidationError('Permission denied')
 
     if proposal.poll.finished:
@@ -176,7 +178,7 @@ def poll_proposal_vote_update(*, user_id: int, group_id: int, poll_id: int, data
     group_user = group_user_permissions(user=user_id, group=group_id, permissions=['allow_vote', 'admin'])
     poll = get_object(Poll, id=poll_id)
 
-    if group_user.group.id != poll.group.id:
+    if group_user.group.id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
 
     if poll.vote_end_date <= timezone.now():
@@ -227,7 +229,7 @@ def poll_proposal_delegate_vote_update(*, user_id: int, group_id: int, poll_id: 
     delegate_pool = get_object(GroupUserDelegatePool, groupuserdelegate__group_user=group_user)
     poll = get_object(Poll, id=poll_id)
 
-    if group_user.group.id != poll.group.id:
+    if group_user.group.id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
 
     if poll.delegate_vote_end_date <= timezone.now():
