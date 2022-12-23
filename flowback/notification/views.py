@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.notification.selectors import notification_list, notification_subscription_list
-from flowback.notification.services import notification_mark_read
+from flowback.notification.services import notification_mark_read, notification_channel_unsubscribe
 
 
 class NotificationListAPI(APIView):
@@ -90,4 +90,18 @@ class NotificationMarkReadAPI(APIView):
         serializer.is_valid(raise_exception=True)
 
         notification_mark_read(fetched_by=request.user.id, **serializer.validated_data)
+        return Response(status=status.HTTP_200_OK)
+
+
+class NotificationUnsubscribeAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        type = serializers.CharField()
+        id = serializers.IntegerField()
+        category = serializers.CharField()
+
+    def post(self, request):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        notification_channel_unsubscribe(user_id=request.user.id, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
