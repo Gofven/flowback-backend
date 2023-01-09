@@ -104,5 +104,4 @@ def direct_message_preview(*, user: User, filters=None):
                                                                           output_field=models.DateTimeField()),
                                                                           ).order_by('-created_at').all()
 
-    print(qs.query)
     return BaseDirectMessagePreviewFilter(filters, qs).qs
