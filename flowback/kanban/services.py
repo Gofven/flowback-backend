@@ -27,7 +27,7 @@ def kanban_entry_create(*,
 
 def kanban_entry_update(*, fetched_by: int, group_id: int, kanban_entry_id: int, data) -> KanbanEntry:
     group_user = group_user_permissions(group=group_id, user=fetched_by)
-    kanban = get_object(KanbanEntry, id=kanban_entry_id)
+    kanban = get_object(KanbanEntry, id=kanban_entry_id, group_user__group_id=group_id)
 
     if data.get('assignee_id'):
         data['assignee'] = group_user_permissions(group=group_id, user=data['assignee_id'])
@@ -46,7 +46,7 @@ def kanban_entry_update(*, fetched_by: int, group_id: int, kanban_entry_id: int,
 
 def kanban_entry_delete(*, fetched_by: int, group_id: int, kanban_entry_id: int) -> None:
     group_user = group_user_permissions(group=group_id, user=fetched_by)
-    kanban = get_object(KanbanEntry, id=kanban_entry_id).delete()
+    kanban = KanbanEntry.objects.get(id=kanban_entry_id, created_by__group_id=group_id).delete()
 
     group_notification.create(sender_id=group_id, action=group_notification.Action.delete, category='kanban',
                               message=f'User {group_user.user.username} deleted a kanban in {group_user.group.name}')
