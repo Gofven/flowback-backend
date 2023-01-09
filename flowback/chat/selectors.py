@@ -1,3 +1,4 @@
+from django.db import models
 from django.db.models import Q, OuterRef, Subquery, When, Case, F
 import django_filters
 
@@ -88,10 +89,9 @@ def direct_message_list(*, user: User, target: int, filters=None):
 
 def direct_message_preview(*, user: User, filters=None):
     filters = filters or {}
-    subquery = DirectMessageUserData.objects.filter(user=Case(When(user=user, then=F('user')),
-                                                              When(target=user, then=F('target'))),
-                                                    target=Case(When(user=user, then=F('target')),
-                                                                When(target=user, then=F('user')))).values('timestamp')
+    subquery = DirectMessageUserData.objects.filter(user=user,
+                                                    target=Case(When(user=user, then=OuterRef('target')),
+                                                                default=OuterRef('user'))).values('timestamp')
 
     qs = DirectMessage.objects.filter(Q(user=user) | Q(target=user)
                                       ).annotate(relevant_user=Case(When(user=user, then=F('target')),
@@ -100,7 +100,9 @@ def direct_message_preview(*, user: User, filters=None):
                                                             ).distinct('relevant_user').all()
 
     # TODO Find a better way to order this
-    qs = DirectMessage.objects.filter(id__in=[q.id for q in qs]).annotate(timestamp=Subquery(subquery[:1])
+    qs = DirectMessage.objects.filter(id__in=[q.id for q in qs]).annotate(timestamp=Subquery(subquery,
+                                                                          output_field=models.DateTimeField()),
                                                                           ).order_by('-created_at').all()
 
+    print(qs.query)
     return BaseDirectMessagePreviewFilter(filters, qs).qs
