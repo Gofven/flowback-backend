@@ -90,7 +90,6 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
-
         if self.scope['user'].is_anonymous:
             await self.close()
 
@@ -165,6 +164,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def get_message_target(self, target: int, target_type: str):
         return f'user_{target}' if target_type == 'direct' else f'group_{target}'
 
+    # TODO TypeError: Field 'id' expected a number but got
+    #  <django.contrib.auth.models.AnonymousUser object at 0x7f16f50f08e0>.
     @database_sync_to_async
     def get_chat_groups(self):
         user_groups = Group.objects.filter(groupuser__user__in=[self.user]).all()

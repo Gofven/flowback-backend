@@ -88,8 +88,11 @@ def direct_message_list(*, user: User, target: int, filters=None):
 
 def direct_message_preview(*, user: User, filters=None):
     filters = filters or {}
-    subquery = DirectMessageUserData.objects.filter(user=OuterRef('user'),
-                                                    target=OuterRef('target')).values('timestamp')
+    subquery = DirectMessageUserData.objects.filter(user=Case(When(user=user, then=F('user')),
+                                                              When(target=user, then=F('target'))),
+                                                    target=Case(When(user=user, then=F('target')),
+                                                                When(target=user, then=F('user')))).values('timestamp')
+
     qs = DirectMessage.objects.filter(Q(user=user) | Q(target=user)
                                       ).annotate(relevant_user=Case(When(user=user, then=F('target')),
                                                                     When(target=user, then=F('user')))
