@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     'flowback.chat',
     'flowback.kanban',
     'flowback.notification',
+    'flowback.comment',
 ] + env('INTEGRATIONS')
 
 REST_FRAMEWORK = {

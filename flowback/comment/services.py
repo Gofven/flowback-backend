@@ -16,20 +16,22 @@ def comment_section_delete(*, comments_id: int):
     CommentSection.objects.get(comments_id=comments_id).delete()
 
 
-def comment_create(*, author_id: int, message: str, parent_id: int, score: int) -> Comment:
-    comment = Comment(author_id=author_id, message=message, parent_id=parent_id, score=score)
+def comment_create(*, author_id: int, comment_section_id: int, message: str, parent_id: int) -> Comment:
+    comment = Comment(author_id=author_id, comment_section_id=comment_section_id,
+                      message=message, parent_id=parent_id)
     comment.full_clean()
     comment.save()
 
     return comment
 
 
-def comment_update(*, fetched_by: int, comment_id: int, data) -> Comment:
-    comment = Comment.objects.get(id=comment_id)
+def comment_update(*, fetched_by: int, comment_section_id: int,  comment_id: int, data) -> Comment:
+    comment = Comment.objects.get(comment_section_id=comment_section_id, id=comment_id)
     if fetched_by != comment.author_id:
         raise ValidationError("Comment doesn't belong to User")
 
-    non_side_effect_fields = ['message']
+    data['edited'] = True
+    non_side_effect_fields = ['message', 'edited']
     comment, has_updated = model_update(instance=comment,
                                         fields=non_side_effect_fields,
                                         data=data)
@@ -37,8 +39,8 @@ def comment_update(*, fetched_by: int, comment_id: int, data) -> Comment:
     return comment
 
 
-def comment_delete(*, fetched_by: int, comment_id: int):
-    comment = Comment.objects.get(id=comment_id)
+def comment_delete(*, fetched_by: int, comment_section_id: int, comment_id: int):
+    comment = Comment.objects.get(comment_section_id=comment_section_id, id=comment_id)
     if fetched_by != comment.author_id:
         raise ValidationError("Comment doesn't belong to User")
 

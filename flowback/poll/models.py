@@ -6,6 +6,7 @@ from rest_framework.exceptions import ValidationError
 
 from flowback.common.models import BaseModel
 from flowback.group.models import Group, GroupUser, GroupUserDelegatePool, GroupTags
+from flowback.comment.models import CommentSection
 import pgtrigger
 
 
