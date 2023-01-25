@@ -42,6 +42,9 @@ class Poll(BaseModel):
     finished = models.BooleanField(default=False)
     result = models.BooleanField(default=False)
 
+    # Comment section
+    comment_section = models.ForeignKey(CommentSection, on_delete=models.DO_NOTHING)
+
     # Optional dynamic counting support
     participants = models.IntegerField(default=0)
     dynamic = models.BooleanField()
