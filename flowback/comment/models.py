@@ -4,7 +4,7 @@ from flowback.user.models import User
 
 
 class CommentSection(BaseModel):
-    allow_replies = models.BooleanField()
+    active = models.BooleanField(default=True)
 
 
 class Comment(BaseModel):
