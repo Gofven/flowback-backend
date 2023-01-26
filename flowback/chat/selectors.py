@@ -73,8 +73,9 @@ def group_message_list(*, user: User, group: int, filters=None):
 
 def group_message_preview(*, user: User, filters=None):
     filters = filters or {}
-    subquery = GroupMessageUserData.objects.filter(group_user=OuterRef('group_user')).values('timestamp')
-    qs = GroupMessage.objects.filter(group_user__user__in=[user]
+    subquery = GroupMessageUserData.objects.filter(group_user__group=OuterRef('group_user__group'),
+                                                   group_user__user=user).values('timestamp')
+    qs = GroupMessage.objects.filter(group_user__group__groupuser__in=[user]
                                      ).order_by('group_user__group_id', '-created_at')\
         .annotate(timestamp=Subquery(subquery[:1])).distinct('group_user__group_id').all()
     return BaseGroupMessagePreviewFilter(filters, qs).qs
