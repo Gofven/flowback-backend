@@ -1,0 +1,159 @@
+from rest_framework.exceptions import ValidationError
+from flowback.common.services import get_object, model_update
+from flowback.group.services import group_notification
+from flowback.notification.services import NotificationManager
+from flowback.poll.models import Poll
+from flowback.group.selectors import group_user_permissions
+from django.utils import timezone
+from datetime import datetime
+
+from flowback.poll.services.vote import poll_proposal_vote_count
+
+poll_notification = NotificationManager(sender_type='poll', possible_categories=['timeline', 'poll'])
+
+
+def poll_notification_subscribe(*, user_id: int, group_id: int, poll_id: int, categories: list[str]):
+    group_user = group_user_permissions(user=user_id, group=group_id)
+    poll = get_object(Poll, id=poll_id)
+
+    if group_user.group.id != poll.created_by.group.id:
+        raise ValidationError('Permission denied')
+
+    poll_notification.channel_subscribe(user_id=user_id, sender_id=poll.id, category=categories)
+
+
+def poll_create(*, user_id: int,
+                group_id: int,
+                title: str,
+                description: str,
+                start_date: datetime,
+                proposal_end_date: datetime,
+                prediction_end_date: datetime,
+                delegate_vote_end_date: datetime,
+                end_date: datetime,
+                poll_type: int,
+                public: bool,
+                tag: int,
+                dynamic: bool
+                ) -> Poll:
+    group_user = group_user_permissions(user=user_id, group=group_id, permissions=['create_poll', 'admin'])
+    poll = Poll(created_by=group_user, title=title, description=description,
+                start_date=start_date, proposal_end_date=proposal_end_date, prediction_end_date=prediction_end_date,
+                delegate_vote_end_date=delegate_vote_end_date, vote_end_date=end_date, end_date=end_date,
+                poll_type=poll_type, public=public, tag_id=tag, dynamic=dynamic)
+    poll.full_clean()
+    poll.save()
+
+    # Group notification
+    group_notification.create(sender_id=group_id, action=poll_notification.Action.update, category='poll',
+                              message=f'User {group_user.user.username} created poll {poll.title}',
+                              timestamp=start_date, related_id=poll.id)
+
+    # Poll notification
+    poll_notification.create(sender_id=poll.id, action=poll_notification.Action.update, category='timeline',
+                             message=f'Poll {poll.title} has stopped accepting proposals',
+                             timestamp=proposal_end_date)
+
+    poll_notification.create(sender_id=poll.id, action=poll_notification.Action.update, category='timeline',
+                             message=f'Poll {poll.title} has stopped accepting predictions',
+                             timestamp=prediction_end_date)
+
+    poll_notification.create(sender_id=poll.id, action=poll_notification.Action.update, category='timeline',
+                             message=f'Poll {poll.title} has stopped accepting delegate votes',
+                             timestamp=delegate_vote_end_date)
+
+    poll_notification.create(sender_id=poll.id, action=poll_notification.Action.update, category='timeline',
+                             message=f'Poll {poll.title} has finished',
+                             timestamp=end_date)
+
+    if poll_type == Poll.PollType.SCHEDULE:
+        group_notification.create(sender_id=group_id, action=group_notification.Action.update, category='schedule',
+                                  message=f'Poll {poll.title} has finished, group schedule has been updated')
+
+    return poll
+
+
+def poll_update(*, user_id: int, group_id: int, poll_id: int, data) -> Poll:
+    group_user = group_user_permissions(user=user_id, group=group_id)
+    poll = get_object(Poll, id=poll_id)
+
+    if not poll.created_by == group_user or not group_user.is_admin or group_id != poll.created_by.group.id:
+        raise ValidationError('Permission denied')
+
+    non_side_effect_fields = ['title', 'description']
+
+    poll, has_updated = model_update(instance=poll,
+                                     fields=non_side_effect_fields,
+                                     data=data)
+
+    return poll
+
+
+# TODO remove related notifications
+def poll_delete(*, user_id: int, group_id: int, poll_id: int) -> None:
+    group_user = group_user_permissions(user=user_id, group=group_id)
+    poll = get_object(Poll, id=poll_id)
+
+    if not poll.created_by == group_user or not group_user.is_admin\
+            or poll.created_by.group.id != poll.created_by.group.id:
+        raise ValidationError('Permission denied')
+
+    if (poll.created_by == group_user and not group_user.is_admin
+    and not group_user.group.created_by == group_user) and poll.start_date < timezone.now():
+        raise ValidationError('Only group admins (or above) can delete ongoing polls')
+
+    if poll.finished:
+        raise ValidationError('Only site admins (or above) can delete finished polls')
+
+    # Remove future notifications
+    if timezone.now() <= poll.start_date:
+        group_notification.delete(sender_id=group_id, category='poll', related_id=poll.id)
+
+    if timezone.now() <= poll.proposal_end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.proposal_end_date)
+    elif timezone.now() <= poll.prediction_end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.prediction_end_date)
+    elif timezone.now() <= poll.delegate_vote_end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.delegate_vote_end_date)
+    elif timezone.now() <= poll.end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.end_date)
+
+    poll.delete()
+
+
+def poll_finish(*, poll_id: int) -> None:
+    poll = get_object(Poll, id=poll_id)
+
+    if poll.finished:
+        raise ValidationError("Poll is already finished")
+
+    poll_proposal_vote_count(poll_id=poll_id)
+    poll.finished = True
+    poll.result = True
+    poll.save()
+
+
+def poll_refresh(*, poll_id: int) -> None:
+    poll = get_object(Poll, id=poll_id)
+
+    if not poll.dynamic:
+        raise ValidationError("Attempted to refresh a poll that doesn't allow live update")
+
+    if poll.finished:
+        raise ValidationError("Attempted to refresh a poll that's already finished")
+
+    poll_proposal_vote_count(poll_id=poll_id)
+
+
+# TODO setup celery
+def poll_refresh_cheap(*, poll_id: int) -> None:
+    poll = get_object(Poll, id=poll_id)
+    if poll.end_date <= timezone.now() and not poll.result:
+        poll.finished = True
+        poll.save()
+
+    if (poll.finished and not poll.result) or (poll.dynamic and not poll.finished):
+        poll_proposal_vote_count(poll_id=poll_id)
+        poll.refresh_from_db()
+        poll.result = True
+        poll.save()

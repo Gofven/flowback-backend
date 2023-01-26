@@ -11,9 +11,10 @@ from flowback.group.serializers import BasicGroupUserSerializer
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollVotingTypeForAgainst
 from flowback.poll.selectors import poll_list, poll_proposal_list, poll_vote_list, poll_delegates_list, \
     poll_user_schedule_list
-from flowback.poll.services import poll_create, poll_update, poll_delete, poll_proposal_create, poll_proposal_delete, \
-    poll_proposal_vote_update, poll_proposal_delegate_vote_update, poll_refresh_cheap, poll_notification, \
+from .services.poll import poll_create, poll_update, poll_delete, poll_refresh_cheap, poll_notification, \
     poll_notification_subscribe
+from .services.proposal import poll_proposal_create, poll_proposal_delete
+from .services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
 
 
 class PollListApi(APIView):
