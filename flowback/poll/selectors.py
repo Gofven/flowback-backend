@@ -3,7 +3,9 @@ from typing import Union
 import django_filters
 from django.db.models import Q, F
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
+from flowback.comment.selectors import comment_list
 from flowback.common.services import get_object
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollDelegateVoting, PollVoting, \
     PollProposalTypeSchedule, PollVotingTypeForAgainst
@@ -86,6 +88,7 @@ class BasePollDelegateVotingFilter(django_filters.FilterSet):
 
 def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
     filters = filters or {}
+
     if group_id:
         group_user_permissions(group=group_id, user=fetched_by)
         qs = Poll.objects.filter(created_by__group_id=group_id).all()
@@ -98,14 +101,15 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
     return BasePollFilter(filters, qs).qs
 
 
-def poll_proposal_list(*, fetched_by: User, group_id: int, poll_id: int, filters=None):
-    if group_id and poll_id:
+def poll_proposal_list(*, fetched_by: User, poll_id: int, filters=None):
+    if poll_id:
         poll = get_object(Poll, id=poll_id)
+
         if not poll.public:
-            group_user_permissions(group=group_id, user=fetched_by)
+            group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
 
         filters = filters or {}
-        qs = PollProposal.objects.filter(created_by__group_id=group_id, poll=poll)\
+        qs = PollProposal.objects.filter(created_by__group_id=poll.created_by.group.id, poll=poll)\
             .order_by(F('score').desc(nulls_last=True)).all()
 
         if poll.poll_type == Poll.PollType.SCHEDULE:
@@ -124,9 +128,10 @@ def poll_user_schedule_list(*, fetched_by: User, filters=None):
     return BasePollProposalScheduleFilter(filters, qs).qs
 
 
-def poll_vote_list(*, fetched_by: User, group_id: int, poll_id: int, delegates: bool = False, filters=None):
+def poll_vote_list(*, fetched_by: User, poll_id: int, delegates: bool = False, filters=None):
     poll = get_object(Poll, id=poll_id)
-    group_user = group_user_permissions(group=group_id, user=fetched_by)
+    group_user = group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
+
     filters = filters or {}
 
     # Ranking
@@ -152,9 +157,20 @@ def poll_vote_list(*, fetched_by: User, group_id: int, poll_id: int, delegates: 
         return BasePollVoteForAgainstFilter(filters, qs).qs
 
 
-def poll_delegates_list(*, fetched_by: User, group_id: int, poll_id: int, filters=None):
-    poll = get_object(Poll, id=poll_id)
-    group_user_permissions(group=group_id, user=fetched_by)
+def poll_delegates_list(*, fetched_by: User, poll_id: int, filters=None):
     filters = filters or {}
+
+    poll = get_object(Poll, id=poll_id)
+    group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
+
     qs = PollDelegateVoting.objects.filter(poll=poll).all()
     return BasePollDelegateVotingFilter(filters, qs).qs
+
+
+def poll_comment_list(*, fetched_by: User, poll_id: int, filters=None):
+    filters = filters or {}
+
+    poll = get_object(Poll, id=poll_id)
+    group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
+
+    return comment_list(comment_section_id=poll.comment_section.id, filters=filters)

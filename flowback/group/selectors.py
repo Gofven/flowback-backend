@@ -34,10 +34,9 @@ def group_user_permissions(*,
                            permissions: list[str] = None,
                            raise_exception: bool = True) -> Union[GroupUser, bool]:
 
-
-
     if type(user) == int:
         user = get_object(User, id=user)
+
     permissions = permissions or []
     requires_permissions = bool(permissions)  # Avoids authentication if all permissions are removed before check
     user = get_object(GroupUser, 'User is not in group', group=group, user=user)

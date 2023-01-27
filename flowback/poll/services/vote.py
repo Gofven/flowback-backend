@@ -8,12 +8,11 @@ from flowback.group.selectors import group_user_permissions
 from django.utils import timezone
 
 
-def poll_proposal_vote_update(*, user_id: int, group_id: int, poll_id: int, data: dict) -> None:
-    group_user = group_user_permissions(user=user_id, group=group_id, permissions=['allow_vote', 'admin'])
+def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None:
     poll = get_object(Poll, id=poll_id)
-
-    if group_user.group.id != poll.created_by.group.id:
-        raise ValidationError('Permission denied')
+    group_user = group_user_permissions(user=user_id,
+                                        group=poll.created_by.group.id,
+                                        permissions=['allow_vote', 'admin'])
 
     if poll.vote_end_date <= timezone.now():
         raise ValidationError("Can't vote after vote end date")
@@ -58,10 +57,10 @@ def poll_proposal_vote_update(*, user_id: int, group_id: int, poll_id: int, data
 
 
 # TODO update in future for delegate pool
-def poll_proposal_delegate_vote_update(*, user_id: int, group_id: int, poll_id: int, data) -> None:
-    group_user = group_user_permissions(user=user_id, group=group_id)
-    delegate_pool = get_object(GroupUserDelegatePool, groupuserdelegate__group_user=group_user)
+def poll_proposal_delegate_vote_update(*, user_id: int, poll_id: int, data) -> None:
     poll = get_object(Poll, id=poll_id)
+    group_user = group_user_permissions(user=user_id, group=poll.created_by.group.id)
+    delegate_pool = get_object(GroupUserDelegatePool, groupuserdelegate__group_user=group_user)
 
     if group_user.group.id != poll.created_by.group.id:
         raise ValidationError('Permission denied')

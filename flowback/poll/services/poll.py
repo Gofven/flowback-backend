@@ -12,12 +12,9 @@ from flowback.poll.services.vote import poll_proposal_vote_count
 poll_notification = NotificationManager(sender_type='poll', possible_categories=['timeline', 'poll'])
 
 
-def poll_notification_subscribe(*, user_id: int, group_id: int, poll_id: int, categories: list[str]):
-    group_user = group_user_permissions(user=user_id, group=group_id)
+def poll_notification_subscribe(*, user_id: int, poll_id: int, categories: list[str]):
     poll = get_object(Poll, id=poll_id)
-
-    if group_user.group.id != poll.created_by.group.id:
-        raise ValidationError('Permission denied')
+    group_user_permissions(user=user_id, group=poll.created_by.group.id)
 
     poll_notification.channel_subscribe(user_id=user_id, sender_id=poll.id, category=categories)
 
@@ -73,11 +70,11 @@ def poll_create(*, user_id: int,
     return poll
 
 
-def poll_update(*, user_id: int, group_id: int, poll_id: int, data) -> Poll:
-    group_user = group_user_permissions(user=user_id, group=group_id)
+def poll_update(*, user_id: int, poll_id: int, data) -> Poll:
     poll = get_object(Poll, id=poll_id)
+    group_user = group_user_permissions(user=user_id, group=poll.created_by.group.id)
 
-    if not poll.created_by == group_user or not group_user.is_admin or group_id != poll.created_by.group.id:
+    if not poll.created_by == group_user or not group_user.is_admin:
         raise ValidationError('Permission denied')
 
     non_side_effect_fields = ['title', 'description']
@@ -90,12 +87,12 @@ def poll_update(*, user_id: int, group_id: int, poll_id: int, data) -> Poll:
 
 
 # TODO remove related notifications
-def poll_delete(*, user_id: int, group_id: int, poll_id: int) -> None:
-    group_user = group_user_permissions(user=user_id, group=group_id)
+def poll_delete(*, user_id: int, poll_id: int) -> None:
     poll = get_object(Poll, id=poll_id)
+    group_id = poll.created_by.group.id
+    group_user = group_user_permissions(user=user_id, group=group_id)
 
-    if not poll.created_by == group_user or not group_user.is_admin\
-            or poll.created_by.group.id != poll.created_by.group.id:
+    if not poll.created_by == group_user or not group_user.is_admin:
         raise ValidationError('Permission denied')
 
     if (poll.created_by == group_user and not group_user.is_admin
@@ -110,13 +107,13 @@ def poll_delete(*, user_id: int, group_id: int, poll_id: int) -> None:
         group_notification.delete(sender_id=group_id, category='poll', related_id=poll.id)
 
     if timezone.now() <= poll.proposal_end_date:
-        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.proposal_end_date)
+        poll_notification.delete(sender_id=poll_id, category='timeline', timestamp__gt=poll.proposal_end_date)
     elif timezone.now() <= poll.prediction_end_date:
-        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.prediction_end_date)
+        poll_notification.delete(sender_id=poll_id, category='timeline', timestamp__gt=poll.prediction_end_date)
     elif timezone.now() <= poll.delegate_vote_end_date:
-        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.delegate_vote_end_date)
+        poll_notification.delete(sender_id=poll_id, category='timeline', timestamp__gt=poll.delegate_vote_end_date)
     elif timezone.now() <= poll.end_date:
-        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.end_date)
+        poll_notification.delete(sender_id=poll_id, category='timeline', timestamp__gt=poll.end_date)
 
     poll.delete()
 

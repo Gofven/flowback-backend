@@ -10,11 +10,13 @@ from flowback.common.services import get_object
 from flowback.group.serializers import BasicGroupUserSerializer
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollVotingTypeForAgainst
 from flowback.poll.selectors import poll_list, poll_proposal_list, poll_vote_list, poll_delegates_list, \
-    poll_user_schedule_list
+    poll_user_schedule_list, poll_comment_list
+from .services.comment import poll_comment_create, poll_comment_update, poll_comment_delete
 from .services.poll import poll_create, poll_update, poll_delete, poll_refresh_cheap, poll_notification, \
     poll_notification_subscribe
 from .services.proposal import poll_proposal_create, poll_proposal_delete
 from .services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
+from ..comment.views import CommentListAPI, CommentCreateAPI, CommentUpdateAPI, CommentDeleteAPI
 
 
 class PollListApi(APIView):
@@ -83,10 +85,10 @@ class PollNotificationSubscribeApi(APIView):
     class InputSerializer(serializers.Serializer):
         categories = serializers.MultipleChoiceField(choices=poll_notification.possible_categories)
 
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        poll_notification_subscribe(user_id=request.user.id, group_id=group, poll_id=poll, **serializer.validated_data)
+        poll_notification_subscribe(user_id=request.user.id, poll_id=poll, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -113,18 +115,18 @@ class PollUpdateAPI(APIView):
         title = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
 
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
-        poll_update(user_id=request.user.id, group_id=group, poll_id=poll, data=serializer.validated_data)
+        poll_update(user_id=request.user.id, poll_id=poll, data=serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 
 class PollDeleteAPI(APIView):
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
-        poll_delete(user_id=request.user.id, group_id=group, poll_id=poll)
+        poll_delete(user_id=request.user.id, poll_id=poll)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -165,7 +167,7 @@ class PollProposalListAPI(APIView):
                       'start_date',
                       'end_date')
 
-    def get(self, request, group: int = None, poll: int = None):
+    def get(self, request, poll: int = None):
         poll = get_object(Poll, id=poll)
         if poll.poll_type == Poll.PollType.RANKING:
             filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -177,7 +179,7 @@ class PollProposalListAPI(APIView):
 
         filter_serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll.id)  # TODO get celery
-        proposals = poll_proposal_list(fetched_by=request.user, group_id=group, poll_id=poll.id,
+        proposals = poll_proposal_list(fetched_by=request.user, poll_id=poll.id,
                                        filters=filter_serializer.validated_data)
 
         return get_paginated_response(
@@ -258,7 +260,7 @@ class PollProposalCreateAPI(APIView):
             model = PollProposal
             fields = ('title', 'description', 'start_date', 'end_date')
 
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         poll = get_object(Poll, id=poll)
         if poll.poll_type == Poll.PollType.SCHEDULE:
             serializer = self.InputSerializerSchedule(data=request.data)
@@ -268,14 +270,13 @@ class PollProposalCreateAPI(APIView):
 
         serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll.id)  # TODO get celery
-        proposal = poll_proposal_create(user_id=request.user.id, group_id=group, poll_id=poll.id, **serializer.validated_data)
+        proposal = poll_proposal_create(user_id=request.user.id, poll_id=poll.id, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK, data=proposal.id)
 
 
 class PollProposalDeleteAPI(APIView):
-    def post(self, request, group: int, poll: int, proposal: int):
-        poll_refresh_cheap(poll_id=poll)  # TODO get celery
-        poll_proposal_delete(user_id=request.user.id, group_id=group, poll_id=poll, proposal_id=proposal)
+    def post(self, request, proposal: int):
+        poll_proposal_delete(user_id=request.user.id, proposal_id=proposal)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -306,14 +307,14 @@ class PollProposalVoteListAPI(APIView):
                       'vote',
                       'score')
 
-    def get(self, request, group: int, poll: int):
+    def get(self, request, poll: int):
         poll = get_object(Poll, id=poll)
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
         delegates = filter_serializer.validated_data.pop('delegates')
         poll_refresh_cheap(poll_id=poll.id)  # TODO get celery
 
-        votes = poll_vote_list(fetched_by=request.user, group_id=group, poll_id=poll.id,
+        votes = poll_vote_list(fetched_by=request.user, poll_id=poll.id,
                                delegates=delegates,
                                filters=filter_serializer.validated_data)
 
@@ -339,11 +340,11 @@ class PollProposalVoteUpdateAPI(APIView):
     class InputSerializerDefault(serializers.Serializer):
         votes = serializers.ListField(child=serializers.IntegerField())
 
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         serializer = self.InputSerializerDefault(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
-        poll_proposal_vote_update(user_id=request.user.id, group_id=group, poll_id=poll, data=serializer.validated_data)
+        poll_proposal_vote_update(user_id=request.user.id, poll_id=poll, data=serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -359,12 +360,12 @@ class PollDelegatesListAPI(APIView):
             model = PollProposal
             fields = ('created_by',)
 
-    def get(self, request, group: int, poll: int):
+    def get(self, request, poll: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
 
-        delegates = poll_delegates_list(fetched_by=request.user, group_id=group, poll_id=poll,
+        delegates = poll_delegates_list(fetched_by=request.user, poll_id=poll,
                                         filters=filter_serializer.validated_data)
 
         return get_paginated_response(
@@ -382,10 +383,56 @@ class PollProposalDelegateVoteUpdateAPI(APIView):
     class InputSerializerDefault(serializers.Serializer):
         votes = serializers.ListField(child=serializers.IntegerField())
 
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         serializer = self.InputSerializerDefault(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
-        poll_proposal_delegate_vote_update(user_id=request.user.id, group_id=group,
-                                           poll_id=poll, data=serializer.validated_data)
+        poll_proposal_delegate_vote_update(user_id=request.user.id, poll_id=poll, data=serializer.validated_data)
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollCommentListAPI(CommentListAPI):
+    class InputSerializer(CommentListAPI.InputSerializer):
+        poll_id = serializers.IntegerField()
+
+    def get(self, request, poll: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        comments = poll_comment_list(fetched_by=request.user, poll_id=poll)
+
+        return get_paginated_response(pagination_class=self.Pagination,
+                                      serializer_class=self.OutputSerializer,
+                                      queryset=comments,
+                                      request=request,
+                                      view=self)
+
+
+class PollCommentCreateAPI(CommentCreateAPI):
+    def post(self, request, poll: int):
+        serializer = self.InputSerializer()
+        serializer.is_valid(raise_exception=True)
+
+        poll_comment_create(author_id=request.user.id, poll_id=poll, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollCommentUpdateAPI(CommentUpdateAPI):
+    def post(self, request, poll: int, comment_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        poll_comment_update(fetched_by=request.user.id,
+                            poll_id=poll,
+                            comment_id=comment_id,
+                            **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollCommentDeleteAPI(CommentDeleteAPI):
+    def post(self, request, poll: int, comment_id: int):
+        poll_comment_delete(fetched_by=request.user, poll_id=poll, comment_id=comment_id)
+
         return Response(status=status.HTTP_200_OK)

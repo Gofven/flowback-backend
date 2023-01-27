@@ -7,10 +7,13 @@ from flowback.poll.models import PollProposal, Poll, PollProposalTypeSchedule
 
 
 # TODO proposal can be created without schedule, dangerous
-def poll_proposal_create(*, user_id: int, group_id: int, poll_id: int,
+from flowback.poll.services.poll import poll_refresh_cheap
+
+
+def poll_proposal_create(*, user_id: int, poll_id: int,
                          title: str = None, description: str = None, **data) -> PollProposal:
-    group_user = group_user_permissions(user=user_id, group=group_id)
     poll = get_object(Poll, id=poll_id)
+    group_user = group_user_permissions(user=user_id, group=poll.created_by.group.id)
 
     if group_user.group.id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
@@ -38,9 +41,11 @@ def poll_proposal_create(*, user_id: int, group_id: int, poll_id: int,
     return proposal
 
 
-def poll_proposal_delete(*, user_id: int, group_id: int, poll_id: int, proposal_id: int) -> None:
-    group_user = group_user_permissions(user=user_id, group=group_id)
-    proposal = get_object(PollProposal, id=proposal_id, poll_id=poll_id)
+def poll_proposal_delete(*, user_id: int, proposal_id: int) -> None:
+    proposal = get_object(PollProposal, id=proposal_id)
+    group_user = group_user_permissions(user=user_id, group=proposal.created_by.group.id)
+
+    poll_refresh_cheap(poll_id=proposal.poll.id)  # TODO get celery
 
     if proposal.poll.proposal_end_date <= timezone.now():
         raise ValidationError("Can't delete a proposal after proposal end date")
