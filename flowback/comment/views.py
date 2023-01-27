@@ -48,11 +48,11 @@ class CommentCreateAPI(APIView):
         message = serializers.CharField()
 
     def post(self, request, comment_section_id: int):
-        serializers = self.InputSerializer(data=request.data)
-        serializers.is_valid(raise_exception=True)
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
         comment_create(comment_section_id=comment_section_id, author_id=request.user.id,
-                       **serializers.validated_data)
+                       **serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
 

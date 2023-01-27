@@ -4,8 +4,8 @@ from flowback.comment.models import CommentSection, Comment
 from flowback.common.services import model_update
 
 
-def comment_section_create(*, active: bool = None) -> CommentSection:
-    comments = CommentSection(allow_replies=active)
+def comment_section_create(*, active: bool = True) -> CommentSection:
+    comments = CommentSection(active=active)
     comments.full_clean()
     comments.save()
 

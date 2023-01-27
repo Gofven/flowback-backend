@@ -3,7 +3,7 @@ import django_filters
 from flowback.comment.models import Comment
 
 
-class BaseCommentFilter(django_filters.filterset):
+class BaseCommentFilter(django_filters.FilterSet):
     order_by = django_filters.OrderingFilter(
         fields=(('created_at', 'created_at_asc'),
                 ('-created_at', 'created_at_desc'),
