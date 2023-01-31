@@ -4,8 +4,10 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 
+from flowback.comment.services import comment_section_create
 from flowback.common.models import BaseModel
 from flowback.group.models import Group, GroupUser, GroupUserDelegatePool, GroupTags
+from flowback.comment.models import CommentSection
 import pgtrigger
 
 
@@ -40,6 +42,9 @@ class Poll(BaseModel):
     end_date = models.DateTimeField()
     finished = models.BooleanField(default=False)
     result = models.BooleanField(default=False)
+
+    # Comment section
+    comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.DO_NOTHING)
 
     # Optional dynamic counting support
     participants = models.IntegerField(default=0)
