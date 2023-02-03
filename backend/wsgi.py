@@ -19,6 +19,7 @@ _application = get_wsgi_application()
 def application(environ, start_response):
     # http://flask.pocoo.org/snippets/35/
     script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
+    print(script_name)
     if script_name:
         environ['SCRIPT_NAME'] = script_name
         path_info = environ['PATH_INFO']
