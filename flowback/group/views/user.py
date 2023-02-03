@@ -66,6 +66,8 @@ class GroupInviteListApi(APIView):
         username = serializers.CharField(source='user.username')
         profile_image = serializers.ImageField(source='user.profile_image')
         group = serializers.IntegerField(source='group_id')
+        group_name = serializers.CharField(source='group.name')
+        group_image = serializers.ImageField(source='group.image')
         external = serializers.BooleanField()
 
     def get(self, request, group: int = None):
@@ -143,9 +145,11 @@ class GroupInviteAcceptApi(APIView):
         to = serializers.IntegerField(required=False)
 
     def post(self, request, group: int):
-        serializer = self.InputSerializer(data=request.data)
+        serializer = self.InputSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
-        group_invite_accept(fetched_by=request.user, group=group, **serializer.validated_data)
+        group_invite_accept(fetched_by=request.user.id, group=group, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class GroupInviteRejectApi(APIView):
@@ -153,6 +157,8 @@ class GroupInviteRejectApi(APIView):
         to = serializers.IntegerField(required=False)
 
     def post(self, request, group: int):
-        serializer = self.InputSerializer(data=request.data)
+        serializer = self.InputSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
-        group_invite_reject(fetched_by=request.user, group=group, **serializer.validated_data)
+        group_invite_reject(fetched_by=request.user.id, group=group, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)

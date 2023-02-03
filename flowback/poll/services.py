@@ -2,6 +2,8 @@ from django.db.models import Sum, Q, Count, F, OuterRef, Subquery
 from rest_framework.exceptions import ValidationError
 from flowback.common.services import get_object, model_update
 from flowback.group.models import GroupUserDelegatePool
+from flowback.group.services import group_notification
+from flowback.notification.services import NotificationManager
 from flowback.poll.models import Poll, PollProposal, PollVoting, PollVotingTypeRanking, PollDelegateVoting, \
     PollVotingTypeForAgainst, PollProposalTypeSchedule
 from flowback.group.selectors import group_user_permissions
@@ -9,7 +11,21 @@ from django.utils import timezone
 from datetime import datetime
 
 
-def poll_create(*, user_id: int, group_id: int,
+poll_notification = NotificationManager(sender_type='poll', possible_categories=['timeline', 'poll'])
+
+
+def poll_notification_subscribe(*, user_id: int, group_id: int, poll_id: int, categories: list[str]):
+    group_user = group_user_permissions(user=user_id, group=group_id)
+    poll = get_object(Poll, id=poll_id)
+
+    if group_user.group.id != poll.created_by.group.id:
+        raise ValidationError('Permission denied')
+
+    poll_notification.channel_subscribe(user_id=user_id, sender_id=poll.id, category=categories)
+
+
+def poll_create(*, user_id: int,
+                group_id: int,
                 title: str,
                 description: str,
                 start_date: datetime,
@@ -30,6 +46,32 @@ def poll_create(*, user_id: int, group_id: int,
     poll.full_clean()
     poll.save()
 
+    # Group notification
+    group_notification.create(sender_id=group_id, action=poll_notification.Action.update, category='poll',
+                              message=f'User {group_user.user.username} created poll {poll.title}',
+                              timestamp=start_date, related_id=poll.id)
+
+    # Poll notification
+    poll_notification.create(sender_id=poll.id, action=poll_notification.Action.update, category='timeline',
+                             message=f'Poll {poll.title} has stopped accepting proposals',
+                             timestamp=proposal_end_date)
+
+    poll_notification.create(sender_id=poll.id, action=poll_notification.Action.update, category='timeline',
+                             message=f'Poll {poll.title} has stopped accepting predictions',
+                             timestamp=prediction_end_date)
+
+    poll_notification.create(sender_id=poll.id, action=poll_notification.Action.update, category='timeline',
+                             message=f'Poll {poll.title} has stopped accepting delegate votes',
+                             timestamp=delegate_vote_end_date)
+
+    poll_notification.create(sender_id=poll.id, action=poll_notification.Action.update, category='timeline',
+                             message=f'Poll {poll.title} has finished',
+                             timestamp=end_date)
+
+    if poll_type == Poll.PollType.SCHEDULE:
+        group_notification.create(sender_id=group_id, action=group_notification.Action.update, category='schedule',
+                                  message=f'Poll {poll.title} has finished, group schedule has been updated')
+
     return poll
 
 
@@ -37,7 +79,7 @@ def poll_update(*, user_id: int, group_id: int, poll_id: int, data) -> Poll:
     group_user = group_user_permissions(user=user_id, group=group_id)
     poll = get_object(Poll, id=poll_id)
 
-    if not poll.created_by == group_user or not group_user.is_admin:
+    if not poll.created_by == group_user or not group_user.is_admin or group_id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
 
     non_side_effect_fields = ['title', 'description']
@@ -49,11 +91,13 @@ def poll_update(*, user_id: int, group_id: int, poll_id: int, data) -> Poll:
     return poll
 
 
+# TODO remove related notifications
 def poll_delete(*, user_id: int, group_id: int, poll_id: int) -> None:
     group_user = group_user_permissions(user=user_id, group=group_id)
     poll = get_object(Poll, id=poll_id)
 
-    if not poll.created_by == group_user or not group_user.is_admin:
+    if not poll.created_by == group_user or not group_user.is_admin\
+            or poll.created_by.group.id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
 
     if (poll.created_by == group_user and not group_user.is_admin
@@ -63,6 +107,19 @@ def poll_delete(*, user_id: int, group_id: int, poll_id: int) -> None:
     if poll.finished:
         raise ValidationError('Only site admins (or above) can delete finished polls')
 
+    # Remove future notifications
+    if timezone.now() <= poll.start_date:
+        group_notification.delete(sender_id=group_id, category='poll', related_id=poll.id)
+
+    if timezone.now() <= poll.proposal_end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.proposal_end_date)
+    elif timezone.now() <= poll.prediction_end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.prediction_end_date)
+    elif timezone.now() <= poll.delegate_vote_end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.delegate_vote_end_date)
+    elif timezone.now() <= poll.end_date:
+        poll_notification.delete(sender_id=group_id, category='timeline', timestamp__gt=poll.end_date)
+
     poll.delete()
 
 
@@ -71,6 +128,9 @@ def poll_proposal_create(*, user_id: int, group_id: int, poll_id: int,
                          title: str = None, description: str = None, **data) -> PollProposal:
     group_user = group_user_permissions(user=user_id, group=group_id)
     poll = get_object(Poll, id=poll_id)
+
+    if group_user.group.id != poll.created_by.group.id:
+        raise ValidationError('Permission denied')
 
     if poll.proposal_end_date <= timezone.now():
         raise ValidationError("Can't create a proposal after proposal end date")
@@ -105,6 +165,9 @@ def poll_proposal_delete(*, user_id: int, group_id: int, poll_id: int, proposal_
     if not proposal.created_by == group_user:
         raise ValidationError('Permission denied')
 
+    if group_user.group.id != proposal.poll.created_by.group.id:
+        raise ValidationError('Permission denied')
+
     if proposal.poll.finished:
         raise ValidationError('Only site administrators and above can delete proposals after the poll is finished.')
 
@@ -114,6 +177,9 @@ def poll_proposal_delete(*, user_id: int, group_id: int, poll_id: int, proposal_
 def poll_proposal_vote_update(*, user_id: int, group_id: int, poll_id: int, data: dict) -> None:
     group_user = group_user_permissions(user=user_id, group=group_id, permissions=['allow_vote', 'admin'])
     poll = get_object(Poll, id=poll_id)
+
+    if group_user.group.id != poll.created_by.group.id:
+        raise ValidationError('Permission denied')
 
     if poll.vote_end_date <= timezone.now():
         raise ValidationError("Can't vote after vote end date")
@@ -162,6 +228,9 @@ def poll_proposal_delegate_vote_update(*, user_id: int, group_id: int, poll_id: 
     group_user = group_user_permissions(user=user_id, group=group_id)
     delegate_pool = get_object(GroupUserDelegatePool, groupuserdelegate__group_user=group_user)
     poll = get_object(Poll, id=poll_id)
+
+    if group_user.group.id != poll.created_by.group.id:
+        raise ValidationError('Permission denied')
 
     if poll.delegate_vote_end_date <= timezone.now():
         raise ValidationError("Can't vote after delegate vote end date")
@@ -285,6 +354,7 @@ def poll_proposal_vote_count(*, poll_id: int) -> None:
             # PollProposal.objects.bulk_update(proposals, fields=('score',))
 
             poll.participants = mandate + PollVoting.objects.filter(poll=poll).all().count()
+
             poll.save()
 
 

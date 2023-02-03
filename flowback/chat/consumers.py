@@ -5,6 +5,7 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from flowback.common.services import get_object
 from flowback.user.models import User
@@ -90,7 +91,6 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
-
         if self.scope['user'].is_anonymous:
             await self.close()
 
@@ -134,37 +134,46 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = data.get('message')
         target = data.get('target')
 
+        data = dict(user=OutputSerializer(self.user).data,
+                    message=data.get('message'),
+                    type='chat_message',
+                    target_type=target_type)
+
         # Save message to database
-        if data.get('target_type') == 'direct':
+        if target_type == 'direct':
             await self.direct_message(message=message, target=target)
 
-        else:
+        elif target_type == 'group':
+            data['group'] = target
             await self.group_message(message=message, target=target)
+
+        else:
+            raise ValidationError('Unknown target type')
 
         # Send message to room group
         await self.channel_layer.group_send(
             await self.get_message_target(target=target, target_type=target_type),
-            {
-                'type': 'chat_message',
-                'target_type': data.get('target_type'),
-                'user': OutputSerializer(self.user).data,
-                'message': data.get('message'),
-            }
+            data
         )
 
     # Receive message from room group
     async def chat_message(self, content: dict):
+        data = dict(message=content.get('message'),
+                    user=content.get('user'),
+                    target_type=content.get('target_type'))
+
+        if data.get('target_type'):
+            data['group'] = content.get('group')
 
         # Send message to WebSocket
-        await self.send(text_data=json.dumps({
-            'message': content.get('message'),
-            'user': content.get('user')
-        }))
+        await self.send(text_data=json.dumps(data))
 
     @database_sync_to_async
     def get_message_target(self, target: int, target_type: str):
         return f'user_{target}' if target_type == 'direct' else f'group_{target}'
 
+    # TODO TypeError: Field 'id' expected a number but got
+    #  <django.contrib.auth.models.AnonymousUser object at 0x7f16f50f08e0>.
     @database_sync_to_async
     def get_chat_groups(self):
         user_groups = Group.objects.filter(groupuser__user__in=[self.user]).all()

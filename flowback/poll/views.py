@@ -12,7 +12,8 @@ from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, Poll
 from flowback.poll.selectors import poll_list, poll_proposal_list, poll_vote_list, poll_delegates_list, \
     poll_user_schedule_list
 from flowback.poll.services import poll_create, poll_update, poll_delete, poll_proposal_create, poll_proposal_delete, \
-    poll_proposal_vote_update, poll_proposal_delegate_vote_update, poll_refresh_cheap
+    poll_proposal_vote_update, poll_proposal_delegate_vote_update, poll_refresh_cheap, poll_notification, \
+    poll_notification_subscribe
 
 
 class PollListApi(APIView):
@@ -75,6 +76,18 @@ class PollListApi(APIView):
             request=request,
             view=self
         )
+
+
+class PollNotificationSubscribeApi(APIView):
+    class InputSerializer(serializers.Serializer):
+        categories = serializers.MultipleChoiceField(choices=poll_notification.possible_categories)
+
+    def post(self, request, group: int, poll: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        poll_notification_subscribe(user_id=request.user.id, group_id=group, poll_id=poll, **serializer.validated_data)
+        return Response(status=status.HTTP_200_OK)
+
 
 
 class PollCreateAPI(APIView):

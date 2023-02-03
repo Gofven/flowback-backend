@@ -50,14 +50,13 @@ class GroupDelegationTests(TestCase):
                                   image='image',
                                   cover_image='cover_image',
                                   public=True,
-                                  direct_join=True)
+                                  direct_join=True,
+                                  hide_poll_users=True)
 
         permission = group_permission_create(user=self.user_creator.id, group=self.group.id, role_name='Member',
                                              invite_user=False, create_poll=True, allow_vote=True,
                                              kick_members=False, ban_members=False)
         group_update(user=self.user_creator.id, group=self.group.id, data=dict(default_permission=permission.id))
-
-
 
         self.user_non_delegate = group_join(user=self.user_non_delegate.id, group=self.group.id)
         self.user_creator = get_object(GroupUser, user=self.user_creator, group=self.group)
@@ -79,7 +78,11 @@ class GroupDelegationTests(TestCase):
         return Poll.objects.create(created_by=self.user_creator,
                                    title=title, description=description,
                                    start_date=datetime.now(tz=timezone.utc),
-                                   end_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
+                                   proposal_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=1),
+                                   prediction_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
+                                   delegate_vote_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=3),
+                                   vote_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=4),
+                                   end_date=datetime.now(tz=timezone.utc) + timedelta(hours=5),
                                    poll_type=1, tag=self.tag_one, dynamic=True)
 
     def generate_proposal(self, poll_id: int, title: str = 'test_poll', description: str = 'test_description') -> PollProposal:
@@ -99,8 +102,11 @@ class GroupDelegationTests(TestCase):
         poll = poll_create(user_id=self.user_creator.user.id, group_id=self.group.id,
                            title='test_poll', description='test_description',
                            start_date=datetime.now(tz=timezone.utc),
-                           end_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
-                           poll_type=1, tag=self.tag_one.id, dynamic=True)
+                           proposal_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=1),
+                           prediction_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
+                           delegate_vote_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=3),
+                           end_date=datetime.now(tz=timezone.utc) + timedelta(hours=4),
+                           poll_type=1, tag=self.tag_one.id, public=True, dynamic=True)
 
         self.assertTrue(isinstance(poll, Poll))
 
