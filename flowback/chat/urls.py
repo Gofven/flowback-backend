@@ -5,6 +5,8 @@ from .consumers import GroupChatConsumer, DirectChatConsumer, ChatConsumer
 from .views import GroupMessageListApi, GroupMessagePreviewApi, DirectMessageListApi, DirectMessagePreviewApi, \
                    DirectMessageTimestampApi, GroupMessageTimestampApi
 
+subpath = f'{URL_SUBPATH}/' if URL_SUBPATH else ''
+
 chat_patterns = [
     path('group/<int:group>', GroupMessageListApi.as_view(), name='chat-group-list'),
     path('group/preview', GroupMessagePreviewApi.as_view(), name='chat-group-preview'),
@@ -15,7 +17,7 @@ chat_patterns = [
 ]
 
 chat_ws_patterns = [
-    path(URL_SUBPATH + 'chat/ws/group/<int:group>', GroupChatConsumer.as_asgi(), name='ws_chat_group'),
-    path(URL_SUBPATH + 'chat/ws', ChatConsumer.as_asgi(), name='ws_chat'),
-    path(URL_SUBPATH + 'chat/ws/direct', DirectChatConsumer.as_asgi(), name='ws_chat_direct')
+    path(subpath + 'chat/ws/group/<int:group>', GroupChatConsumer.as_asgi(), name='ws_chat_group'),
+    path(subpath + 'chat/ws', ChatConsumer.as_asgi(), name='ws_chat'),
+    path(subpath + 'chat/ws/direct', DirectChatConsumer.as_asgi(), name='ws_chat_direct')
 ]
