@@ -1,5 +1,6 @@
 from django.urls import path
 
+from backend.settings import URL_SUBPATH
 from .consumers import GroupChatConsumer, DirectChatConsumer, ChatConsumer
 from .views import GroupMessageListApi, GroupMessagePreviewApi, DirectMessageListApi, DirectMessagePreviewApi, \
                    DirectMessageTimestampApi, GroupMessageTimestampApi
@@ -14,7 +15,7 @@ chat_patterns = [
 ]
 
 chat_ws_patterns = [
-    path('chat/ws/group/<int:group>', GroupChatConsumer.as_asgi(), name='ws_chat_group'),
-    path('chat/ws', ChatConsumer.as_asgi(), name='ws_chat'),
-    path('chat/ws/direct', DirectChatConsumer.as_asgi(), name='ws_chat_direct')
+    path(URL_SUBPATH + 'chat/ws/group/<int:group>', GroupChatConsumer.as_asgi(), name='ws_chat_group'),
+    path(URL_SUBPATH + 'chat/ws', ChatConsumer.as_asgi(), name='ws_chat'),
+    path(URL_SUBPATH + 'chat/ws/direct', DirectChatConsumer.as_asgi(), name='ws_chat_direct')
 ]
