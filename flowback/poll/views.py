@@ -10,7 +10,7 @@ from flowback.common.services import get_object
 from flowback.group.serializers import BasicGroupUserSerializer
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollVotingTypeForAgainst
 from flowback.poll.selectors import poll_list, poll_proposal_list, poll_vote_list, poll_delegates_list, \
-    poll_user_schedule_list, poll_comment_list
+    poll_user_schedule_list, poll_comment_list, delegate_poll_vote_list
 from .services.comment import poll_comment_create, poll_comment_update, poll_comment_delete
 from .services.poll import poll_create, poll_update, poll_delete, poll_refresh_cheap, poll_notification, \
     poll_notification_subscribe
@@ -76,6 +76,67 @@ class PollListApi(APIView):
             pagination_class=self.Pagination,
             serializer_class=self.OutputSerializer,
             queryset=polls,
+            request=request,
+            view=self
+        )
+
+
+class DelegatePollVoteListAPI(APIView):
+    class Pagination(LimitOffsetPagination):
+        max_limit = 20
+        default_limit = 10
+
+    class InputSerializer(serializers.Serializer):
+        poll_id = serializers.IntegerField(required=False)
+
+    class OutputSerializer(serializers.Serializer):
+        poll_id = serializers.IntegerField()
+        poll_title = serializers.CharField(source='poll__title')
+        vote = serializers.SerializerMethodField()
+
+        class VoteRankingOutputSerializer(serializers.Serializer):
+            proposal_id = serializers.IntegerField()
+            proposal_title = serializers.CharField(source='proposal__title')
+            proposal_created_by_id = serializers.IntegerField(source='proposal__created_by__user_id')
+            proposal_created_by_name = serializers.IntegerField(source='proposal__created_by__user__username')
+            priority = serializers.IntegerField()
+            score = serializers.IntegerField()
+
+            class Meta:
+                ordering = ['priority']
+
+        class VoteForAgainstOutputSerializer(serializers.Serializer):
+            proposal_id = serializers.IntegerField()
+            proposal_title = serializers.CharField(source='proposal__title')
+            proposal_created_by_id = serializers.IntegerField(source='proposal__created_by__user_id')
+            proposal_created_by_name = serializers.IntegerField(source='proposal__created_by__user__username')
+            priority = serializers.IntegerField()
+            score = serializers.IntegerField()
+
+            class Meta:
+                ordering = ['vote']
+
+        def get_vote(self, obj):
+            if hasattr(obj, 'poll_voting_type_ranking'):
+                return self.VoteRankingOutputSerializer
+
+            elif hasattr(obj, 'poll_voting_type_for_against'):
+                return self.VoteForAgainstOutputSerializer
+
+            else:
+                return None
+
+    def get(self, request, delegate_pool_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        votes = delegate_poll_vote_list(fetched_by=request.user,
+                                        delegate_pool_id=delegate_pool_id,
+                                        filters=serializer.validated_data)
+
+        return get_paginated_response(
+            pagination_class=self.Pagination,
+            serializer_class=self.OutputSerializer,
+            queryset=votes,
             request=request,
             view=self
         )
