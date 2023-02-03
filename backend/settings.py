@@ -45,7 +45,7 @@ env.read_env(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = env('DJANGO_SECRET')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
+DEBUG = True
 
 FLOWBACK_URL = env('FLOWBACK_URL')
 PG_SERVICE = env('PG_SERVICE')
