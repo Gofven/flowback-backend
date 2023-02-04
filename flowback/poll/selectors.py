@@ -1,10 +1,11 @@
 from typing import Union
 
 import django_filters
-from django.db.models import Q, F
+from django.db.models import Q, F, Exists, OuterRef
 from django.utils import timezone
 
 from flowback.common.services import get_object
+from flowback.group.models import Group
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollDelegateVoting, PollVoting, \
     PollProposalTypeSchedule, PollVotingTypeForAgainst
 from flowback.user.models import User
@@ -91,8 +92,9 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
         qs = Poll.objects.filter(created_by__group_id=group_id).all()
 
     else:
+        joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
         qs = Poll.objects.filter((Q(created_by__group__groupuser__user__in=[fetched_by]) | Q(public=True))
-                                 & Q(start_date__lte=timezone.now()))\
+                                 & Q(start_date__lte=timezone.now())).annotate(group_joined=Exists(joined_groups))\
             .order_by('-id').distinct('id').all()
 
     return BasePollFilter(filters, qs).qs
