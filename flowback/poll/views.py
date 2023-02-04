@@ -33,7 +33,7 @@ class PollListApi(APIView):
 
     class OutputSerializer(serializers.ModelSerializer):
         created_by = BasicGroupUserSerializer()
-        group_joined = serializers.BooleanField()
+        group_joined = serializers.BooleanField(required=False)
         group_id = serializers.IntegerField(source='created_by.group_id')
         group_name = serializers.CharField(source='created_by.group.name')
         group_image = serializers.ImageField(source='created_by.group.image')
