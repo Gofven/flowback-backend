@@ -2,6 +2,17 @@
 
 from django.conf import settings
 from django.db import migrations
+from django.db.models import Count, Min
+
+
+def direct_message_delete_duplicates(apps, schema_editor):
+    user_data = apps.get_model('chat', 'DirectMessageUserData')
+    subquery = user_data.objects.values('user', 'target') \
+        .annotate(duplicates=Count('user'), id=Min('id')) \
+        .filter(duplicates__gt=1) \
+        .values_list('id', flat=True)
+
+    user_data.objects.filter(id__in=subquery).delete()
 
 
 class Migration(migrations.Migration):
@@ -12,6 +23,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(direct_message_delete_duplicates),
         migrations.AlterUniqueTogether(
             name='directmessageuserdata',
             unique_together={('user', 'target')},
