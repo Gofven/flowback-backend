@@ -7,7 +7,8 @@ from .views import (PollListApi,
                     PollDeleteAPI, PollProposalListAPI, PollProposalDeleteAPI, PollProposalCreateAPI,
                     PollProposalVoteListAPI, PollProposalVoteUpdateAPI, PollDelegatesListAPI,
                     PollProposalDelegateVoteUpdateAPI,
-                    PollCommentListAPI, PollCommentCreateAPI, PollCommentUpdateAPI, PollCommentDeleteAPI)
+                    PollCommentListAPI, PollCommentCreateAPI, PollCommentUpdateAPI, PollCommentDeleteAPI,
+                    DelegatePollVoteListAPI)
 
 
 group_poll_patterns = [
@@ -17,6 +18,7 @@ group_poll_patterns = [
 
 
 poll_patterns = [
+    path('pool/<int:delegate_pool_id>/poll/votes', DelegatePollVoteListAPI.as_view(), name='delegate_votes'),
     path('<int:poll>/subscribe', PollNotificationSubscribeApi.as_view(), name='poll_subscribe'),
     path('<int:poll>/update', PollUpdateAPI.as_view(), name='poll_update'),
     path('<int:poll>/delete', PollDeleteAPI.as_view(), name='poll_delete'),

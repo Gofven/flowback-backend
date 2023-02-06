@@ -75,9 +75,14 @@ def group_message_preview(*, user: User, filters=None):
     filters = filters or {}
     subquery = GroupMessageUserData.objects.filter(group_user__group=OuterRef('group_user__group'),
                                                    group_user__user=user).values('timestamp')
-    qs = GroupMessage.objects.filter(group_user__group__groupuser__user__in=[user]
-                                     ).order_by('group_user__group_id', '-created_at')\
-        .annotate(timestamp=Subquery(subquery[:1])).distinct('group_user__group_id').all()
+    qs = GroupMessage.objects.filter(group_user__group__groupuser__user__in=[user]).all()\
+        .order_by('group_user__group_id')\
+        .distinct('group_user__group_id').values('id')
+
+    qs = GroupMessage.objects.filter(id__in=Subquery(qs)).all()\
+        .annotate(timestamp=Subquery(subquery[:1]))\
+        .order_by('-created_at')
+
     return BaseGroupMessagePreviewFilter(filters, qs).qs
 
 
@@ -95,10 +100,10 @@ def direct_message_preview(*, user: User, filters=None):
                                                                 default=OuterRef('user'))).values('timestamp')
 
     qs = DirectMessage.objects.filter(Q(user=user) | Q(target=user)
-                                      ).annotate(relevant_user=Case(When(user=user, then=F('target')),
-                                                                    When(target=user, then=F('user')))
-                                                 ).order_by('relevant_user', '-created_at'
-                                                            ).distinct('relevant_user').all()
+                                      ).annotate(recipient_id=Case(When(user=user, then=F('target')),
+                                                                   When(target=user, then=F('user')))
+                                                 ).order_by('recipient_id', '-created_at'
+                                                            ).distinct('recipient_id').all()
 
     # TODO Find a better way to order this
     qs = DirectMessage.objects.filter(id__in=[q.id for q in qs]).annotate(timestamp=Subquery(subquery,

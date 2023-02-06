@@ -1,14 +1,14 @@
 from typing import Union
 
 import django_filters
-from django.db.models import Q, F
+from django.db.models import Q, F, Exists, OuterRef
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
 
 from flowback.comment.selectors import comment_list
 from flowback.common.services import get_object
+from flowback.group.models import Group, GroupUserDelegatePool
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollDelegateVoting, PollVoting, \
-    PollProposalTypeSchedule, PollVotingTypeForAgainst
+    PollVotingTypeForAgainst
 from flowback.user.models import User
 from flowback.group.selectors import group_user_permissions
 
@@ -27,6 +27,12 @@ class BasePollFilter(django_filters.FilterSet):
                       public=['exact'],
                       tag=['exact'],
                       finished=['exact'])
+
+
+class BaseDelegatePollVoteFilter(django_filters.FilterSet):
+    class Meta:
+        model = PollDelegateVoting
+        fields = dict(poll_id=['exact'])
 
 
 class BasePollProposalFilter(django_filters.FilterSet):
@@ -94,11 +100,20 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
         qs = Poll.objects.filter(created_by__group_id=group_id).all()
 
     else:
+        joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
         qs = Poll.objects.filter((Q(created_by__group__groupuser__user__in=[fetched_by]) | Q(public=True))
-                                 & Q(start_date__lte=timezone.now()))\
+                                 & Q(start_date__lte=timezone.now())).annotate(group_joined=Exists(joined_groups))\
             .order_by('-id').distinct('id').all()
 
     return BasePollFilter(filters, qs).qs
+
+
+def delegate_poll_vote_list(*, fetched_by: User, delegate_pool_id: int, filters=None):
+    filters = filters or {}
+    delegate_pool = get_object(GroupUserDelegatePool, delegate_pool_id=delegate_pool_id)
+    group_user_permissions(group=delegate_pool.group.id, user=fetched_by)
+    qs = PollDelegateVoting.objects.filter(poll__created_by__group=delegate_pool.group).order_by('poll__created_at')
+    return BaseDelegatePollVoteFilter(filters, qs).qs
 
 
 def poll_proposal_list(*, fetched_by: User, poll_id: int, filters=None):

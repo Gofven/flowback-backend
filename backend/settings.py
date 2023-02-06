@@ -21,6 +21,7 @@ env = environ.Env(DEBUG=(bool, False),
                   PG_SERVICE=(str, 'flowback'),
                   REDIS_IP=(str, 'localhost'),
                   REDIS_PORT=(str, '6379'),
+                  URL_SUBPATH=(str, ''),
                   FLOWBACK_ALLOW_GROUP_CREATION=(bool, True),
                   FLOWBACK_GROUP_ADMIN_USER_LIST_ACCESS_ONLY=(bool, False),
                   FLOWBACK_DEFAULT_PERMISSION=(str, 'rest_framework.permissions.IsAuthenticated'),
@@ -45,7 +46,7 @@ env.read_env(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = env('DJANGO_SECRET')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG')
 
 FLOWBACK_URL = env('FLOWBACK_URL')
 PG_SERVICE = env('PG_SERVICE')
@@ -57,6 +58,7 @@ if not CORS_ALLOW_ALL_ORIGINS:
 if env('SECURE_PROXY_SSL_HEADERS'):
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+URL_SUBPATH = env('URL_SUBPATH')
 
 # Application definition
 
