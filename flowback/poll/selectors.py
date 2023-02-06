@@ -1,15 +1,14 @@
 from typing import Union
 
 import django_filters
-from django.db.models import Q, F
+from django.db.models import Q, F, Exists, OuterRef
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
 
 from flowback.comment.selectors import comment_list
 from flowback.common.services import get_object
-from flowback.group.models import GroupUser, GroupUserDelegatePool
+from flowback.group.models import Group, GroupUserDelegatePool
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollDelegateVoting, PollVoting, \
-    PollProposalTypeSchedule, PollVotingTypeForAgainst
+    PollVotingTypeForAgainst
 from flowback.user.models import User
 from flowback.group.selectors import group_user_permissions
 
@@ -101,8 +100,9 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
         qs = Poll.objects.filter(created_by__group_id=group_id).all()
 
     else:
+        joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
         qs = Poll.objects.filter((Q(created_by__group__groupuser__user__in=[fetched_by]) | Q(public=True))
-                                 & Q(start_date__lte=timezone.now()))\
+                                 & Q(start_date__lte=timezone.now())).annotate(group_joined=Exists(joined_groups))\
             .order_by('-id').distinct('id').all()
 
     return BasePollFilter(filters, qs).qs

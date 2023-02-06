@@ -37,4 +37,4 @@ class DirectMessageUserData(BaseModel):
             raise ValidationError("user and target cannot be the same")
 
     class Meta:
-        unique_together = 'user', 'target', 'timestamp'
+        unique_together = 'user', 'target'
