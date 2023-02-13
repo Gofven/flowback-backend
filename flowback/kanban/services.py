@@ -27,7 +27,7 @@ def kanban_entry_create(*,
 
 def kanban_entry_update(*, fetched_by: int, group_id: int, kanban_entry_id: int, data) -> KanbanEntry:
     group_user = group_user_permissions(group=group_id, user=fetched_by)
-    kanban = get_object(KanbanEntry, id=kanban_entry_id, group_user__group_id=group_id)
+    kanban = get_object(KanbanEntry, id=kanban_entry_id, created_by__group_id=group_id)
 
     non_side_effect_fields = ['title', 'description', 'assignee', 'tag']
 
