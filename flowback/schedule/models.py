@@ -6,8 +6,8 @@ from flowback.common.models import BaseModel
 
 # Create your models here.
 class Schedule(BaseModel):
-    name = models.CharField()
-    origin_name = models.CharField()
+    name = models.TextField()
+    origin_name = models.CharField(max_length=255)
     origin_id = models.IntegerField()
 
     active = models.BooleanField(default=True)
@@ -18,10 +18,10 @@ class ScheduleEvent(BaseModel):
     title = models.TextField()
     description = models.TextField(null=True, blank=True)
     start_date = models.DateTimeField()
-    end_date = models.DateTimeField(required=False)
+    end_date = models.DateTimeField(null=True, blank=True)
     active = models.BooleanField(default=True)
 
-    origin_name = models.CharField()
+    origin_name = models.CharField(max_length=255)
     origin_id = models.IntegerField()
 
     def clean(self):
@@ -30,8 +30,8 @@ class ScheduleEvent(BaseModel):
 
 
 class ScheduleSubscription(BaseModel):
-    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
-    target = models.ForeignKey(Schedule, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='schedule_subscription_schedule')
+    target = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='schedule_subscription_target')
 
     def clean(self):
         if self.schedule == self.target:
