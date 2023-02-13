@@ -1,6 +1,7 @@
 import uuid
 
 from flowback.common.models import BaseModel
+from flowback.schedule.models import Schedule
 from flowback.user.models import User
 from django.db import models
 
@@ -28,6 +29,8 @@ class Group(BaseModel):
     image = models.ImageField(upload_to='group/image')
     cover_image = models.ImageField(upload_to='group/cover_image')
     hide_poll_users = models.BooleanField(default=False)  # Hides users in polls, TODO remove bool from views
+
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
 
     jitsi_room = models.UUIDField(unique=True, default=uuid.uuid4)
 

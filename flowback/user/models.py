@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
 from flowback.common.models import BaseModel
+from flowback.schedule.models import Schedule
 
 
 class CustomUserManager(BaseUserManager):
@@ -58,6 +59,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     bio = models.TextField(null=True, blank=True)
     website = models.TextField(null=True, blank=True)
+
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
