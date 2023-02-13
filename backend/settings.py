@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'flowback.kanban',
     'flowback.notification',
     'flowback.comment',
+    'flowback.schedule'
 ] + env('INTEGRATIONS')
 
 REST_FRAMEWORK = {
