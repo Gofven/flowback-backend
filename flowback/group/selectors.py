@@ -9,6 +9,7 @@ from flowback.common.services import get_object
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupPermissions, GroupTags, GroupUserDelegator, \
     GroupUserDelegatePool
+from flowback.schedule.selectors import schedule_event_list
 from rest_framework.exceptions import ValidationError
 
 
@@ -147,6 +148,12 @@ def group_list(*, fetched_by: User, filters=None):
 def group_detail(*, fetched_by: User, group_id: int):
     group_user = group_user_permissions(group=group_id, user=fetched_by)
     return Group.objects.annotate(member_count=Count('groupuser')).get(id=group_user.group.id)
+
+
+def group_schedule_event_list(*, fetched_by: User, group_id: int, filters=None):
+    filters = filters or {}
+    group_user = group_user_permissions(group=group_id, user=fetched_by)
+    return schedule_event_list(schedule_id=group_user.group.schedule.id, filters=filters)
 
 
 def group_user_list(*, group: int, fetched_by: User, filters=None):

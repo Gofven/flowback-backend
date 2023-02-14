@@ -1,5 +1,7 @@
 import uuid
 
+from django.db.models.signals import post_save, post_delete
+
 from flowback.common.models import BaseModel
 from flowback.schedule.models import Schedule
 from flowback.user.models import User
@@ -30,9 +32,27 @@ class Group(BaseModel):
     cover_image = models.ImageField(upload_to='group/cover_image')
     hide_poll_users = models.BooleanField(default=False)  # Hides users in polls, TODO remove bool from views
 
-    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(Schedule, null=True, on_delete=models.DO_NOTHING)
 
     jitsi_room = models.UUIDField(unique=True, default=uuid.uuid4)
+
+    @classmethod
+    # Updates Schedule name
+    def post_save(cls, instance, created, update_fields, **kwargs):
+        if created:
+            return
+        fields = [field.name for field in update_fields]
+        if 'name' in fields:
+            instance.schedule.name = instance.name
+            instance.schedule.save()
+
+    @classmethod
+    def post_delete(cls, instance, **kwargs):
+        instance.schedule.delete()
+
+
+post_save.connect(Group.post_save, sender=Group)
+post_delete.connect(Group.post_delete, sender=Group)
 
 
 # Permission class for each Group

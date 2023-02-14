@@ -3,16 +3,20 @@ from typing import Union
 from django.core.mail import send_mass_mail
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+
 from backend.settings import env, EMAIL_HOST_USER
 from rest_framework.exceptions import ValidationError
 
 from flowback.notification.services import NotificationManager
+from flowback.schedule.services import ScheduleManager
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupUserDelegator, GroupTags, GroupPermissions, \
     GroupUserDelegate, GroupUserDelegatePool
 from flowback.group.selectors import group_user_permissions
 from flowback.common.services import model_update, get_object
 
+group_schedule = ScheduleManager(schedule_origin_name='group', possible_origins=['poll'])
 group_notification = NotificationManager(sender_type='group', possible_categories=['group', 'members', 'invite',
                                                                                    'delegate', 'poll', 'kanban',
                                                                                    'schedule'])
@@ -29,16 +33,23 @@ def group_notification_subscribe(*, user_id: int, group: int, categories: list[s
 
 def group_create(*, user: int, name: str, description: str, image: str, cover_image: str, hide_poll_users: bool,
                  public: bool, direct_join: bool) -> Group:
-
     user = get_object(User, id=user)
 
     if not (env('FLOWBACK_ALLOW_GROUP_CREATION') or (user.is_staff or user.is_superuser)):
         raise ValidationError('Permission denied')
 
+    # Create Group
     group = Group(created_by=user, name=name, description=description, image=image,
                   cover_image=cover_image, hide_poll_users=hide_poll_users, public=public, direct_join=direct_join)
     group.full_clean()
     group.save()
+
+    # Generate Schedule
+    schedule = group_schedule.create_schedule(name=group.name, origin_id=group.id)
+    group.schedule_id = schedule.id
+    group.save()
+
+    # Generate GroupUser
     GroupUser.objects.create(user=user, group=group, is_admin=True)
 
     return group
@@ -114,7 +125,7 @@ def group_mail(*, fetched_by: int, group: int, title: str, message: str) -> None
     targets = GroupUser.objects.filter(group_id=group).values('user__email').all()
 
     send_mass_mail([subject, message, EMAIL_HOST_USER,
-                   [target['user__email']]] for target in targets)
+                    [target['user__email']]] for target in targets)
 
 
 def group_join(*, user: int, group: int) -> Union[GroupUser, GroupUserInvite]:
@@ -342,3 +353,37 @@ def group_user_delegate_pool_delete(*, user: int, group: int):
                                       f'{group_user.group.name}')
 
     delegate_pool.delete()
+
+
+def group_schedule_event_create(*,
+                                user_id: int,
+                                group_id: int,
+                                title: str,
+                                start_date: timezone.datetime,
+                                description: str = None,
+                                end_date: timezone.datetime = None):
+    group_user = group_user_permissions(user=user_id, group=group_id)
+    group_schedule.create_event(schedule_id=group_user.group.schedule.id,
+                                title=title,
+                                start_date=start_date,
+                                end_date=end_date,
+                                origin_id=group_user.group.id,
+                                origin_name='group',
+                                description=description)
+
+
+def group_schedule_event_update(*,
+                                user_id: int,
+                                group_id: int,
+                                event_id: int,
+                                **data):
+    group_user = group_user_permissions(user=user_id, group=group_id)
+    group_schedule.update_event(event_id=event_id, schedule_origin_id=group_user.group.id, data=data)
+
+
+def group_schedule_event_delete(*,
+                                user_id: int,
+                                group_id: int,
+                                event_id: int):
+    group_user = group_user_permissions(user=user_id, group=group_id)
+    group_schedule.delete_event(event_id=event_id, schedule_origin_id=group_user.group.id)
