@@ -8,7 +8,7 @@ def create_schedule(*, name: str, origin_name: str, origin_id: int) -> Schedule:
     return Schedule.objects.create(name=name, origin_name=origin_name, origin_id=origin_id)
 
 
-def update_schedule(*, schedule_id: int, **data) -> Schedule:
+def update_schedule(*, schedule_id: int, data) -> Schedule:
     schedule = get_object(Schedule, id=schedule_id)
     non_side_effect_fields = ['name']
     schedule, has_updated = model_update(instance=schedule,
@@ -41,7 +41,7 @@ def create_event(*,
     return event.save()
 
 
-def update_event(*, event_id: int, **data) -> ScheduleEvent:
+def update_event(*, event_id: int, data) -> ScheduleEvent:
     event = get_object(ScheduleEvent, id=event_id)
     non_side_effect_fields = ['title', 'description', 'start_date', 'end_date']
     event, has_updated = model_update(instance=event,
@@ -87,13 +87,21 @@ class ScheduleManager:
         get_object(Schedule, origin_name=self.origin_name, origin_id=origin_id, reverse=True)
         return create_schedule(name=name, origin_name=self.origin_name, origin_id=origin_id)
 
-    def update_schedule(self, *, origin_id: int, **data):
+    def update_schedule(self, *, origin_id: int, data):
         schedule = self.get_schedule(origin_id)
-        update_schedule(schedule_id=schedule.id, **data)
+        update_schedule(schedule_id=schedule.id, data=data)
 
     def delete_schedule(self, origin_id: int):
         schedule = self.get_schedule(origin_id)
         delete_schedule(schedule_id=schedule.id)
+
+    # Event
+    def get_schedule_event(self, schedule_origin_id: int, event_id: int, raise_exception: bool = True):
+        return get_object(ScheduleEvent,
+                          id=event_id,
+                          schedule__origin_name=self.origin_name,
+                          schedule__origin_id=schedule_origin_id,
+                          raise_exception=raise_exception)
 
     def create_event(self,
                      *,
@@ -115,8 +123,8 @@ class ScheduleManager:
                             origin_id=origin_id,
                             description=description)
 
-    def update_event(self, *, event_id: int, **data):
-        update_event(event_id=event_id, **data)
+    def update_event(self, *, schedule_origin_id: int, event_id: int, data):
+        update_event(event_id=event_id, data=data)
 
-    def delete_event(self, *, event_id: int):
+    def delete_event(self, *, schedule_origin_id: int, event_id: int):
         delete_event(event_id=event_id)

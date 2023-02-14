@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from flowback.common.pagination import LimitOffsetPagination
 
 
-class ScheduleEventListAPI(APIView):
+class ScheduleEventListTemplateAPI(APIView):
     class Pagination(LimitOffsetPagination):
         max_limit = 500
 
@@ -31,20 +31,21 @@ class ScheduleEventListAPI(APIView):
         schedule_origin_id = serializers.CharField(source='schedule__origin_id')
 
 
-class ScheduleEventCreateAPI(APIView):
+class ScheduleEventCreateTemplateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField()
         description = serializers.CharField(required=False)
 
         start_date = serializers.DateTimeField()
-        end_date = serializers.DateTimeField()
+        end_date = serializers.DateTimeField(required=False)
 
         origin_name = serializers.CharField()
         origin_id = serializers.IntegerField()
 
 
-class ScheduleEventUpdateAPI(APIView):
+class ScheduleEventUpdateTemplateAPI(APIView):
     class InputSerializer(serializers.Serializer):
+        event_id = serializers.IntegerField()
         title = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
         start_date = serializers.DateTimeField(required=False)
@@ -52,3 +53,6 @@ class ScheduleEventUpdateAPI(APIView):
 
 
 # ScheduleEventDeleteAPI don't need any templates
+class ScheduleEventDeleteAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        event_id = serializers.IntegerField()
