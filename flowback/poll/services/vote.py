@@ -5,6 +5,7 @@ from flowback.group.models import GroupUserDelegatePool
 from flowback.poll.models import Poll, PollProposal, PollVoting, PollVotingTypeRanking, PollDelegateVoting, \
     PollVotingTypeForAgainst
 from flowback.group.selectors import group_user_permissions
+from flowback.group.services import group_schedule
 from django.utils import timezone
 
 

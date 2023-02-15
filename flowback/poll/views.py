@@ -254,6 +254,7 @@ class PollProposalListAPI(APIView):
         )
 
 
+# TODO Redundant API, request removal
 class PollUserScheduleListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 10

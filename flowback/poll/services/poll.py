@@ -1,8 +1,8 @@
 from rest_framework.exceptions import ValidationError
 from flowback.common.services import get_object, model_update
-from flowback.group.services import group_notification
+from flowback.group.services import group_notification, group_schedule
 from flowback.notification.services import NotificationManager
-from flowback.poll.models import Poll
+from flowback.poll.models import Poll, PollProposal
 from flowback.group.selectors import group_user_permissions
 from django.utils import timezone
 from datetime import datetime
@@ -153,4 +153,18 @@ def poll_refresh_cheap(*, poll_id: int) -> None:
         poll_proposal_vote_count(poll_id=poll_id)
         poll.refresh_from_db()
         poll.result = True
+
+        # Add the event if the poll finished
+        if poll.poll_type == Poll.PollType.SCHEDULE:
+            event = PollProposal.objects.filter(poll=poll).order_by('score')
+            if event.exists():
+                event = event.first().pollproposaltypeschedule
+                group_schedule.create_event(schedule_id=poll.group.schedule_id,
+                                            title=poll.name,
+                                            start_date=event.start_date,
+                                            end_date=event.end_date,
+                                            origin_name='poll',
+                                            origin_id=poll.id,
+                                            description=poll.description)
+
         poll.save()
