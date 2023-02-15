@@ -5,7 +5,9 @@ from flowback.schedule.models import Schedule, ScheduleEvent, ScheduleSubscripti
 
 
 def create_schedule(*, name: str, origin_name: str, origin_id: int) -> Schedule:
-    return Schedule.objects.create(name=name, origin_name=origin_name, origin_id=origin_id)
+    schedule = Schedule(name=name, origin_name=origin_name, origin_id=origin_id)
+    schedule.full_clean()
+    schedule.save()
 
 
 def update_schedule(*, schedule_id: int, data) -> Schedule:
@@ -58,19 +60,19 @@ def delete_event(*, event_id: int):
 
 def subscribe_schedule(*, schedule_id: int, target_id: int) -> ScheduleSubscription:
     subscription = ScheduleSubscription(schedule_id=schedule_id, target_id=target_id)
-    subscription.clean()
+    subscription.full_clean()
     return subscription.save()
 
 
-def unsubscribe_schedule(*, subscription_id: int):
-    subscription = get_object(ScheduleSubscription, id=subscription_id)
+def unsubscribe_schedule(*, schedule_id: int, target_id: int):
+    subscription = get_object(ScheduleSubscription, schedule_id=schedule_id, target_id=target_id)
     subscription.delete()
 
 
 class ScheduleManager:
-    def __init__(self, schedule_origin_name: str, possible_origins: list[str]):
+    def __init__(self, schedule_origin_name: str, possible_origins: list[str] = None):
         self.origin_name = schedule_origin_name
-        self.possible_origins = possible_origins
+        self.possible_origins = possible_origins or []
 
         if self.origin_name not in self.possible_origins:
             self.possible_origins.append(self.origin_name)
@@ -124,7 +126,13 @@ class ScheduleManager:
                             description=description)
 
     def update_event(self, *, schedule_origin_id: int, event_id: int, data):
+        get_object(ScheduleEvent, id=event_id,
+                   schedule__origin_id=schedule_origin_id,
+                   schedule__origin_name=self.origin_name)
         update_event(event_id=event_id, data=data)
 
     def delete_event(self, *, schedule_origin_id: int, event_id: int):
+        get_object(ScheduleEvent, id=event_id,
+                   schedule__origin_id=schedule_origin_id,
+                   schedule__origin_name=self.origin_name)
         delete_event(event_id=event_id)

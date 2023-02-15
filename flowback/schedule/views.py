@@ -21,6 +21,7 @@ class ScheduleEventListTemplateAPI(APIView):
 
     class OutputSerializer(serializers.Serializer):
         schedule_id = serializers.IntegerField()
+        event_id = serializers.IntegerField(source='id')
         title = serializers.CharField()
         description = serializers.CharField(required=False)
         start_date = serializers.DateTimeField()
@@ -52,7 +53,11 @@ class ScheduleEventUpdateTemplateAPI(APIView):
         end_date = serializers.DateTimeField(required=False)
 
 
-# ScheduleEventDeleteAPI don't need any templates
 class ScheduleEventDeleteAPI(APIView):
     class InputSerializer(serializers.Serializer):
         event_id = serializers.IntegerField()
+
+
+class ScheduleUnsubscribeAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        target_id = serializers.IntegerField()
