@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from flowback.common.pagination import get_paginated_response
 from flowback.schedule.views import (ScheduleEventListTemplateAPI,
@@ -8,7 +9,7 @@ from flowback.schedule.views import (ScheduleEventListTemplateAPI,
                                      ScheduleEventDeleteAPI)
 from flowback.group.services import (group_schedule_event_create,
                                      group_schedule_event_update,
-                                     group_schedule_event_delete)
+                                     group_schedule_event_delete, group_schedule_subscribe)
 from flowback.group.selectors import group_schedule_event_list
 
 
@@ -52,4 +53,10 @@ class GroupScheduleEventDeleteAPI(ScheduleEventDeleteAPI):
         serializer.is_valid(raise_exception=True)
 
         group_schedule_event_delete(user_id=request.user.id, group_id=group_id, **serializer.validated_data)
+        return Response(status=status.HTTP_200_OK)
+
+
+class GroupScheduleSubscribeAPI(APIView):
+    def post(self, request, group_id: int):
+        group_schedule_subscribe(user_id=request.user.id, group_id=group_id)
         return Response(status=status.HTTP_200_OK)

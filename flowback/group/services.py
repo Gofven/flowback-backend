@@ -9,7 +9,8 @@ from backend.settings import env, EMAIL_HOST_USER
 from rest_framework.exceptions import ValidationError
 
 from flowback.notification.services import NotificationManager
-from flowback.schedule.services import ScheduleManager
+from flowback.schedule.services import ScheduleManager, subscribe_schedule, unsubscribe_schedule
+from flowback.user.services import user_schedule
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupUserDelegator, GroupTags, GroupPermissions, \
     GroupUserDelegate, GroupUserDelegatePool
@@ -42,11 +43,6 @@ def group_create(*, user: int, name: str, description: str, image: str, cover_im
     group = Group(created_by=user, name=name, description=description, image=image,
                   cover_image=cover_image, hide_poll_users=hide_poll_users, public=public, direct_join=direct_join)
     group.full_clean()
-    group.save()
-
-    # Generate Schedule
-    schedule = group_schedule.create_schedule(name=group.name, origin_id=group.id)
-    group.schedule_id = schedule.id
     group.save()
 
     # Generate GroupUser
@@ -387,3 +383,12 @@ def group_schedule_event_delete(*,
                                 event_id: int):
     group_user = group_user_permissions(user=user_id, group=group_id)
     group_schedule.delete_event(event_id=event_id, schedule_origin_id=group_user.group.id)
+
+
+def group_schedule_subscribe(*,
+                             user_id: int,
+                             group_id: int):
+    group_user = group_user_permissions(user=user_id, group=group_id)
+    schedule = user_schedule.get_schedule(user_id=user_id)
+    target = group_user.group.schedule
+    subscribe_schedule(schedule_id=schedule.id, target_id=target.id)

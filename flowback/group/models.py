@@ -4,6 +4,7 @@ from django.db.models.signals import post_save, post_delete
 
 from flowback.common.models import BaseModel
 from flowback.schedule.models import Schedule
+from flowback.schedule.services import create_schedule
 from flowback.user.models import User
 from django.db import models
 
@@ -32,14 +33,16 @@ class Group(BaseModel):
     cover_image = models.ImageField(upload_to='group/cover_image')
     hide_poll_users = models.BooleanField(default=False)  # Hides users in polls, TODO remove bool from views
 
-    schedule = models.ForeignKey(Schedule, null=True, on_delete=models.DO_NOTHING)
+    schedule = models.ForeignKey(Schedule, null=True, blank=True, on_delete=models.SET_NULL)
 
     jitsi_room = models.UUIDField(unique=True, default=uuid.uuid4)
 
     @classmethod
     # Updates Schedule name
-    def post_save(cls, instance, created, update_fields, **kwargs):
+    def post_save(cls, instance, created, update_fields, *args, **kwargs):
         if created:
+            instance.schedule = create_schedule(name=instance.name, origin_name='group', origin_id=instance.id)
+            instance.save()
             return
         fields = [field.name for field in update_fields]
         if 'name' in fields:
@@ -47,7 +50,7 @@ class Group(BaseModel):
             instance.schedule.save()
 
     @classmethod
-    def post_delete(cls, instance, **kwargs):
+    def post_delete(cls, instance, *args, **kwargs):
         instance.schedule.delete()
 
 

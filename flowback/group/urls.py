@@ -27,7 +27,7 @@ from .views.delegate import (GroupUserDelegateListApi,
 from .views.schedule import (GroupScheduleEventListAPI,
                              GroupScheduleEventCreateAPI,
                              GroupScheduleEventUpdateAPI,
-                             GroupScheduleEventDeleteAPI)
+                             GroupScheduleEventDeleteAPI, GroupScheduleSubscribeAPI)
 
 group_patterns = [
     path('list', GroupListApi.as_view(), name='groups'),
@@ -74,4 +74,5 @@ group_patterns = [
     path('<int:group>/schedule/create', GroupScheduleEventCreateAPI.as_view(), name='group_schedule_create'),
     path('<int:group>/schedule/update', GroupScheduleEventUpdateAPI.as_view(), name='group_schedule_update'),
     path('<int:group>/schedule/delete', GroupScheduleEventDeleteAPI.as_view(), name='group_schedule_delete'),
+    path('<int:group>/schedule/subscribe', GroupScheduleSubscribeAPI.as_view(), name='group_schedule_subscribe')
 ]
