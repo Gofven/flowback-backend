@@ -32,8 +32,6 @@ api_urlpatterns = [
     path('chat/', include((chat_patterns, 'chat'))),
     path('group/<int:group>/poll/', include((group_poll_patterns, 'group_poll'))),
     path('group/<int:group>/poll/', include((poll_patterns, 'poll'))),
-    path('group/<int:group_id>/kanban/', include((kanban_patterns, 'kanban'))),
-    path('home/kanban/', include((kanban_patterns, 'home_kanban'))),
     path('notification/', include((notification_patterns, 'notification'))),
     path('home/polls', PollListApi.as_view(), name='home_polls'),
     path('poll/user/schedule', PollUserScheduleListAPI.as_view(), name='poll_user_schedule')

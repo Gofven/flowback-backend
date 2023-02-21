@@ -2,7 +2,16 @@ from django.utils.translation import gettext_lazy as _
 
 from django.db import models
 from flowback.common.models import BaseModel
-from flowback.group.models import GroupUser
+from flowback.user.models import User
+
+
+class Kanban(BaseModel):
+    name = models.CharField()
+    origin_type = models.CharField()
+    origin_id = models.IntegerField()
+
+    class Meta:
+        unique_together = ('origin_type', 'origin_id')
 
 
 class KanbanEntry(BaseModel):
@@ -13,9 +22,18 @@ class KanbanEntry(BaseModel):
         EVALUATION = 4, _('evaluation')
         FINISHED = 5, _('finished')
 
-    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
-    assignee = models.ForeignKey(GroupUser, on_delete=models.CASCADE, related_name='kanban_entry_assignee')
+    kanban = models.ForeignKey(Kanban, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    assignee = models.ForeignKey(User, on_delete=models.CASCADE)
 
     title = models.CharField(max_length=255)
     description = models.TextField()
     tag = models.IntegerField(choices=KanbanTag.choices)
+
+
+class KanbanSubscription(BaseModel):
+    kanban = models.ForeignKey(Kanban, on_delete=models.CASCADE)
+    target = models.ForeignKey(Kanban, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('kanban', 'target')
