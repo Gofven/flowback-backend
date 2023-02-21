@@ -181,3 +181,9 @@ class GroupMessageTimestampApi(APIView):
 
         group_chat_timestamp(user_id=request.user.id, group_id=group, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
+
+
+
+
+
+
