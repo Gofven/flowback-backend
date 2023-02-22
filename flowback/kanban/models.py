@@ -6,8 +6,8 @@ from flowback.user.models import User
 
 
 class Kanban(BaseModel):
-    name = models.CharField()
-    origin_type = models.CharField()
+    name = models.CharField(max_length=255)
+    origin_type = models.CharField(max_length=255)
     origin_id = models.IntegerField()
 
     class Meta:
@@ -23,8 +23,8 @@ class KanbanEntry(BaseModel):
         FINISHED = 5, _('finished')
 
     kanban = models.ForeignKey(Kanban, on_delete=models.CASCADE)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
-    assignee = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kanban_entry_created_by')
+    assignee = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='kanban_entry_assignee')
 
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -32,8 +32,8 @@ class KanbanEntry(BaseModel):
 
 
 class KanbanSubscription(BaseModel):
-    kanban = models.ForeignKey(Kanban, on_delete=models.CASCADE)
-    target = models.ForeignKey(Kanban, on_delete=models.CASCADE)
+    kanban = models.ForeignKey(Kanban, on_delete=models.CASCADE, related_name='kanban_subscription_kanban')
+    target = models.ForeignKey(Kanban, on_delete=models.CASCADE, related_name='kanban_subscription_target')
 
     class Meta:
         unique_together = ('kanban', 'target')
