@@ -16,7 +16,6 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from backend.settings import DEBUG, MEDIA_URL, MEDIA_ROOT, URL_SUBPATH
-from flowback.kanban.urls import kanban_patterns
 from flowback.poll.views import PollUserScheduleListAPI, PollListApi
 from flowback.user.urls import user_patterns
 from flowback.group.urls import group_patterns
