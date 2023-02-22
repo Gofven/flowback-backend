@@ -70,12 +70,8 @@ def kanban_entry_delete(*, kanban_entry_id: int) -> None:
 
 
 class KanbanManager:
-    def __init__(self, origin_type: str, possible_origins: list[str] = None):
+    def __init__(self, origin_type: str):
         self.origin_type = origin_type
-        self.possible_origins = possible_origins or []
-
-        if self.origin_type not in self.possible_origins:
-            self.possible_origins.append(self.origin_type)
 
     def get_kanban(self, origin_id: int, origin_type: str = None):
         return get_object(Kanban, origin_type=origin_type or self.origin_type, origin_id=origin_id)
