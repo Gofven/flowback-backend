@@ -4,6 +4,15 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
+def pre_populate_fields(apps, schema_editor):
+    User = apps.get_model('user', 'user')
+    Schedule = apps.get_model('schedule', 'schedule')
+    for user in User.objects.all():
+        schedule = Schedule.objects.create(name=user.username, origin_name='user', origin_id=user.id)
+        user.schedule_id = schedule.id
+        user.save()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [

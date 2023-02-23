@@ -17,7 +17,7 @@ class BaseKanbanEntryFilter(django_filters.FilterSet):
                       tag=['exact'])
 
 
-def kanban_list(*, kanban_id: int, filters=None):
+def kanban_entry_list(*, kanban_id: int, filters=None):
     filters = filters or {}
 
     qs = KanbanEntry.objects.filter(Q(kanban_id=kanban_id) |

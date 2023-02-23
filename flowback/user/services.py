@@ -1,5 +1,3 @@
-import uuid
-
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -10,10 +8,12 @@ from rest_framework.exceptions import ValidationError
 
 from backend.settings import EMAIL_HOST_USER, FLOWBACK_URL
 from flowback.common.services import model_update, get_object
+from flowback.kanban.services import KanbanManager
 from flowback.schedule.services import ScheduleManager, unsubscribe_schedule
 from flowback.user.models import User, OnboardUser, PasswordReset
 
 user_schedule = ScheduleManager(schedule_origin_name='user')
+user_kanban = KanbanManager(origin_type='user')
 
 
 def user_create(*, username: str, email: str) -> str:
@@ -137,3 +137,29 @@ def user_schedule_unsubscribe(*,
     user = get_object(User, id=user_id)
     schedule = user_schedule.get_schedule(origin_id=user.id)
     unsubscribe_schedule(schedule_id=schedule.id, target_id=target_id)
+
+
+def user_kanban_entry_create(*,
+                             user_id: int,
+                             created_by_id: int,
+                             assignee_id: int,
+                             title: str,
+                             description: str,
+                             tag: int):
+    return user_kanban.kanban_entry_create(origin_id=user_id,
+                                           created_by_id=created_by_id,
+                                           assignee_id=assignee_id,
+                                           title=title,
+                                           description=description,
+                                           tag=tag)
+
+
+def user_kanban_entry_update(*, user_id: int, entry_id: int, data):
+    return user_kanban.kanban_entry_update(origin_id=user_id,
+                                           entry_id=entry_id,
+                                           data=data)
+
+
+def user_kanban_entry_delete(*, user_id: int, entry_id: int):
+    return user_kanban.kanban_entry_delete(origin_id=user_id,
+                                           entry_id=entry_id)

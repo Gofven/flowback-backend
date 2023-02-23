@@ -10,6 +10,7 @@ from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
 from flowback.common.models import BaseModel
+from flowback.kanban.services import kanban_create
 from flowback.schedule.models import Schedule
 from flowback.schedule.services import create_schedule
 
@@ -63,6 +64,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     website = models.TextField(null=True, blank=True)
 
     schedule = models.ForeignKey(Schedule, on_delete=models.SET_NULL, null=True, blank=True)
+    kanban = models.ForeignKey('kanban.Kanban', on_delete=models.SET_NULL, null=True, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -73,6 +75,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Updates Schedule name
     def post_save(cls, instance, created, update_fields, **kwargs):
         if created:
+            instance.kanban = kanban_create(name=instance.username, origin_type='user', origin_id=instance.id)
             instance.schedule = create_schedule(name=instance.username, origin_name='user', origin_id=instance.id)
             instance.save()
             return
@@ -80,10 +83,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         fields = [field.name for field in update_fields]
         if 'name' in fields:
             instance.schedule.name = instance.name
+            instance.kanban.name = instance.name
             instance.schedule.save()
 
     @classmethod
     def post_delete(cls, instance, **kwargs):
+        instance.kanban.delete()
         instance.schedule.delete()
 
 
