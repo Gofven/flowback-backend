@@ -22,7 +22,7 @@ class GroupKanbanEntryListAPI(KanbanEntryListApi):
 
 
 class GroupKanbanEntryCreateAPI(KanbanEntryCreateAPI):
-    def get(self, request, group_id: int):
+    def post(self, request, group_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
