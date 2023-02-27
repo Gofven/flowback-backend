@@ -4,7 +4,7 @@ from django.db.models.signals import post_save, post_delete
 
 from flowback.common.models import BaseModel
 from flowback.kanban.models import Kanban
-from flowback.kanban.services import kanban_create
+from flowback.kanban.services import kanban_create, kanban_subscription_create, kanban_subscription_delete
 from flowback.schedule.models import Schedule
 from flowback.schedule.services import create_schedule
 from flowback.user.models import User
@@ -93,8 +93,26 @@ class GroupUser(BaseModel):
     is_admin = models.BooleanField(default=False)
     permission = models.ForeignKey(GroupPermissions, null=True, blank=True, on_delete=models.SET_NULL)
 
+    @classmethod
+    # Updates Schedule name
+    def post_save(cls, instance, created, update_fields, *args, **kwargs):
+        if created:
+            kanban_subscription_create(kanban_id=instance.user.kanban_id,
+                                       target_id=instance.group.kanban_id)
+            instance.save()
+            return
+
+    @classmethod
+    def post_delete(cls, instance, *args, **kwargs):
+        kanban_subscription_delete(kanban_id=instance.user.kanban_id,
+                                   target_id=instance.group.kanban_id)
+
     class Meta:
         unique_together = ('user', 'group')
+
+
+post_save.connect(GroupUser.post_save, sender=GroupUser)
+post_delete.connect(GroupUser.post_delete, sender=GroupUser)
 
 
 # User invites
