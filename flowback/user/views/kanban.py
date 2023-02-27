@@ -5,7 +5,7 @@ from flowback.user.services import user_kanban_entry_create, user_kanban_entry_u
 from flowback.kanban.views import KanbanEntryListApi, KanbanEntryCreateAPI, KanbanEntryUpdateAPI, KanbanEntryDeleteAPI
 
 
-class GroupKanbanListAPI(KanbanEntryListApi):
+class UserKanbanEntryListAPI(KanbanEntryListApi):
     def get(self, request):
         serializer = self.FilterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -18,15 +18,15 @@ class GroupKanbanListAPI(KanbanEntryListApi):
                                       view=self)
 
 
-class GroupKanbanEntryCreateAPI(KanbanEntryCreateAPI):
-    def get(self, request):
+class UserKanbanEntryCreateAPI(KanbanEntryCreateAPI):
+    def post(self, request):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user_kanban_entry_create(user_id=request.user.id, **serializer.validated_data)
 
 
-class GroupKanbanEntryUpdateAPI(KanbanEntryUpdateAPI):
+class UserKanbanEntryUpdateAPI(KanbanEntryUpdateAPI):
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -36,7 +36,7 @@ class GroupKanbanEntryUpdateAPI(KanbanEntryUpdateAPI):
                                  data=serializer.validated_data)
 
 
-class GroupKanbanEntryDeleteAPI(KanbanEntryDeleteAPI):
+class UserKanbanEntryDeleteAPI(KanbanEntryDeleteAPI):
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
