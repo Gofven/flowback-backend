@@ -1,14 +1,11 @@
 from django.shortcuts import render
 
 # Create your views here.
-from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import serializers, status
+from rest_framework import serializers
 
-from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
+from flowback.common.pagination import LimitOffsetPagination
 from flowback.kanban.models import KanbanEntry
-from flowback.kanban.selectors import kanban_list
-from flowback.kanban.services import kanban_entry_create, kanban_entry_update, kanban_entry_delete
 
 
 class KanbanEntryListApi(APIView):
