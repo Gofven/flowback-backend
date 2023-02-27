@@ -6,6 +6,7 @@ from django.db.models import Q, Exists, OuterRef, Count
 from django.forms import model_to_dict
 
 from flowback.common.services import get_object
+from flowback.kanban.selectors import kanban_entry_list
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupPermissions, GroupTags, GroupUserDelegator, \
     GroupUserDelegatePool
@@ -143,6 +144,11 @@ def group_list(*, fetched_by: User, filters=None):
                                                           member_count=Count('groupuser')).order_by('created_at').all()
     qs = BaseGroupFilter(filters, qs).qs
     return qs
+
+
+def group_kanban_entry_list(*, fetched_by: User, group_id: int, filters=None):
+    group_user = group_user_permissions(group=group_id, user=fetched_by)
+    return kanban_entry_list(kanban_id=group_user.group.kanban.id, filters=filters)
 
 
 def group_detail(*, fetched_by: User, group_id: int):
