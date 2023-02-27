@@ -12,7 +12,7 @@ from flowback.user.views.schedule import (UserScheduleEventListAPI,
                                           UserScheduleEventCreateAPI,
                                           UserScheduleEventUpdateAPI,
                                           UserScheduleEventDeleteAPI, UserScheduleUnsubscribeAPI)
-from flowback.user.views.kanban import (UserKanbanEntryListApi,
+from flowback.user.views.kanban import (UserKanbanEntryListAPI,
                                         UserKanbanEntryCreateAPI,
                                         UserKanbanEntryUpdateAPI,
                                         UserKanbanEntryDeleteAPI)
@@ -34,7 +34,7 @@ user_patterns = [
     path('user/schedule/delete', UserScheduleEventDeleteAPI.as_view(), name='user_schedule_delete'),
     path('user/schedule/unsubscribe', UserScheduleUnsubscribeAPI.as_view(), name='user_schedule_unsubscribe'),
 
-    path('user/kanban/entry', UserKanbanEntryListApi.as_view(), name='user_kanban_entry'),
+    path('user/kanban/entry', UserKanbanEntryListAPI.as_view(), name='user_kanban_entry'),
     path('user/kanban/entry/create', UserKanbanEntryCreateAPI.as_view(), name='user_kanban_entry_create'),
     path('user/kanban/entry/update', UserKanbanEntryUpdateAPI.as_view(), name='user_kanban_entry_update'),
     path('user/kanban/entry/delete', UserKanbanEntryDeleteAPI.as_view(), name='user_kanban_entry_delete'),
