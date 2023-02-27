@@ -84,6 +84,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         if 'name' in fields:
             instance.schedule.name = instance.name
             instance.kanban.name = instance.name
+            instance.kanban.save()
             instance.schedule.save()
 
     @classmethod

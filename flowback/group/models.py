@@ -3,6 +3,8 @@ import uuid
 from django.db.models.signals import post_save, post_delete
 
 from flowback.common.models import BaseModel
+from flowback.kanban.models import Kanban
+from flowback.kanban.services import kanban_create
 from flowback.schedule.models import Schedule
 from flowback.schedule.services import create_schedule
 from flowback.user.models import User
@@ -34,6 +36,7 @@ class Group(BaseModel):
     hide_poll_users = models.BooleanField(default=False)  # Hides users in polls, TODO remove bool from views
 
     schedule = models.ForeignKey(Schedule, null=True, blank=True, on_delete=models.SET_NULL)
+    kanban = models.ForeignKey(Kanban, null=True, blank=True, on_delete=models.SET_NULL)
 
     jitsi_room = models.UUIDField(unique=True, default=uuid.uuid4)
 
@@ -42,16 +45,20 @@ class Group(BaseModel):
     def post_save(cls, instance, created, update_fields, *args, **kwargs):
         if created:
             instance.schedule = create_schedule(name=instance.name, origin_name='group', origin_id=instance.id)
+            instance.kanban = kanban_create(name=instance.name, origin_type='group', origin_id=instance.id)
             instance.save()
             return
         fields = [field.name for field in update_fields]
         if 'name' in fields:
             instance.schedule.name = instance.name
+            instance.kanban.name = instance.name
             instance.schedule.save()
+            instance.kanban.save()
 
     @classmethod
     def post_delete(cls, instance, *args, **kwargs):
         instance.schedule.delete()
+        instance.kanban.delete()
 
 
 post_save.connect(Group.post_save, sender=Group)

@@ -4,7 +4,13 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
-def pre_populate_fields():
+def pre_populate_fields(apps, schema_editor):
+    User = apps.get_model('user', 'user')
+    Kanban = apps.get_model('kanban', 'kanban')
+    for user in User.objects.all():
+        kanban = Kanban.objects.create(name=user.username, origin_type='user', origin_id=user.id)
+        user.kanban_id = kanban.id
+        user.save()
 
 
 class Migration(migrations.Migration):
