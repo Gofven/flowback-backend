@@ -8,8 +8,10 @@ from django.utils import timezone
 from backend.settings import env, EMAIL_HOST_USER
 from rest_framework.exceptions import ValidationError
 
+from flowback.kanban.models import KanbanEntry
 from flowback.notification.services import NotificationManager
-from flowback.schedule.services import ScheduleManager, subscribe_schedule, unsubscribe_schedule
+from flowback.schedule.services import ScheduleManager, subscribe_schedule
+from flowback.kanban.services import KanbanManager
 from flowback.user.services import user_schedule
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupUserDelegator, GroupTags, GroupPermissions, \
@@ -18,6 +20,7 @@ from flowback.group.selectors import group_user_permissions
 from flowback.common.services import model_update, get_object
 
 group_schedule = ScheduleManager(schedule_origin_name='group', possible_origins=['poll'])
+group_kanban = KanbanManager(origin_type='group')
 group_notification = NotificationManager(sender_type='group', possible_categories=['group', 'members', 'invite',
                                                                                    'delegate', 'poll', 'kanban',
                                                                                    'schedule'])
@@ -392,3 +395,39 @@ def group_schedule_subscribe(*,
     schedule = user_schedule.get_schedule(user_id=user_id)
     target = group_user.group.schedule
     subscribe_schedule(schedule_id=schedule.id, target_id=target.id)
+
+
+def group_kanban_entry_create(*,
+                              group_id: int,
+                              fetched_by_id: int,
+                              assignee_id: int = None,
+                              title: str,
+                              description: str,
+                              tag: int
+                              ) -> KanbanEntry:
+    group_user_permissions(group=group_id, user=fetched_by_id)
+    return group_kanban.kanban_entry_create(origin_id=group_id,
+                                            created_by_id=fetched_by_id,
+                                            assignee_id=assignee_id,
+                                            title=title,
+                                            description=description,
+                                            tag=tag)
+
+
+def group_kanban_entry_update(*,
+                              fetched_by_id: int,
+                              group_id: int,
+                              entry_id: int,
+                              data) -> KanbanEntry:
+    group_user_permissions(group=group_id, user=fetched_by_id)
+    return group_kanban.kanban_entry_update(origin_id=group_id,
+                                            entry_id=entry_id,
+                                            data=data)
+
+
+def group_kanban_entry_delete(*,
+                              fetched_by_id: int,
+                              group_id: int,
+                              entry_id: int):
+    group_user_permissions(group=group_id, user=fetched_by_id)
+    return group_kanban.kanban_entry_delete(origin_id=group_id, entry_id=entry_id)
