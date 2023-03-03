@@ -16,7 +16,6 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from backend.settings import DEBUG, MEDIA_URL, MEDIA_ROOT, URL_SUBPATH
-from flowback.kanban.urls import kanban_patterns
 from flowback.poll.views import PollUserScheduleListAPI, PollListApi
 from flowback.user.urls import user_patterns
 from flowback.group.urls import group_patterns
@@ -26,20 +25,18 @@ from flowback.notification.urls import notification_patterns
 from django.conf.urls.static import static
 
 api_urlpatterns = [
-    path('admin/', admin.site.urls),
     path('', include((user_patterns, 'user'))),
     path('group/', include((group_patterns, 'group'))),
     path('chat/', include((chat_patterns, 'chat'))),
     path('group/<int:group>/poll/', include((poll_patterns, 'poll'))),
-    path('group/<int:group_id>/kanban/', include((kanban_patterns, 'kanban'))),
-    path('home/kanban/', include((kanban_patterns, 'home_kanban'))),
     path('notification/', include((notification_patterns, 'notification'))),
     path('home/polls', PollListApi.as_view(), name='home_polls'),
     path('poll/user/schedule', PollUserScheduleListAPI.as_view(), name='poll_user_schedule')
 ]
 
 urlpatterns = [
-    path(f'{URL_SUBPATH}/' if URL_SUBPATH else '', include((api_urlpatterns, 'api')))
+    path(f'{URL_SUBPATH}/' if URL_SUBPATH else '', include((api_urlpatterns, 'api'))),
+    path('admin/', admin.site.urls, name='admin')
 ]
 
 if DEBUG:

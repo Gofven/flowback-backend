@@ -7,20 +7,20 @@ from ..user.models import User
 
 class BaseNotificationFilter(django_filters.FilterSet):
     object_id = django_filters.NumberFilter(field_name='notification_object_id')
-    notification_message = django_filters.CharFilter(field_name='notification_object_message',
-                                                     lookup_expr='iexact')
-    notification_message__icontains = django_filters.CharFilter(field_name='notification_object_message',
-                                                                lookup_expr='icontains')
-    notification_action = django_filters.CharFilter(field_name='notification_object__action')
-    notification_timestamp__lt = django_filters.DateFilter(field_name='notification_object__timestamp',
-                                                           lookup_expr='lt')
-    notification_timestamp__gt = django_filters.DateFilter(field_name='notification_object__timestamp',
-                                                           lookup_expr='gt')
+    message = django_filters.CharFilter(field_name='notification_object_message',
+                                        lookup_expr='iexact')
+    message__icontains = django_filters.CharFilter(field_name='notification_object_message',
+                                                   lookup_expr='icontains')
+    action = django_filters.CharFilter(field_name='notification_object__action')
+    timestamp__lt = django_filters.DateFilter(field_name='notification_object__timestamp',
+                                              lookup_expr='lt')
+    timestamp__gt = django_filters.DateFilter(field_name='notification_object__timestamp',
+                                              lookup_expr='gt')
 
-    notification_channel_type = django_filters.CharFilter(field_name='notification_object__channel__sender_type')
-    notification_channel_id = django_filters.NumberFilter(field_name='notification_object__channel__sender_id')
+    channel_sender_type = django_filters.CharFilter(field_name='notification_object__channel__sender_type')
+    channel_sender_id = django_filters.NumberFilter(field_name='notification_object__channel__sender_id')
 
-    notification_channel_category = django_filters.CharFilter(field_name='notification_object__channel__category')
+    channel_sender_category = django_filters.CharFilter(field_name='notification_object__channel__category')
 
     class Meta:
         model = Notification
@@ -29,15 +29,15 @@ class BaseNotificationFilter(django_filters.FilterSet):
 
 
 class BaseNotificationSubscriptionFilter(django_filters.FilterSet):
-    channel_type = django_filters.CharFilter(field_name='channel__sender_type')
-    channel_id = django_filters.NumberFilter(field_name='channel__sender_id')
+    channel_sender_type = django_filters.CharFilter(field_name='channel__sender_type')
+    channel_sender_id = django_filters.NumberFilter(field_name='channel__sender_id')
     channel_category = django_filters.CharFilter(field_name='channel__category')
 
 
 def notification_list(*, user: User, filters=None):
     filters = filters or {}
     qs = Notification.objects.filter(user=user,
-                                     notification_object__timestamp__lte=timezone.now())\
+                                     notification_object__timestamp__lte=timezone.now()) \
         .order_by('notification_object__timestamp').all()
 
     return BaseNotificationFilter(filters, qs).qs
