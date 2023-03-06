@@ -9,6 +9,7 @@ from rest_framework.exceptions import ValidationError
 from backend.settings import EMAIL_HOST_USER, FLOWBACK_URL
 from flowback.common.services import model_update, get_object
 from flowback.kanban.services import KanbanManager
+from flowback.schedule.models import ScheduleEvent
 from flowback.schedule.services import ScheduleManager, unsubscribe_schedule
 from flowback.user.models import User, OnboardUser, PasswordReset
 
@@ -110,15 +111,15 @@ def user_schedule_event_create(*,
                                title: str,
                                start_date: timezone.datetime,
                                description: str = None,
-                               end_date: timezone.datetime = None):
+                               end_date: timezone.datetime = None) -> ScheduleEvent:
     user = get_object(User, id=user_id)
-    user_schedule.create_event(schedule_id=user.schedule.id,
-                               title=title,
-                               start_date=start_date,
-                               end_date=end_date,
-                               origin_id=user.id,
-                               origin_name='user',
-                               description=description)
+    return user_schedule.create_event(schedule_id=user.schedule.id,
+                                      title=title,
+                                      start_date=start_date,
+                                      end_date=end_date,
+                                      origin_id=user.id,
+                                      origin_name='user',
+                                      description=description)
 
 
 def user_schedule_event_update(*, user_id: int, event_id: int, **data):
@@ -133,10 +134,12 @@ def user_schedule_event_delete(*, user_id: int, event_id: int):
 
 def user_schedule_unsubscribe(*,
                               user_id: int,
+                              target_type: str,
                               target_id: int):
     user = get_object(User, id=user_id)
-    schedule = user_schedule.get_schedule(origin_id=user.id)
-    unsubscribe_schedule(schedule_id=schedule.id, target_id=target_id)
+    schedule = user_schedule.get_schedule(origin_id=user_id)
+    target_schedule = user_schedule.get_schedule(origin_name=target_type, origin_id=target_id)
+    unsubscribe_schedule(schedule_id=schedule.id, target_id=target_schedule.id)
 
 
 def user_kanban_entry_create(*,

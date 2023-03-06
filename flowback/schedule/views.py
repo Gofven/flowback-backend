@@ -28,8 +28,8 @@ class ScheduleEventListTemplateAPI(APIView):
         end_date = serializers.DateTimeField(required=False)
         origin_name = serializers.CharField()
         origin_id = serializers.IntegerField()
-        schedule_origin_name = serializers.CharField(source='schedule__origin_name')
-        schedule_origin_id = serializers.CharField(source='schedule__origin_id')
+        schedule_origin_name = serializers.CharField(source='schedule.origin_name')
+        schedule_origin_id = serializers.CharField(source='schedule.origin_id')
 
 
 class ScheduleEventCreateTemplateAPI(APIView):
@@ -40,8 +40,8 @@ class ScheduleEventCreateTemplateAPI(APIView):
         start_date = serializers.DateTimeField()
         end_date = serializers.DateTimeField(required=False)
 
-        origin_name = serializers.CharField()
-        origin_id = serializers.IntegerField()
+    class OutputSerializer(serializers.Serializer):
+        id = serializers.IntegerField()
 
 
 class ScheduleEventUpdateTemplateAPI(APIView):
@@ -60,4 +60,5 @@ class ScheduleEventDeleteAPI(APIView):
 
 class ScheduleUnsubscribeAPI(APIView):
     class InputSerializer(serializers.Serializer):
+        target_type = serializers.CharField()
         target_id = serializers.IntegerField()

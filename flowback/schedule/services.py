@@ -40,7 +40,8 @@ def create_event(*,
                           origin_name=origin_name,
                           origin_id=origin_id)
     event.full_clean()
-    return event.save()
+    event.save()
+    return event
 
 
 def update_event(*, event_id: int, data) -> ScheduleEvent:
@@ -82,19 +83,20 @@ class ScheduleManager:
             raise Exception('origin_name not in possible_origins')
 
     # Schedule
-    def get_schedule(self, origin_id: int) -> Schedule:
-        return get_object(Schedule, origin_name=self.origin_name, origin_id=origin_id)
+    def get_schedule(self, *, origin_name: str = None, origin_id: int) -> Schedule:
+        return get_object(Schedule, origin_name=origin_name or self.origin_name,
+                          origin_id=origin_id)
 
     def create_schedule(self, *, name: str, origin_id: int) -> Schedule:
         get_object(Schedule, origin_name=self.origin_name, origin_id=origin_id, reverse=True)
         return create_schedule(name=name, origin_name=self.origin_name, origin_id=origin_id)
 
     def update_schedule(self, *, origin_id: int, data):
-        schedule = self.get_schedule(origin_id)
+        schedule = self.get_schedule(origin_id=origin_id)
         update_schedule(schedule_id=schedule.id, data=data)
 
     def delete_schedule(self, origin_id: int):
-        schedule = self.get_schedule(origin_id)
+        schedule = self.get_schedule(origin_id=origin_id)
         delete_schedule(schedule_id=schedule.id)
 
     # Event

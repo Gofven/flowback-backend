@@ -1,8 +1,8 @@
 # Schedule Event List (with multiple schedule id support)
 import django_filters
-from django.db.models import Q
+from django.db.models import Q, F
 
-from flowback.schedule.models import ScheduleEvent
+from flowback.schedule.models import ScheduleEvent, Schedule, ScheduleSubscription
 
 
 class ScheduleEventBaseFilter(django_filters.FilterSet):
@@ -18,6 +18,6 @@ class ScheduleEventBaseFilter(django_filters.FilterSet):
 
 def schedule_event_list(*, schedule_id: int, filters=None):
     filters = filters or {}
-    qs = ScheduleEvent.objects.filter(Q(schedule_id=schedule_id) |
-                                      Q(schedule__schedulesubscription__schedule_id=schedule_id))
+    subquery = ScheduleSubscription.objects.filter(schedule_id=schedule_id).values_list('target_id')
+    qs = ScheduleEvent.objects.filter(Q(schedule_id=schedule_id) | Q(schedule__in=subquery))
     return ScheduleEventBaseFilter(filters, qs).qs

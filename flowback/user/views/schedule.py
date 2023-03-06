@@ -15,7 +15,7 @@ from flowback.user.selectors import user_schedule_event_list
 
 class UserScheduleEventListAPI(ScheduleEventListTemplateAPI):
     def get(self, request):
-        serializer = self.InputSerializer(request.query_params)
+        serializer = self.InputSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
         events = user_schedule_event_list(fetched_by=request.user, filters=serializer.validated_data)
@@ -32,8 +32,8 @@ class UserScheduleEventCreateAPI(ScheduleEventCreateTemplateAPI):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_schedule_event_create(user_id=request.user.id, **serializer.validated_data)
-        return Response(status=status.HTTP_200_OK)
+        event = user_schedule_event_create(user_id=request.user.id, **serializer.validated_data)
+        return Response(status=status.HTTP_200_OK, data=self.OutputSerializer(event).data)
 
 
 class UserScheduleEventUpdateAPI(ScheduleEventUpdateTemplateAPI):
