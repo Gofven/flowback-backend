@@ -14,6 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from flowback.kanban.urls import kanban_patterns
 from django.urls import path, include
 from backend.settings import DEBUG, MEDIA_URL, MEDIA_ROOT, URL_SUBPATH
 from flowback.poll.views import PollUserScheduleListAPI, PollListApi
@@ -31,6 +32,8 @@ api_urlpatterns = [
     path('group/<int:group>/poll/', include((poll_patterns, 'poll'))),
     path('notification/', include((notification_patterns, 'notification'))),
     path('home/polls', PollListApi.as_view(), name='home_polls'),
+    path('group/<int:group_id>/kanban/', include((kanban_patterns, 'kanban'))),
+    path('home/kanban/', include((kanban_patterns, 'home_kanban'))),
     path('poll/user/schedule', PollUserScheduleListAPI.as_view(), name='poll_user_schedule')
 ]
 
