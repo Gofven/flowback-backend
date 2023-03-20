@@ -32,7 +32,7 @@ def kanban_entry_update(*, fetched_by: int, group_id: int, kanban_entry_id: int,
     non_side_effect_fields = ['title', 'description', 'assignee_id', 'tag']
 
     if assignee := data.get('assignee_id'):
-        group_user_permissions(group=group_id, user=assignee)
+        data['assignee_id'] = group_user_permissions(group=group_id, user=assignee).id
 
     kanban, has_updated = model_update(instance=kanban,
                                        fields=non_side_effect_fields,
