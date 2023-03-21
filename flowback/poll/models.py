@@ -4,6 +4,10 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 
+from flowback.prediction.models import (Prediction,
+                                        PredictionStatement,
+                                        PredictionStatementSegment,
+                                        PredictionStatementVote)
 from flowback.comment.services import comment_section_create
 from flowback.common.models import BaseModel
 from flowback.group.models import Group, GroupUser, GroupUserDelegatePool, GroupTags
@@ -153,3 +157,27 @@ class PollVotingTypeForAgainst(BaseModel):
                            | pgtrigger.Q(new__author__isnull=False, new__author_delegate__isnull=False))
             )
         ]
+
+
+class PollPredictionStatement(PredictionStatement):
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
+
+    def clean(self):
+        if self.poll.end_date < self.end_date:
+            raise ValidationError('Poll ends earlier than prediction statement end date')
+
+
+class PollPredictionStatementSegment(PredictionStatementSegment):
+    prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
+    proposal = models.ForeignKey(PollProposal, on_delete=models.CASCADE)
+
+
+class PollPredictionStatementVote(PredictionStatementVote):
+    prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+
+
+class PollPrediction(Prediction):
+    prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
