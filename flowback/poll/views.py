@@ -9,14 +9,18 @@ from flowback.common.pagination import LimitOffsetPagination, get_paginated_resp
 from flowback.common.services import get_object
 from flowback.group.serializers import BasicGroupUserSerializer
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollVotingTypeForAgainst
-from flowback.poll.selectors import poll_list, poll_proposal_list, poll_vote_list, poll_delegates_list, \
-    poll_user_schedule_list, poll_comment_list, delegate_poll_vote_list
+from .selectors.poll import poll_list
+from .selectors.proposal import poll_proposal_list, poll_user_schedule_list
+from .selectors.vote import poll_vote_list, poll_delegates_list, delegate_poll_vote_list
+from .selectors.comment import poll_comment_list
+
 from .services.comment import poll_comment_create, poll_comment_update, poll_comment_delete
 from .services.poll import poll_create, poll_update, poll_delete, poll_refresh_cheap, poll_notification, \
     poll_notification_subscribe
 from .services.proposal import poll_proposal_create, poll_proposal_delete
 from .services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
-from ..comment.views import CommentListAPI, CommentCreateAPI, CommentUpdateAPI, CommentDeleteAPI
+
+from flowback.comment.views import CommentListAPI, CommentCreateAPI, CommentUpdateAPI, CommentDeleteAPI
 
 
 class PollListApi(APIView):
