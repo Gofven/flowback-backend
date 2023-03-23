@@ -26,8 +26,8 @@ def poll_prediction_statement_create(poll: int,
     valid_proposals = PollProposal.objects.filter(id__in=segments, poll__group=group_user.group)
     prediction_statement.full_clean()
 
-    if prediction_statement.poll.proposal_end_date < timezone.now():
-        raise ValidationError("Unable to create prediction statement after poll proposal end date")
+    if prediction_statement.poll.vote_start_date > timezone.now():
+        raise ValidationError("Unable to create prediction statement before poll proposal start date")
 
     if len(segments < 1):
         raise ValidationError('Prediction statement must contain atleast one statement')
@@ -70,9 +70,6 @@ def poll_prediction_create(user: int, prediction_statement: int, score: int) -> 
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement)
     group_user = group_user_permissions(group=prediction_statement.poll.group, user=user)
 
-    if prediction_statement.poll.proposal_end_date > timezone.now():
-        raise ValidationError("Unable to create predictions ahead of poll proposal end date")
-
     if prediction_statement.end_date < timezone.now():
         raise ValidationError("Unable to create predictions after prediction statement end date")
 
@@ -88,6 +85,9 @@ def poll_prediction_create(user: int, prediction_statement: int, score: int) -> 
 def poll_prediction_update(user: int, prediction: int, data) -> int:
     prediction = get_object(PollPrediction, id=prediction)
     group_user = group_user_permissions(group=prediction.poll.group, user=user)
+
+    if prediction.prediction_statement.end_date < timezone.now():
+        raise ValidationError("Unable to update predictions after prediction statement end date")
 
     if not prediction.created_by == group_user:
         raise ValidationError('Prediction not created by user')
@@ -105,6 +105,9 @@ def poll_prediction_update(user: int, prediction: int, data) -> int:
 def poll_prediction_delete(user: int, prediction: int):
     prediction = get_object(PollPrediction, id=prediction)
     group_user = group_user_permissions(group=prediction.poll.group, user=user)
+
+    if prediction.prediction_statement.end_date < timezone.now():
+        raise ValidationError("Unable to delete predictions after prediction statement end date")
 
     if not prediction.created_by == group_user:
         raise ValidationError('Prediction not created by user')
