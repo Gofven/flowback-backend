@@ -40,7 +40,7 @@ class Poll(BaseModel):
     # Determines the state of this poll
     start_date = models.DateTimeField()
     proposal_end_date = models.DateTimeField()
-    prediction_end_date = models.DateTimeField()
+    vote_start_date = models.DateTimeField()
     delegate_vote_end_date = models.DateTimeField()
     vote_end_date = models.DateTimeField()
     end_date = models.DateTimeField()
@@ -60,7 +60,7 @@ class Poll(BaseModel):
 
         labels = ((self.start_date, 'start date'),
                   (self.proposal_end_date, 'proposal end date'),
-                  (self.prediction_end_date, 'prediction end date'),
+                  (self.vote_start_date, 'vote start date'),
                   (self.delegate_vote_end_date, 'delegate vote end date'),
                   (self.vote_end_date, 'vote end date'),
                   (self.end_date, 'end date'))
@@ -72,10 +72,10 @@ class Poll(BaseModel):
     class Meta:
         constraints = [models.CheckConstraint(check=Q(proposal_end_date__gte=F('start_date')),
                                               name='proposalenddategreaterthanstartdate_check'),
-                       models.CheckConstraint(check=Q(prediction_end_date__gte=F('proposal_end_date')),
-                                              name='predictionenddategreaterthanproposalenddate_check'),
-                       models.CheckConstraint(check=Q(delegate_vote_end_date__gte=F('prediction_end_date')),
-                                              name='delegatevoteenddategreaterthanpredictionenddate_check'),
+                       models.CheckConstraint(check=Q(vote_start_date__gte=F('proposal_end_date')),
+                                              name='votestartdategreaterthanproposalenddate_check'),
+                       models.CheckConstraint(check=Q(delegate_vote_end_date__gte=F('vote_start_date')),
+                                              name='delegatevoteenddategreaterthanvotestartdate_check'),
                        models.CheckConstraint(check=Q(vote_end_date__gte=F('delegate_vote_end_date')),
                                               name='voteenddategreaterthandelegatevoteenddate_check'),
                        models.CheckConstraint(check=Q(end_date__gte=F('vote_end_date')),

@@ -25,7 +25,7 @@ def poll_create(*, user_id: int,
                 description: str,
                 start_date: datetime,
                 proposal_end_date: datetime,
-                prediction_end_date: datetime,
+                vote_start_date: datetime,
                 delegate_vote_end_date: datetime,
                 end_date: datetime,
                 poll_type: int,
@@ -35,7 +35,7 @@ def poll_create(*, user_id: int,
                 ) -> Poll:
     group_user = group_user_permissions(user=user_id, group=group_id, permissions=['create_poll', 'admin'])
     poll = Poll(created_by=group_user, title=title, description=description,
-                start_date=start_date, proposal_end_date=proposal_end_date, prediction_end_date=prediction_end_date,
+                start_date=start_date, proposal_end_date=proposal_end_date, vote_start_date=vote_start_date,
                 delegate_vote_end_date=delegate_vote_end_date, vote_end_date=end_date, end_date=end_date,
                 poll_type=poll_type, public=public, tag_id=tag, dynamic=dynamic)
     poll.full_clean()
@@ -52,8 +52,8 @@ def poll_create(*, user_id: int,
                              timestamp=proposal_end_date)
 
     poll_notification.create(sender_id=poll.id, action=poll_notification.Action.update, category='timeline',
-                             message=f'Poll {poll.title} has stopped accepting predictions',
-                             timestamp=prediction_end_date)
+                             message=f'Poll {poll.title} has started accepting votes',
+                             timestamp=vote_start_date)
 
     poll_notification.create(sender_id=poll.id, action=poll_notification.Action.update, category='timeline',
                              message=f'Poll {poll.title} has stopped accepting delegate votes',
@@ -108,8 +108,8 @@ def poll_delete(*, user_id: int, poll_id: int) -> None:
 
     if timezone.now() <= poll.proposal_end_date:
         poll_notification.delete(sender_id=poll_id, category='timeline', timestamp__gt=poll.proposal_end_date)
-    elif timezone.now() <= poll.prediction_end_date:
-        poll_notification.delete(sender_id=poll_id, category='timeline', timestamp__gt=poll.prediction_end_date)
+    elif timezone.now() <= poll.vote_start_date:
+        poll_notification.delete(sender_id=poll_id, category='timeline', timestamp__gt=poll.vote_start_date)
     elif timezone.now() <= poll.delegate_vote_end_date:
         poll_notification.delete(sender_id=poll_id, category='timeline', timestamp__gt=poll.delegate_vote_end_date)
     elif timezone.now() <= poll.end_date:
