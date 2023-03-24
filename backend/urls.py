@@ -17,6 +17,7 @@ from django.contrib import admin
 from flowback.kanban.urls import kanban_patterns
 from django.urls import path, include
 from backend.settings import DEBUG, MEDIA_URL, MEDIA_ROOT, URL_SUBPATH
+from flowback.kanban.views import KanbanEntryListApi
 from flowback.poll.views import PollUserScheduleListAPI, PollListApi
 from flowback.user.urls import user_patterns
 from flowback.group.urls import group_patterns
@@ -33,7 +34,7 @@ api_urlpatterns = [
     path('notification/', include((notification_patterns, 'notification'))),
     path('home/polls', PollListApi.as_view(), name='home_polls'),
     path('group/<int:group_id>/kanban/', include((kanban_patterns, 'kanban'))),
-    path('home/kanban/', include((kanban_patterns, 'home_kanban'))),
+    path('home/kanban', KanbanEntryListApi.as_view(), name='home_kanban'),
     path('poll/user/schedule', PollUserScheduleListAPI.as_view(), name='poll_user_schedule')
 ]
 
