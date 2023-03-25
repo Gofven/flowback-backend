@@ -1,5 +1,7 @@
 from django.db import models
-from django.db.models import Q, F
+from django.db.models import Q, F, Count
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
@@ -167,6 +169,12 @@ class PollPredictionStatement(PredictionStatement):
         if self.poll.end_date < self.end_date:
             raise ValidationError('Poll ends earlier than prediction statement end date')
 
+    @receiver(post_delete, sender=PollProposal)
+    def clean_prediction_statement(self, instance: PollProposal, **kwargs):
+        self.objects.annotate(segment_count=Count('pollpredictionstatementsegment'))\
+            .filter(segment_count__lt=1)\
+            .delete()
+
 
 class PollPredictionStatementSegment(PredictionStatementSegment):
     prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
@@ -181,3 +189,11 @@ class PollPredictionStatementVote(PredictionStatementVote):
 class PollPrediction(Prediction):
     prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+
+    @receiver(post_save, sender=PredictionStatement)
+    def reset_prediction(self, instance: PredictionStatement, **kwargs):
+        self.objects.filter(prediction_statement=instance).delete()
+
+    @receiver(post_save, sender=PollProposal)
+    def reset_prediction(self, instance: PollProposal, **kwargs):
+        self.objects.filter(prediction_statement__pollpredictionstatementsegment__proposal=instance).delete()
