@@ -30,7 +30,7 @@ api_urlpatterns = [
     path('group/', include((group_patterns, 'group'))),
     path('chat/', include((chat_patterns, 'chat'))),
     path('group/<int:group>/poll/', include((group_poll_patterns, 'group_poll'))),
-    path('group/<int:group>/poll/', include((poll_patterns, 'poll'))),
+    path('group/poll/', include((poll_patterns, 'poll'))),
     path('notification/', include((notification_patterns, 'notification'))),
     path('home/polls', PollListApi.as_view(), name='home_polls'),
     path('poll/user/schedule', PollUserScheduleListAPI.as_view(), name='poll_user_schedule')

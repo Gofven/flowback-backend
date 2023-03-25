@@ -64,7 +64,7 @@ class PollListApi(APIView):
                       'tag_name',
                       'start_date',
                       'proposal_end_date',
-                      'prediction_end_date',
+                      'vote_start_date',
                       'delegate_vote_end_date',
                       'end_date',
                       'finished',
