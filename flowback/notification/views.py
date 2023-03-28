@@ -65,7 +65,7 @@ class NotificationSubscriptionListAPI(APIView):
 
     class OutputSerializer(serializers.Serializer):
         channel_sender_type = serializers.CharField(source='channel.sender_type')
-        channel_sender_id = serializers.IntegerField(source='channel.id')
+        channel_sender_id = serializers.IntegerField(source='channel.sender_id')
         channel_category = serializers.CharField(source='channel.category')
 
     def get(self, request):
