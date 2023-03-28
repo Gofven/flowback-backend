@@ -14,6 +14,7 @@ from flowback.group.selectors import group_user_permissions
 
 class BasePollFilter(django_filters.FilterSet):
     start_date = django_filters.DateFromToRangeFilter()
+    id_list = django_filters.NumberFilter(lookup_expr=['in'], field_name='id')
     end_date = django_filters.DateFromToRangeFilter()
     tag_name = django_filters.CharFilter(lookup_expr=['exact', 'icontains'], field_name='tag__name')
 
