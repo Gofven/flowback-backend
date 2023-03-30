@@ -7,10 +7,10 @@ from rest_framework.views import APIView, Response
 
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.common.services import get_object
-from flowback.group.serializers import BasicGroupUserSerializer
+from flowback.group.serializers import BasicGroupUserSerializer, GroupUserSerializer
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollVotingTypeForAgainst
 from .selectors.poll import poll_list
-from .selectors.prediction import poll_prediction_statement_list
+from .selectors.prediction import poll_prediction_statement_list, poll_prediction_list
 from .selectors.proposal import poll_proposal_list, poll_user_schedule_list
 from .selectors.vote import poll_vote_list, poll_delegates_list, delegate_poll_vote_list
 from .selectors.comment import poll_comment_list
@@ -18,6 +18,8 @@ from .selectors.comment import poll_comment_list
 from .services.comment import poll_comment_create, poll_comment_update, poll_comment_delete
 from .services.poll import poll_create, poll_update, poll_delete, poll_refresh_cheap, poll_notification, \
     poll_notification_subscribe
+from .services.prediction import poll_prediction_statement_create, poll_prediction_statement_delete, \
+    poll_prediction_create, poll_prediction_update
 from .services.proposal import poll_proposal_create, poll_proposal_delete
 from .services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
 
@@ -508,7 +510,7 @@ class PollCommentDeleteAPI(CommentDeleteAPI):
 
 
 # prediction statement list sel
-class PollPredictionStatementList(APIView):
+class PollPredictionStatementListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         max_limit = 100
         default_limit = 25
@@ -534,7 +536,7 @@ class PollPredictionStatementList(APIView):
         proposals = serializers.ListField(source='pollpredictionstatementsegment_id',
                                           child=serializers.IntegerField)
         description = serializers.CharField()
-        created_by_id = serializers.IntegerField() # TODO add serializer.py
+        created_by = GroupUserSerializer()
         user_prediction = UserPollPrediction()
         user_vote = UserPollPredictionStatementVote()
 
@@ -542,25 +544,115 @@ class PollPredictionStatementList(APIView):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
 
-        polls = poll_prediction_statement_list(fetched_by=request.user,
+        prediction_statement = poll_prediction_statement_list(fetched_by=request.user,
                                                group_id=group,
                                                filters=filter_serializer.validated_data)
 
         return get_paginated_response(
             pagination_class=self.Pagination,
             serializer_class=self.OutputSerializer,
-            queryset=polls,
+            queryset=prediction_statement,
             request=request,
             view=self
         )
 
 
 # prediction list sel
+class PollPredictionListAPI(APIView):
+    class Pagination(LimitOffsetPagination):
+        max_limit = 100
+        default_limit = 25
+
+    class FilterSerializer(serializers.Serializer):
+        id = serializers.IntegerField(required=False)
+        created_by_id = serializers.IntegerField(required=False)
+        prediction_statement_id = serializers.IntegerField(required=False)
+        score = serializers.IntegerField(required=False)
+        score__lt = serializers.IntegerField(required=False)
+        score__gt = serializers.IntegerField(required=False)
+        created_at__lt = serializers.DateTimeField(required=False)
+        created_at__gt = serializers.DateTimeField(required=False)
+
+    class OutputSerializer(serializers.Serializer):
+        id = serializers.IntegerField()
+        prediction_statement_id = serializers.IntegerField()
+        created_by = GroupUserSerializer()
+        score = serializers.IntegerField()
+
+    def get(self, request, group_id: int):
+        filter_serializer = self.FilterSerializer(data=request.query_params)
+        filter_serializer.is_valid(raise_exception=True)
+
+        predictions = poll_prediction_list(fetched_by=request.user,
+                                           group_id=group_id,
+                                           filters=filter_serializer.validated_data)
+
+        return get_paginated_response(
+            pagination_class=self.Pagination,
+            serializer_class=self.OutputSerializer,
+            queryset=predictions,
+            request=request,
+            view=self
+        )
+
 # statement create ser
+class PollPredictionStatementCreateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        class SegmentSerializer(serializers.Serializer):
+            proposal_id = serializers.IntegerField()
+            is_true = serializers.BooleanField()
+
+        description = serializers.CharField()
+        end_date = serializers.DateTimeField()
+        segments = SegmentSerializer(many=True)
+
+    def post(self, request, poll_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        created_id = poll_prediction_statement_create(poll=poll_id,
+                                                      user=request.user,
+                                                      **serializer.validated_data)
+        return Response(created_id, status=status.HTTP_201_CREATED)
+
 # statement update ser
+
+
 # statement delete ser
+class PollPredictionStatementDeleteAPI(APIView):
+    def post(self, request, prediction_statement_id: int):
+        poll_prediction_statement_delete(user=request.user,
+                                         prediction_statement_id=prediction_statement_id)
+
+        return Response(status=status.HTTP_200_OK)
+
 # prediction create ser
+class PollPredictionCreateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        score = serializers.IntegerField()
+
+    def post(self, request, prediction_statement_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        created_id = poll_prediction_create(user=request.user,
+                                            prediction_statement_id=prediction_statement_id,
+                                            **serializer.validated_data)
+
+        return Response(created_id, status=status.HTTP_201_CREATED)
+
 # prediction update ser
+class PollPredictionUpdateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        score = serializers.IntegerField()
+
+    def post(self, request, prediction_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        poll_prediction_update(user=request.user, prediction_id=prediction_id, data=request.data)
+
+        return Response(status=status.HTTP_200_OK)
+
 # prediction delete ser
 # statement vote create ser
 # statement vote update ser
