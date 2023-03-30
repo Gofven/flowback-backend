@@ -55,7 +55,8 @@ class BasePollPredictionFilter(django_filters.FilterSet):
 
     class Meta:
         model = PollPrediction
-        fields = dict(prediction_statement_id=['exact'],
+        fields = dict(id=['exact'],
+                      prediction_statement_id=['exact'],
                       score=['exact', 'lt', 'gt'],
                       created_at=['lt', 'gt'])
 

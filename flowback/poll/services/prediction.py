@@ -15,7 +15,7 @@ def poll_prediction_statement_create(poll: int,
                                      user: int,
                                      description: str,
                                      end_date: timezone.datetime,
-                                     segments: dict) -> int:
+                                     segments: list[dict]) -> int:
     poll = get_object(Poll, id=poll)
     group_user = group_user_permissions(group=poll.group, user=user)
     prediction_statement = PollPredictionStatement(created_by=group_user,
@@ -23,7 +23,8 @@ def poll_prediction_statement_create(poll: int,
                                                    description=description,
                                                    end_date=end_date)
 
-    valid_proposals = PollProposal.objects.filter(id__in=segments, poll__group=group_user.group)
+    valid_proposals = PollProposal.objects.filter(id__in=[i.get('proposal_id') for i in segments],
+                                                  poll__group=group_user.group).all()
     prediction_statement.full_clean()
 
     if prediction_statement.poll.vote_start_date > timezone.now():
@@ -43,12 +44,13 @@ def poll_prediction_statement_create(poll: int,
         return prediction_statement.id
 
     else:
-        raise ValidationError('Prediction statement segment(s) contains invalid proposal')
+        raise ValidationError('Prediction statement segment(s) contains invalid proposal(s)')
 
 
 # Prediction Statement Update (with segments)
-def poll_prediction_statement_update(user: int, prediction_statement: int) -> None:
-    prediction_statement = get_object(PollPredictionStatement, id=prediction_statement)
+# TODO add or remove
+def poll_prediction_statement_update(user: int, prediction_statement_id: int) -> None:
+    prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.group, user=user)
 
     if not prediction_statement.created_by == group_user:
@@ -56,8 +58,8 @@ def poll_prediction_statement_update(user: int, prediction_statement: int) -> No
 
 
 # Prediction Statement Delete
-def poll_prediction_statement_delete(user: int, prediction_statement: int) -> None:
-    prediction_statement = get_object(PollPredictionStatement, id=prediction_statement)
+def poll_prediction_statement_delete(user: int, prediction_statement_id: int) -> None:
+    prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.group, user=user)
 
     if not prediction_statement.created_by == group_user:
@@ -66,8 +68,8 @@ def poll_prediction_statement_delete(user: int, prediction_statement: int) -> No
     prediction_statement.delete()
 
 # Prediction Create
-def poll_prediction_create(user: int, prediction_statement: int, score: int) -> int:
-    prediction_statement = get_object(PollPredictionStatement, id=prediction_statement)
+def poll_prediction_create(user: int, prediction_statement_id: int, score: int) -> int:
+    prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.group, user=user)
 
     if prediction_statement.end_date < timezone.now():
@@ -82,8 +84,8 @@ def poll_prediction_create(user: int, prediction_statement: int, score: int) -> 
     return prediction.id
 
 # Prediction Update
-def poll_prediction_update(user: int, prediction: int, data) -> int:
-    prediction = get_object(PollPrediction, id=prediction)
+def poll_prediction_update(user: int, prediction_id: int, data) -> int:
+    prediction = get_object(PollPrediction, id=prediction_id)
     group_user = group_user_permissions(group=prediction.poll.group, user=user)
 
     if prediction.prediction_statement.end_date < timezone.now():
@@ -102,8 +104,8 @@ def poll_prediction_update(user: int, prediction: int, data) -> int:
     return prediction.id
 
 # Prediction Delete
-def poll_prediction_delete(user: int, prediction: int):
-    prediction = get_object(PollPrediction, id=prediction)
+def poll_prediction_delete(user: int, prediction_id: int):
+    prediction = get_object(PollPrediction, id=prediction_id)
     group_user = group_user_permissions(group=prediction.poll.group, user=user)
 
     if prediction.prediction_statement.end_date < timezone.now():
@@ -115,8 +117,8 @@ def poll_prediction_delete(user: int, prediction: int):
     prediction.delete()
 
 # Prediction Statement Vote Create
-def poll_prediction_statement_vote_create(user: int, prediction_statement: int, vote: bool):
-    prediction_statement = get_object(PollPredictionStatement, id=prediction_statement)
+def poll_prediction_statement_vote_create(user: int, prediction_statement_id: int, vote: bool):
+    prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.group, user=user)
 
     if prediction_statement.end_date < timezone.now():
@@ -130,9 +132,9 @@ def poll_prediction_statement_vote_create(user: int, prediction_statement: int, 
 
 # Prediction Statement Vote Update
 def poll_prediction_statement_vote_update(user: int,
-                                          prediction_statement_vote: int,
+                                          prediction_statement_vote_id: int,
                                           data) -> PollPredictionStatementVote:
-    prediction_statement_vote = get_object(PollPredictionStatementVote, id=prediction_statement_vote)
+    prediction_statement_vote = get_object(PollPredictionStatementVote, id=prediction_statement_vote_id)
     group_user = group_user_permissions(group=prediction_statement_vote.prediction_statement.poll.group, user=user)
 
     if prediction_statement_vote.created_by != group_user:
@@ -146,8 +148,8 @@ def poll_prediction_statement_vote_update(user: int,
     return prediction_statement_vote
 
 # Prediction Statement Vote Delete
-def poll_prediction_statement_vote_delete(user: int, prediction_statement_vote: int):
-    prediction_statement_vote = get_object(PollPredictionStatementVote, id=prediction_statement_vote)
+def poll_prediction_statement_vote_delete(user: int, prediction_statement_vote_id: int):
+    prediction_statement_vote = get_object(PollPredictionStatementVote, id=prediction_statement_vote_id)
     group_user = group_user_permissions(group=prediction_statement_vote.prediction_statement.poll.group, user=user)
 
     if prediction_statement_vote.created_by != group_user:
