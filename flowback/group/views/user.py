@@ -5,6 +5,7 @@ from flowback.common.pagination import LimitOffsetPagination, get_paginated_resp
 
 from flowback.group.models import GroupUser
 from flowback.group.selectors import group_user_list, group_user_invite_list
+from flowback.group.serializers import GroupUserSerializer
 
 from flowback.group.services import group_join, group_user_update, group_leave, group_invite, group_invite_accept, \
     group_invite_reject
@@ -22,19 +23,6 @@ class GroupUserListApi(APIView):
         is_admin = serializers.NullBooleanField(required=False, default=None)
         permission = serializers.IntegerField(required=False)
 
-    class OutputSerializer(serializers.ModelSerializer):
-        username = serializers.CharField(source='user.username')
-        profile_image = serializers.ImageField(source='user.profile_image')
-        banner_image = serializers.ImageField(source='user.banner_image')
-        delegate = serializers.BooleanField()
-        permission_id = serializers.IntegerField(allow_null=True)
-        permission_name = serializers.CharField(source='permission.role_name', default='Member')
-
-        class Meta:
-            model = GroupUser
-            fields = ('id', 'user_id', 'username', 'profile_image', 'banner_image', 'delegate',
-                      'is_admin', 'permission_name', 'permission_id', 'permission_name')
-
     def get(self, request, group: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
@@ -45,7 +33,7 @@ class GroupUserListApi(APIView):
 
         return get_paginated_response(
             pagination_class=self.Pagination,
-            serializer_class=self.OutputSerializer,
+            serializer_class=GroupUserSerializer,
             queryset=users,
             request=request,
             view=self
