@@ -7,7 +7,7 @@ from rest_framework.views import APIView, Response
 
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.common.services import get_object
-from flowback.group.serializers import BasicGroupUserSerializer, GroupUserSerializer
+from flowback.group.serializers import GroupUserSerializer
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollVotingTypeForAgainst
 from .selectors.poll import poll_list
 from .selectors.prediction import poll_prediction_statement_list, poll_prediction_list
@@ -43,7 +43,7 @@ class PollListApi(APIView):
         finished = serializers.NullBooleanField(required=False, default=None)
 
     class OutputSerializer(serializers.ModelSerializer):
-        created_by = BasicGroupUserSerializer()
+        created_by = GroupUserSerializer()
         group_joined = serializers.BooleanField(required=False)
         group_id = serializers.IntegerField(source='created_by.group_id')
         group_name = serializers.CharField(source='created_by.group.name')
@@ -276,7 +276,7 @@ class PollUserScheduleListAPI(APIView):
         end_date = serializers.DateTimeField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
-        created_by = BasicGroupUserSerializer()
+        created_by = GroupUserSerializer()
         hide_poll_users = serializers.BooleanField(source='created_by.group.hide_poll_users')
         group_id = serializers.IntegerField(source='created_by.group_id')
         title = serializers.CharField(source='poll.title')
@@ -518,7 +518,7 @@ class PollPredictionStatementListAPI(APIView):
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
         poll_id = serializers.IntegerField(required=False)
-        proposals = serializers.ListField(required=False, child=serializers.IntegerField)
+        proposals = serializers.ListField(required=False, child=serializers.IntegerField())
         description = serializers.CharField(required=False)
         created_by_id = serializers.IntegerField(required=False)
         user_prediction_exists = serializers.BooleanField(required=False)
@@ -534,7 +534,7 @@ class PollPredictionStatementListAPI(APIView):
         id = serializers.IntegerField()
         poll_id = serializers.IntegerField()
         proposals = serializers.ListField(source='pollpredictionstatementsegment_id',
-                                          child=serializers.IntegerField)
+                                          child=serializers.IntegerField())
         description = serializers.CharField()
         created_by = GroupUserSerializer()
         user_prediction = UserPollPrediction()
