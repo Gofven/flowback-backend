@@ -19,7 +19,8 @@ from .services.comment import poll_comment_create, poll_comment_update, poll_com
 from .services.poll import poll_create, poll_update, poll_delete, poll_refresh_cheap, poll_notification, \
     poll_notification_subscribe
 from .services.prediction import poll_prediction_statement_create, poll_prediction_statement_delete, \
-    poll_prediction_create, poll_prediction_update
+    poll_prediction_create, poll_prediction_update, poll_prediction_delete, poll_prediction_statement_vote_create, \
+    poll_prediction_statement_vote_update, poll_prediction_statement_vote_delete
 from .services.proposal import poll_proposal_create, poll_proposal_delete
 from .services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
 
@@ -509,7 +510,6 @@ class PollCommentDeleteAPI(CommentDeleteAPI):
         return Response(status=status.HTTP_200_OK)
 
 
-# prediction statement list sel
 class PollPredictionStatementListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         max_limit = 100
@@ -557,7 +557,6 @@ class PollPredictionStatementListAPI(APIView):
         )
 
 
-# prediction list sel
 class PollPredictionListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         max_limit = 100
@@ -595,7 +594,7 @@ class PollPredictionListAPI(APIView):
             view=self
         )
 
-# statement create ser
+
 class PollPredictionStatementCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         class SegmentSerializer(serializers.Serializer):
@@ -612,12 +611,10 @@ class PollPredictionStatementCreateAPI(APIView):
         created_id = poll_prediction_statement_create(poll=poll_id,
                                                       user=request.user,
                                                       **serializer.validated_data)
+
         return Response(created_id, status=status.HTTP_201_CREATED)
 
-# statement update ser
 
-
-# statement delete ser
 class PollPredictionStatementDeleteAPI(APIView):
     def post(self, request, prediction_statement_id: int):
         poll_prediction_statement_delete(user=request.user,
@@ -625,7 +622,7 @@ class PollPredictionStatementDeleteAPI(APIView):
 
         return Response(status=status.HTTP_200_OK)
 
-# prediction create ser
+
 class PollPredictionCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         score = serializers.IntegerField()
@@ -640,7 +637,7 @@ class PollPredictionCreateAPI(APIView):
 
         return Response(created_id, status=status.HTTP_201_CREATED)
 
-# prediction update ser
+
 class PollPredictionUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         score = serializers.IntegerField()
@@ -649,11 +646,49 @@ class PollPredictionUpdateAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        poll_prediction_update(user=request.user, prediction_id=prediction_id, data=request.data)
+        poll_prediction_update(user=request.user, prediction_id=prediction_id, data=serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
 
-# prediction delete ser
-# statement vote create ser
-# statement vote update ser
-# statement vote delete ser
+
+class PollPredictionDeleteAPI(APIView):
+    def post(self, request, prediction_id: int):
+        poll_prediction_delete(user=request.user, prediction_id=prediction_id)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollPredictionStatementVoteCreateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        vote = serializers.BooleanField()
+
+    def post(self, request, prediction_statement_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        poll_prediction_statement_vote_create(user=request.user,
+                                              prediction_statement_id=prediction_statement_id,
+                                              **serializer.validated_data)
+
+        return Response(status=status.HTTP_201_CREATED)
+
+
+class PollPredictionStatementVoteUpdateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        vote = serializers.BooleanField()
+
+    def post(self, request, prediction_statement_vote_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        poll_prediction_statement_vote_update(user=request.user,
+                                              prediction_statement_vote_id=prediction_statement_vote_id,
+                                              data=serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollPredictionStatementVoteDeleteAPI(APIView):
+    def post(self, request, prediction_statement_vote_id: int):
+        poll_prediction_statement_vote_delete(user=request.user,
+                                              prediction_statement_vote_id=prediction_statement_vote_id)
+
+        return Response(status=status.HTTP_200_OK)
