@@ -85,7 +85,8 @@ class UserListApi(APIView):
     class OutputSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
-            fields = 'id', 'username', 'profile_image'
+            fields = 'id', 'email', 'username', 'profile_image', \
+                     'banner_image', 'bio', 'website'
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)

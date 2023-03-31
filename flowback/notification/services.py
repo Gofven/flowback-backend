@@ -51,8 +51,8 @@ def notification_delete(*, category: str, sender_type: str, sender_id: int,
     notifications.delete()
 
 
-def notification_mark_read(*, fetched_by: int, notification_ids: list[int]) -> Notification:
-    notifications = Notification.objects.filter(user_id=fetched_by, id__in=notification_ids).update(read=True)
+def notification_mark_read(*, fetched_by: int, notification_ids: list[int], read: bool) -> Notification:
+    notifications = Notification.objects.filter(user_id=fetched_by, id__in=notification_ids).update(read=read)
     return notifications
 
 
