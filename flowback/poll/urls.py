@@ -8,12 +8,21 @@ from .views import (PollListApi,
                     PollProposalVoteListAPI, PollProposalVoteUpdateAPI, PollDelegatesListAPI,
                     PollProposalDelegateVoteUpdateAPI,
                     PollCommentListAPI, PollCommentCreateAPI, PollCommentUpdateAPI, PollCommentDeleteAPI,
-                    DelegatePollVoteListAPI)
+                    DelegatePollVoteListAPI,
+                    PollPredictionStatementListAPI, PollPredictionListAPI,
+                    PollPredictionStatementCreateAPI, PollPredictionStatementDeleteAPI,
+                    PollPredictionCreateAPI, PollPredictionUpdateAPI, PollPredictionDeleteAPI,
+                    PollPredictionStatementVoteCreateAPI,
+                    PollPredictionStatementVoteUpdateAPI,
+                    PollPredictionStatementVoteDeleteAPI)
 
 
 group_poll_patterns = [
     path('list', PollListApi.as_view(), name='polls'),
     path('create', PollCreateAPI.as_view(), name='poll_create'),
+
+    path('prediction/statement/list', PollPredictionListAPI.as_view(), name='poll_prediction_statement_list'),
+    path('prediction/list', PollPredictionListAPI.as_view(), name='poll_prediction_list'),
 ]
 
 
@@ -34,4 +43,26 @@ poll_patterns = [
     path('<int:poll>/comment/create', PollCommentCreateAPI.as_view(), name='poll_comment_create'),
     path('<int:poll>/comment/update', PollCommentUpdateAPI.as_view(), name='poll_comment_update'),
     path('<int:poll>/comment/delete', PollCommentDeleteAPI.as_view(), name='poll_comment_delete'),
+
+    path('<int:poll_id>/prediction/statement/create', PollPredictionStatementCreateAPI.as_view(),
+         name='poll_prediction_statement_create'),
+    path('<int:prediction_statement_id>/prediction/statement/delete', PollPredictionStatementDeleteAPI.as_view(),
+         name='poll_prediction_statement_delete'),
+    path('<int:prediction_statement_id>/prediction/create', PollPredictionCreateAPI.as_view(),
+         name='poll_prediction_create'),
+    path('<int:prediction_id>/prediction/update', PollPredictionUpdateAPI.as_view(),
+         name='poll_prediction_update'),
+    path('<int:prediction_id>/prediction/delete', PollPredictionDeleteAPI.as_view(),
+         name='poll_prediction_delete'),
+    path('<int:prediction_statement_id>/prediction/statement/vote/create',
+         PollPredictionStatementVoteCreateAPI.as_view(),
+         name='poll_prediction_statement_vote_create'),
+    path('<int:prediction_statement_vote_id>/prediction/statement/vote/update',
+         PollPredictionStatementVoteUpdateAPI.as_view(),
+         name='poll_prediction_statement_vote_update'),
+    path('<int:prediction_statement_vote_id>/prediction/statement/vote/delete',
+         PollPredictionStatementVoteDeleteAPI.as_view(),
+         name='poll_prediction_statement_vote_delete'),
 ]
+
+

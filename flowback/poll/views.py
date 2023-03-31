@@ -540,12 +540,12 @@ class PollPredictionStatementListAPI(APIView):
         user_prediction = UserPollPrediction()
         user_vote = UserPollPredictionStatementVote()
 
-    def get(self, request, group: int):
+    def get(self, request, group_id: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
 
         prediction_statement = poll_prediction_statement_list(fetched_by=request.user,
-                                               group_id=group,
+                                               group_id=group_id,
                                                filters=filter_serializer.validated_data)
 
         return get_paginated_response(
