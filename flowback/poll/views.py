@@ -172,7 +172,7 @@ class PollCreateAPI(APIView):
 
         class Meta:
             model = Poll
-            fields = ('title', 'description', 'start_date', 'proposal_end_date', 'prediction_end_date',
+            fields = ('title', 'description', 'start_date', 'proposal_end_date', 'vote_start_date',
                       'delegate_vote_end_date', 'end_date', 'poll_type', 'public', 'tag', 'dynamic')
 
     def post(self, request, group: int):

@@ -76,7 +76,7 @@ class GroupDelegationTests(TestCase):
                                    title=title, description=description,
                                    start_date=datetime.now(tz=timezone.utc),
                                    proposal_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=1),
-                                   prediction_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
+                                   vote_start_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
                                    delegate_vote_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=3),
                                    vote_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=4),
                                    end_date=datetime.now(tz=timezone.utc) + timedelta(hours=5),
@@ -100,7 +100,7 @@ class GroupDelegationTests(TestCase):
                            title='test_poll', description='test_description',
                            start_date=datetime.now(tz=timezone.utc),
                            proposal_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=1),
-                           prediction_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
+                           vote_start_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
                            delegate_vote_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=3),
                            end_date=datetime.now(tz=timezone.utc) + timedelta(hours=4),
                            poll_type=1, tag=self.tag_one.id, public=True, dynamic=True)
