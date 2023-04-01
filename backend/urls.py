@@ -41,5 +41,5 @@ urlpatterns = [
 ]
 
 if DEBUG:
-    urlpatterns += static(MEDIA_URL, document_root=MEDIA_ROOT)
-
+    urlpatterns += static((f'/{URL_SUBPATH}' if URL_SUBPATH else '') + MEDIA_URL,
+                          document_root=MEDIA_ROOT)

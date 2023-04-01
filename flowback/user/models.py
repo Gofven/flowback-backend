@@ -80,6 +80,9 @@ class User(AbstractBaseUser, PermissionsMixin):
             instance.save()
             return
 
+        if not update_fields:
+            return
+
         fields = [field.name for field in update_fields]
         if 'name' in fields:
             instance.schedule.name = instance.name

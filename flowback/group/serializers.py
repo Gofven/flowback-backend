@@ -12,16 +12,18 @@ class BasicGroupSerializer(serializers.ModelSerializer):
 class GroupUserSerializer(serializers.ModelSerializer):
     user = BasicUserSerializer()
 
-    delegate = serializers.BooleanField()
     permission_id = serializers.IntegerField(allow_null=True)
     permission_name = serializers.CharField(source='permission.role_name', default='Member')
+    group_name = serializers.CharField(source='group.name')
+    group_image = serializers.CharField(source='group.image')
 
     class Meta:
         model = GroupUser
         fields = ('id',
                   'user',
-                  'delegate',
                   'is_admin',
                   'permission_name',
                   'permission_id',
-                  'permission_name')
+                  'permission_name',
+                  'group_name',
+                  'group_image')

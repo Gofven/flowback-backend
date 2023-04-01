@@ -24,9 +24,9 @@ class KanbanEntryListApi(APIView):
 
     class OutputSerializer(serializers.ModelSerializer):
         class UserSerializer(serializers.Serializer):
-            id = serializers.IntegerField(source='user.id')
-            profile_image = serializers.ImageField(source='user.profile_image')
-            username = serializers.CharField(source='user.username')
+            id = serializers.IntegerField()
+            profile_image = serializers.ImageField()
+            username = serializers.CharField()
 
         assignee = UserSerializer(read_only=True, required=False)
         created_by = UserSerializer(read_only=True)
@@ -38,7 +38,7 @@ class KanbanEntryListApi(APIView):
 
 class KanbanEntryCreateAPI(APIView):
     class InputSerializer(serializers.ModelSerializer):
-        assignee = serializers.CharField(source='assignee_id')
+        assignee = serializers.CharField(source='assignee_id', required=False)
 
         class Meta:
             model = KanbanEntry
