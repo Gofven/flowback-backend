@@ -191,9 +191,9 @@ class PollPrediction(Prediction):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
 
     @receiver(post_save, sender=PredictionStatement)
-    def reset_prediction(self, instance: PredictionStatement, **kwargs):
+    def reset_prediction_prediction(self, instance: PredictionStatement, **kwargs):
         self.objects.filter(prediction_statement=instance).delete()
 
     @receiver(post_save, sender=PollProposal)
-    def reset_prediction(self, instance: PollProposal, **kwargs):
-        self.objects.filter(prediction_statement__pollpredictionstatementsegment__proposal=instance).delete()
+    def reset_prediction_proposal(sender, instance: PollProposal, **kwargs): # TODO param must be sender, but needs prediction
+        PollPrediction.objects.filter(prediction_statement__pollpredictionstatementsegment__proposal=instance).delete()
