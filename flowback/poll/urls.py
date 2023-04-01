@@ -64,5 +64,3 @@ poll_patterns = [
          PollPredictionStatementVoteDeleteAPI.as_view(),
          name='poll_prediction_statement_vote_delete'),
 ]
-
-
