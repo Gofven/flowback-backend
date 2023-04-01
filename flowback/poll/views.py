@@ -33,6 +33,7 @@ class PollListApi(APIView):
 
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
+        id_list = serializers.ListField(child=serializers.IntegerField(), required=False)
 
         title = serializers.CharField(required=False)
         title__icontains = serializers.CharField(required=False)

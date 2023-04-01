@@ -25,7 +25,6 @@ from flowback.notification.urls import notification_patterns
 from django.conf.urls.static import static
 
 api_urlpatterns = [
-    path('admin/', admin.site.urls),
     path('', include((user_patterns, 'user'))),
     path('group/', include((group_patterns, 'group'))),
     path('chat/', include((chat_patterns, 'chat'))),
@@ -37,7 +36,8 @@ api_urlpatterns = [
 ]
 
 urlpatterns = [
-    path(f'{URL_SUBPATH}/' if URL_SUBPATH else '', include((api_urlpatterns, 'api')))
+    path(f'{URL_SUBPATH}/' if URL_SUBPATH else '', include((api_urlpatterns, 'api'))),
+    path('admin/', admin.site.urls, name='admin')
 ]
 
 if DEBUG:
