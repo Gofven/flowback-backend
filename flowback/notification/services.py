@@ -81,7 +81,7 @@ def notification_channel_unsubscribe(*, user_id: int, category: str,
     subscription = get_object(NotificationSubscription, user_id=user_id, channel=channel)
     subscription.delete()
     Notification.objects.filter(user_id=user_id,
-                                channel=channel,
+                                notification_object__channel=channel,
                                 notification_object__timestamp__gte=timezone.now()).delete()
     return
 
