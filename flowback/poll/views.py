@@ -526,11 +526,6 @@ class PollPredictionStatementListAPI(APIView):
         user_vote_exists = serializers.BooleanField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-        class UserPollPrediction(serializers.Serializer):
-            score = serializers.IntegerField()
-
-        class UserPollPredictionStatementVote(serializers.Serializer):
-            vote = serializers.BooleanField()
 
         id = serializers.IntegerField()
         poll_id = serializers.IntegerField()
@@ -538,8 +533,8 @@ class PollPredictionStatementListAPI(APIView):
                                           child=serializers.IntegerField())
         description = serializers.CharField()
         created_by = GroupUserSerializer()
-        user_prediction = UserPollPrediction()
-        user_vote = UserPollPredictionStatementVote()
+        user_prediction = serializers.IntegerField(source='user_prediction__score', required=False)
+        user_vote = serializers.BooleanField(source='user_vote__vote', required=False)
 
     def get(self, request, group_id: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)

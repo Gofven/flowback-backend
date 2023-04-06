@@ -38,7 +38,7 @@ class KanbanEntryListApi(APIView):
 
 class KanbanEntryCreateAPI(APIView):
     class InputSerializer(serializers.ModelSerializer):
-        assignee = serializers.CharField(source='assignee_id', required=False)
+        assignee = serializers.IntegerField(source='assignee_id', required=False)
 
         class Meta:
             model = KanbanEntry
