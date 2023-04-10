@@ -90,13 +90,13 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
     filters = filters or {}
     if group_id:
         group_user_permissions(group=group_id, user=fetched_by)
-        qs = Poll.objects.filter(created_by__group_id=group_id).all()
+        qs = Poll.objects.filter(created_by__group_id=group_id).order_by('-start_date').all()
 
     else:
         joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
         qs = Poll.objects.filter((Q(created_by__group__groupuser__user__in=[fetched_by]) | Q(public=True))
                                  & Q(start_date__lte=timezone.now())).annotate(group_joined=Exists(joined_groups))\
-            .order_by('-id').distinct('id').all()
+            .order_by('-start_date').distinct('id').all()
 
     return BasePollFilter(filters, qs).qs
 
