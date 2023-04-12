@@ -10,6 +10,8 @@ def kanban_create(*, name: str, origin_type: str, origin_id: int):
     kanban.full_clean()
     kanban.save()
 
+    return kanban
+
 
 def kanban_delete(*, origin_type: str, origin_id: int):
     get_object(Kanban, origin_type=origin_type, origin_id=origin_id).delete()
