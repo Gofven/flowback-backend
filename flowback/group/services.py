@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from backend.settings import env, EMAIL_HOST_USER
+from backend.settings import env, DEFAULT_FROM_EMAIL
 from rest_framework.exceptions import ValidationError
 
 from flowback.kanban.models import KanbanEntry
@@ -124,7 +124,7 @@ def group_mail(*, fetched_by: int, group: int, title: str, message: str) -> None
     subject = f'[{group_user.group.name}] - {title}'
     targets = GroupUser.objects.filter(group_id=group).values('user__email').all()
 
-    send_mass_mail([subject, message, EMAIL_HOST_USER,
+    send_mass_mail([subject, message, DEFAULT_FROM_EMAIL,
                     [target['user__email']]] for target in targets)
 
 

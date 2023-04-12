@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from rest_framework.exceptions import ValidationError
 
-from backend.settings import EMAIL_HOST_USER, FLOWBACK_URL
+from backend.settings import DEFAULT_FROM_EMAIL, FLOWBACK_URL
 from flowback.common.services import model_update, get_object
 from flowback.kanban.services import KanbanManager
 from flowback.schedule.models import ScheduleEvent
@@ -34,7 +34,7 @@ def user_create(*, username: str, email: str) -> str:
         link = f'''Use this link to create your account: {FLOWBACK_URL}/create_account/
                    ?email={email}&verification_code={user.verification_code}'''
 
-    send_mail('Flowback Verification Code', link, EMAIL_HOST_USER, [email])
+    send_mail('Flowback Verification Code', link, DEFAULT_FROM_EMAIL, [email])
 
     return user.verification_code
 
@@ -73,7 +73,7 @@ def user_forgot_password(*, email: str):
         link = f'''Use this link to reset your account password: {FLOWBACK_URL}/forgot_password/
                        ?email={email}&verification_code={password_reset.verification_code}'''
 
-    send_mail('Flowback Verification Code', link, EMAIL_HOST_USER, [email])
+    send_mail('Flowback Verification Code', link, DEFAULT_FROM_EMAIL, [email])
 
     return password_reset.verification_code
 
