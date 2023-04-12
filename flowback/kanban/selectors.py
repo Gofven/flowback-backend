@@ -21,5 +21,5 @@ def kanban_entry_list(*, kanban_id: int, filters=None):
     filters = filters or {}
 
     qs = KanbanEntry.objects.filter(Q(kanban_id=kanban_id) |
-                                    Q(kanban__kanban_subscription_kanban=kanban_id)).all()
+                                    Q(assignee__kanban__kanban_subscription_kanban=kanban_id)).all()
     return BaseKanbanEntryFilter(filters, qs).qs
