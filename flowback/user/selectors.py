@@ -4,6 +4,8 @@ from rest_framework.exceptions import ValidationError
 
 from flowback.common.services import get_object
 from flowback.group.models import Group, GroupUser
+from flowback.schedule.selectors import schedule_event_list
+from flowback.kanban.selectors import kanban_entry_list
 from flowback.user.models import User
 from backend.settings import env
 
@@ -18,6 +20,16 @@ class UserFilter(FilterSet):
 
 def get_user(user: int):
     return get_object(User, id=user)
+
+
+def user_schedule_event_list(*, fetched_by: User, filters=None):
+    filters = filters or {}
+    return schedule_event_list(schedule_id=fetched_by.schedule.id, filters=filters)
+
+
+def user_kanban_entry_list(*, fetched_by: User, filters=None):
+    filters = filters or {}
+    return kanban_entry_list(kanban_id=fetched_by.kanban.id, filters=filters)
 
 
 def user_list(*, fetched_by: User, filters=None):

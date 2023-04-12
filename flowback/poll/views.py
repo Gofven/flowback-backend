@@ -7,13 +7,24 @@ from rest_framework.views import APIView, Response
 
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.common.services import get_object
-from flowback.group.serializers import BasicGroupUserSerializer
+from flowback.group.serializers import GroupUserSerializer
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollVotingTypeForAgainst
-from flowback.poll.selectors import poll_list, poll_proposal_list, poll_vote_list, poll_delegates_list, \
-    poll_user_schedule_list
-from flowback.poll.services import poll_create, poll_update, poll_delete, poll_proposal_create, poll_proposal_delete, \
-    poll_proposal_vote_update, poll_proposal_delegate_vote_update, poll_refresh_cheap, poll_notification, \
+from .selectors.poll import poll_list
+from .selectors.prediction import poll_prediction_statement_list, poll_prediction_list
+from .selectors.proposal import poll_proposal_list, poll_user_schedule_list
+from .selectors.vote import poll_vote_list, poll_delegates_list, delegate_poll_vote_list
+from .selectors.comment import poll_comment_list
+
+from .services.comment import poll_comment_create, poll_comment_update, poll_comment_delete
+from .services.poll import poll_create, poll_update, poll_delete, poll_refresh_cheap, poll_notification, \
     poll_notification_subscribe
+from .services.prediction import poll_prediction_statement_create, poll_prediction_statement_delete, \
+    poll_prediction_create, poll_prediction_update, poll_prediction_delete, poll_prediction_statement_vote_create, \
+    poll_prediction_statement_vote_update, poll_prediction_statement_vote_delete
+from .services.proposal import poll_proposal_create, poll_proposal_delete
+from .services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
+
+from flowback.comment.views import CommentListAPI, CommentCreateAPI, CommentUpdateAPI, CommentDeleteAPI
 
 
 class PollListApi(APIView):
@@ -33,7 +44,7 @@ class PollListApi(APIView):
         finished = serializers.NullBooleanField(required=False, default=None)
 
     class OutputSerializer(serializers.ModelSerializer):
-        created_by = BasicGroupUserSerializer()
+        created_by = GroupUserSerializer()
         group_joined = serializers.BooleanField(required=False)
         group_id = serializers.IntegerField(source='created_by.group_id')
         group_name = serializers.CharField(source='created_by.group.name')
@@ -58,7 +69,7 @@ class PollListApi(APIView):
                       'tag_name',
                       'start_date',
                       'proposal_end_date',
-                      'prediction_end_date',
+                      'vote_start_date',
                       'delegate_vote_end_date',
                       'end_date',
                       'finished',
@@ -81,14 +92,75 @@ class PollListApi(APIView):
         )
 
 
+class DelegatePollVoteListAPI(APIView):
+    class Pagination(LimitOffsetPagination):
+        max_limit = 20
+        default_limit = 10
+
+    class InputSerializer(serializers.Serializer):
+        poll_id = serializers.IntegerField(required=False)
+
+    class OutputSerializer(serializers.Serializer):
+        poll_id = serializers.IntegerField()
+        poll_title = serializers.CharField(source='poll__title')
+        vote = serializers.SerializerMethodField()
+
+        class VoteRankingOutputSerializer(serializers.Serializer):
+            proposal_id = serializers.IntegerField()
+            proposal_title = serializers.CharField(source='proposal__title')
+            proposal_created_by_id = serializers.IntegerField(source='proposal__created_by__user_id')
+            proposal_created_by_name = serializers.IntegerField(source='proposal__created_by__user__username')
+            priority = serializers.IntegerField()
+            score = serializers.IntegerField()
+
+            class Meta:
+                ordering = ['priority']
+
+        class VoteForAgainstOutputSerializer(serializers.Serializer):
+            proposal_id = serializers.IntegerField()
+            proposal_title = serializers.CharField(source='proposal__title')
+            proposal_created_by_id = serializers.IntegerField(source='proposal__created_by__user_id')
+            proposal_created_by_name = serializers.IntegerField(source='proposal__created_by__user__username')
+            priority = serializers.IntegerField()
+            score = serializers.IntegerField()
+
+            class Meta:
+                ordering = ['vote']
+
+        def get_vote(self, obj):
+            if hasattr(obj, 'poll_voting_type_ranking'):
+                return self.VoteRankingOutputSerializer
+
+            elif hasattr(obj, 'poll_voting_type_for_against'):
+                return self.VoteForAgainstOutputSerializer
+
+            else:
+                return None
+
+    def get(self, request, delegate_pool_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        votes = delegate_poll_vote_list(fetched_by=request.user,
+                                        delegate_pool_id=delegate_pool_id,
+                                        filters=serializer.validated_data)
+
+        return get_paginated_response(
+            pagination_class=self.Pagination,
+            serializer_class=self.OutputSerializer,
+            queryset=votes,
+            request=request,
+            view=self
+        )
+
+
 class PollNotificationSubscribeApi(APIView):
     class InputSerializer(serializers.Serializer):
         categories = serializers.MultipleChoiceField(choices=poll_notification.possible_categories)
 
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        poll_notification_subscribe(user_id=request.user.id, group_id=group, poll_id=poll, **serializer.validated_data)
+        poll_notification_subscribe(user_id=request.user.id, poll_id=poll, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -100,7 +172,7 @@ class PollCreateAPI(APIView):
 
         class Meta:
             model = Poll
-            fields = ('title', 'description', 'start_date', 'proposal_end_date', 'prediction_end_date',
+            fields = ('title', 'description', 'start_date', 'proposal_end_date', 'vote_start_date',
                       'delegate_vote_end_date', 'end_date', 'poll_type', 'public', 'tag', 'dynamic')
 
     def post(self, request, group: int):
@@ -115,18 +187,18 @@ class PollUpdateAPI(APIView):
         title = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
 
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
-        poll_update(user_id=request.user.id, group_id=group, poll_id=poll, data=serializer.validated_data)
+        poll_update(user_id=request.user.id, poll_id=poll, data=serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 
 class PollDeleteAPI(APIView):
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
-        poll_delete(user_id=request.user.id, group_id=group, poll_id=poll)
+        poll_delete(user_id=request.user.id, poll_id=poll)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -167,7 +239,7 @@ class PollProposalListAPI(APIView):
                       'start_date',
                       'end_date')
 
-    def get(self, request, group: int = None, poll: int = None):
+    def get(self, request, poll: int = None):
         poll = get_object(Poll, id=poll)
         if poll.poll_type == Poll.PollType.RANKING:
             filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -179,7 +251,7 @@ class PollProposalListAPI(APIView):
 
         filter_serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll.id)  # TODO get celery
-        proposals = poll_proposal_list(fetched_by=request.user, group_id=group, poll_id=poll.id,
+        proposals = poll_proposal_list(fetched_by=request.user, poll_id=poll.id,
                                        filters=filter_serializer.validated_data)
 
         return get_paginated_response(
@@ -191,6 +263,7 @@ class PollProposalListAPI(APIView):
         )
 
 
+# TODO Redundant API, request removal
 class PollUserScheduleListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 10
@@ -204,7 +277,7 @@ class PollUserScheduleListAPI(APIView):
         end_date = serializers.DateTimeField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
-        created_by = BasicGroupUserSerializer()
+        created_by = GroupUserSerializer()
         hide_poll_users = serializers.BooleanField(source='created_by.group.hide_poll_users')
         group_id = serializers.IntegerField(source='created_by.group_id')
         title = serializers.CharField(source='poll.title')
@@ -260,7 +333,7 @@ class PollProposalCreateAPI(APIView):
             model = PollProposal
             fields = ('title', 'description', 'start_date', 'end_date')
 
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         poll = get_object(Poll, id=poll)
         if poll.poll_type == Poll.PollType.SCHEDULE:
             serializer = self.InputSerializerSchedule(data=request.data)
@@ -270,14 +343,13 @@ class PollProposalCreateAPI(APIView):
 
         serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll.id)  # TODO get celery
-        proposal = poll_proposal_create(user_id=request.user.id, group_id=group, poll_id=poll.id, **serializer.validated_data)
+        proposal = poll_proposal_create(user_id=request.user.id, poll_id=poll.id, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK, data=proposal.id)
 
 
 class PollProposalDeleteAPI(APIView):
-    def post(self, request, group: int, poll: int, proposal: int):
-        poll_refresh_cheap(poll_id=poll)  # TODO get celery
-        poll_proposal_delete(user_id=request.user.id, group_id=group, poll_id=poll, proposal_id=proposal)
+    def post(self, request, proposal: int):
+        poll_proposal_delete(user_id=request.user.id, proposal_id=proposal)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -308,14 +380,14 @@ class PollProposalVoteListAPI(APIView):
                       'vote',
                       'score')
 
-    def get(self, request, group: int, poll: int):
+    def get(self, request, poll: int):
         poll = get_object(Poll, id=poll)
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
         delegates = filter_serializer.validated_data.pop('delegates')
         poll_refresh_cheap(poll_id=poll.id)  # TODO get celery
 
-        votes = poll_vote_list(fetched_by=request.user, group_id=group, poll_id=poll.id,
+        votes = poll_vote_list(fetched_by=request.user, poll_id=poll.id,
                                delegates=delegates,
                                filters=filter_serializer.validated_data)
 
@@ -341,11 +413,11 @@ class PollProposalVoteUpdateAPI(APIView):
     class InputSerializerDefault(serializers.Serializer):
         votes = serializers.ListField(child=serializers.IntegerField())
 
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         serializer = self.InputSerializerDefault(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
-        poll_proposal_vote_update(user_id=request.user.id, group_id=group, poll_id=poll, data=serializer.validated_data)
+        poll_proposal_vote_update(user_id=request.user.id, poll_id=poll, data=serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -361,12 +433,12 @@ class PollDelegatesListAPI(APIView):
             model = PollProposal
             fields = ('created_by',)
 
-    def get(self, request, group: int, poll: int):
+    def get(self, request, poll: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
 
-        delegates = poll_delegates_list(fetched_by=request.user, group_id=group, poll_id=poll,
+        delegates = poll_delegates_list(fetched_by=request.user, poll_id=poll,
                                         filters=filter_serializer.validated_data)
 
         return get_paginated_response(
@@ -384,10 +456,235 @@ class PollProposalDelegateVoteUpdateAPI(APIView):
     class InputSerializerDefault(serializers.Serializer):
         votes = serializers.ListField(child=serializers.IntegerField())
 
-    def post(self, request, group: int, poll: int):
+    def post(self, request, poll: int):
         serializer = self.InputSerializerDefault(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
-        poll_proposal_delegate_vote_update(user_id=request.user.id, group_id=group,
-                                           poll_id=poll, data=serializer.validated_data)
+        poll_proposal_delegate_vote_update(user_id=request.user.id, poll_id=poll, data=serializer.validated_data)
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollCommentListAPI(CommentListAPI):
+    class InputSerializer(CommentListAPI.InputSerializer):
+        poll_id = serializers.IntegerField()
+
+    def get(self, request, poll: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        comments = poll_comment_list(fetched_by=request.user, poll_id=poll)
+
+        return get_paginated_response(pagination_class=self.Pagination,
+                                      serializer_class=self.OutputSerializer,
+                                      queryset=comments,
+                                      request=request,
+                                      view=self)
+
+
+class PollCommentCreateAPI(CommentCreateAPI):
+    def post(self, request, poll: int):
+        serializer = self.InputSerializer()
+        serializer.is_valid(raise_exception=True)
+
+        poll_comment_create(author_id=request.user.id, poll_id=poll, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollCommentUpdateAPI(CommentUpdateAPI):
+    def post(self, request, poll: int, comment_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        poll_comment_update(fetched_by=request.user.id,
+                            poll_id=poll,
+                            comment_id=comment_id,
+                            **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollCommentDeleteAPI(CommentDeleteAPI):
+    def post(self, request, poll: int, comment_id: int):
+        poll_comment_delete(fetched_by=request.user, poll_id=poll, comment_id=comment_id)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollPredictionStatementListAPI(APIView):
+    class Pagination(LimitOffsetPagination):
+        max_limit = 100
+        default_limit = 25
+
+    class FilterSerializer(serializers.Serializer):
+        id = serializers.IntegerField(required=False)
+        poll_id = serializers.IntegerField(required=False)
+        proposals = serializers.ListField(required=False, child=serializers.IntegerField())
+        description = serializers.CharField(required=False)
+        created_by_id = serializers.IntegerField(required=False)
+        user_prediction_exists = serializers.BooleanField(required=False)
+        user_vote_exists = serializers.BooleanField(required=False)
+
+    class OutputSerializer(serializers.Serializer):
+
+        id = serializers.IntegerField()
+        poll_id = serializers.IntegerField()
+        proposals = serializers.ListField(source='pollpredictionstatementsegment_id',
+                                          child=serializers.IntegerField())
+        description = serializers.CharField()
+        created_by = GroupUserSerializer()
+        user_prediction = serializers.IntegerField(source='user_prediction__score', required=False)
+        user_vote = serializers.BooleanField(source='user_vote__vote', required=False)
+
+    def get(self, request, group_id: int):
+        filter_serializer = self.FilterSerializer(data=request.query_params)
+        filter_serializer.is_valid(raise_exception=True)
+
+        prediction_statement = poll_prediction_statement_list(fetched_by=request.user,
+                                               group_id=group_id,
+                                               filters=filter_serializer.validated_data)
+
+        return get_paginated_response(
+            pagination_class=self.Pagination,
+            serializer_class=self.OutputSerializer,
+            queryset=prediction_statement,
+            request=request,
+            view=self
+        )
+
+
+class PollPredictionListAPI(APIView):
+    class Pagination(LimitOffsetPagination):
+        max_limit = 100
+        default_limit = 25
+
+    class FilterSerializer(serializers.Serializer):
+        id = serializers.IntegerField(required=False)
+        created_by_id = serializers.IntegerField(required=False)
+        prediction_statement_id = serializers.IntegerField(required=False)
+        score = serializers.IntegerField(required=False)
+        score__lt = serializers.IntegerField(required=False)
+        score__gt = serializers.IntegerField(required=False)
+        created_at__lt = serializers.DateTimeField(required=False)
+        created_at__gt = serializers.DateTimeField(required=False)
+
+    class OutputSerializer(serializers.Serializer):
+        id = serializers.IntegerField()
+        prediction_statement_id = serializers.IntegerField()
+        created_by = GroupUserSerializer()
+        score = serializers.IntegerField()
+
+    def get(self, request, group_id: int):
+        filter_serializer = self.FilterSerializer(data=request.query_params)
+        filter_serializer.is_valid(raise_exception=True)
+
+        predictions = poll_prediction_list(fetched_by=request.user,
+                                           group_id=group_id,
+                                           filters=filter_serializer.validated_data)
+
+        return get_paginated_response(
+            pagination_class=self.Pagination,
+            serializer_class=self.OutputSerializer,
+            queryset=predictions,
+            request=request,
+            view=self
+        )
+
+
+class PollPredictionStatementCreateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        class SegmentSerializer(serializers.Serializer):
+            proposal_id = serializers.IntegerField()
+            is_true = serializers.BooleanField()
+
+        description = serializers.CharField()
+        end_date = serializers.DateTimeField()
+        segments = SegmentSerializer(many=True)
+
+    def post(self, request, poll_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        created_id = poll_prediction_statement_create(poll=poll_id,
+                                                      user=request.user,
+                                                      **serializer.validated_data)
+
+        return Response(created_id, status=status.HTTP_201_CREATED)
+
+
+class PollPredictionStatementDeleteAPI(APIView):
+    def post(self, request, prediction_statement_id: int):
+        poll_prediction_statement_delete(user=request.user,
+                                         prediction_statement_id=prediction_statement_id)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollPredictionCreateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        score = serializers.IntegerField()
+
+    def post(self, request, prediction_statement_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        created_id = poll_prediction_create(user=request.user,
+                                            prediction_statement_id=prediction_statement_id,
+                                            **serializer.validated_data)
+
+        return Response(created_id, status=status.HTTP_201_CREATED)
+
+
+class PollPredictionUpdateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        score = serializers.IntegerField()
+
+    def post(self, request, prediction_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        poll_prediction_update(user=request.user, prediction_id=prediction_id, data=serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollPredictionDeleteAPI(APIView):
+    def post(self, request, prediction_id: int):
+        poll_prediction_delete(user=request.user, prediction_id=prediction_id)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollPredictionStatementVoteCreateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        vote = serializers.BooleanField()
+
+    def post(self, request, prediction_statement_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        poll_prediction_statement_vote_create(user=request.user,
+                                              prediction_statement_id=prediction_statement_id,
+                                              **serializer.validated_data)
+
+        return Response(status=status.HTTP_201_CREATED)
+
+
+class PollPredictionStatementVoteUpdateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        vote = serializers.BooleanField()
+
+    def post(self, request, prediction_statement_vote_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        poll_prediction_statement_vote_update(user=request.user,
+                                              prediction_statement_vote_id=prediction_statement_vote_id,
+                                              data=serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class PollPredictionStatementVoteDeleteAPI(APIView):
+    def post(self, request, prediction_statement_vote_id: int):
+        poll_prediction_statement_vote_delete(user=request.user,
+                                              prediction_statement_vote_id=prediction_statement_vote_id)
+
         return Response(status=status.HTTP_200_OK)

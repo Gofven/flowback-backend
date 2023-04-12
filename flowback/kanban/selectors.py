@@ -1,34 +1,25 @@
-from typing import Union
-
 import django_filters
+from django.db.models import Q
 
-from flowback.common.services import get_object
 from flowback.kanban.models import KanbanEntry
-from flowback.user.models import User
-from flowback.group.selectors import group_user_permissions
 
 
 class BaseKanbanEntryFilter(django_filters.FilterSet):
-    group_id = django_filters.NumberFilter(field_name='created_by__group_id')
-    created_by = django_filters.NumberFilter(field_name='created_by__user_id')
-    assignee = django_filters.NumberFilter(field_name='assignee__user_id')
+    origin_type = django_filters.CharFilter(field_name='kanban__origin_type')
+    origin_id = django_filters.NumberFilter(field_name='kanban_origin_id')
+    created_by = django_filters.NumberFilter()
+    assignee = django_filters.NumberFilter()
 
     class Meta:
         model = KanbanEntry
         fields = dict(title=['icontains'],
                       description=['icontains'],
-                      tag=['exact'],
-                      )
+                      tag=['exact'])
 
 
-def kanban_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
+def kanban_entry_list(*, kanban_id: int, filters=None):
     filters = filters or {}
 
-    if group_id:
-        user = group_user_permissions(group=group_id, user=fetched_by)
-        qs = KanbanEntry.objects.filter(created_by__group=user.group).all()
-
-    else:
-        qs = KanbanEntry.objects.filter(created_by__group__groupuser__user__in=[fetched_by]).all()
-
+    qs = KanbanEntry.objects.filter(Q(kanban_id=kanban_id) |
+                                    Q(kanban__kanban_subscription_kanban=kanban_id)).all()
     return BaseKanbanEntryFilter(filters, qs).qs

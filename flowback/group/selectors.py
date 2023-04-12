@@ -6,9 +6,11 @@ from django.db.models import Q, Exists, OuterRef, Count
 from django.forms import model_to_dict
 
 from flowback.common.services import get_object
+from flowback.kanban.selectors import kanban_entry_list
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupPermissions, GroupTags, GroupUserDelegator, \
     GroupUserDelegatePool
+from flowback.schedule.selectors import schedule_event_list
 from rest_framework.exceptions import ValidationError
 
 
@@ -34,10 +36,9 @@ def group_user_permissions(*,
                            permissions: list[str] = None,
                            raise_exception: bool = True) -> Union[GroupUser, bool]:
 
-
-
     if type(user) == int:
         user = get_object(User, id=user)
+
     permissions = permissions or []
     requires_permissions = bool(permissions)  # Avoids authentication if all permissions are removed before check
     user = get_object(GroupUser, 'User is not in group', group=group, user=user)
@@ -145,9 +146,20 @@ def group_list(*, fetched_by: User, filters=None):
     return qs
 
 
+def group_kanban_entry_list(*, fetched_by: User, group_id: int, filters=None):
+    group_user = group_user_permissions(group=group_id, user=fetched_by)
+    return kanban_entry_list(kanban_id=group_user.group.kanban.id, filters=filters)
+
+
 def group_detail(*, fetched_by: User, group_id: int):
     group_user = group_user_permissions(group=group_id, user=fetched_by)
     return Group.objects.annotate(member_count=Count('groupuser')).get(id=group_user.group.id)
+
+
+def group_schedule_event_list(*, fetched_by: User, group_id: int, filters=None):
+    filters = filters or {}
+    group_user = group_user_permissions(group=group_id, user=fetched_by)
+    return schedule_event_list(schedule_id=group_user.group.schedule.id, filters=filters)
 
 
 def group_user_list(*, group: int, fetched_by: User, filters=None):

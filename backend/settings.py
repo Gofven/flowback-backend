@@ -27,6 +27,7 @@ env = environ.Env(DEBUG=(bool, False),
                   FLOWBACK_DEFAULT_PERMISSION=(str, 'rest_framework.permissions.IsAuthenticated'),
                   EMAIL_HOST=(str, None),
                   EMAIL_PORT=(str, None),
+                  EMAIL_FROM=(str, None),
                   EMAIL_HOST_USER=(str, None),
                   EMAIL_HOST_PASSWORD=(str, None),
                   EMAIL_USE_TLS=(bool, None),
@@ -86,6 +87,8 @@ INSTALLED_APPS = [
     'flowback.chat',
     'flowback.kanban',
     'flowback.notification',
+    'flowback.comment',
+    'flowback.schedule'
 ] + env('INTEGRATIONS')
 
 REST_FRAMEWORK = {
@@ -187,7 +190,7 @@ EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = env('EMAIL_USE_TLS') or True
 EMAIL_USE_SSL = env('EMAIL_USE_SSL') or False
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = env('EMAIL_FROM', default=env('EMAIL_HOST_USER'))
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/

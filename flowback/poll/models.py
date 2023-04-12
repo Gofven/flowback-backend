@@ -1,11 +1,19 @@
 from django.db import models
-from django.db.models import Q, F
+from django.db.models import Q, F, Count
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 
+from flowback.prediction.models import (Prediction,
+                                        PredictionStatement,
+                                        PredictionStatementSegment,
+                                        PredictionStatementVote)
+from flowback.comment.services import comment_section_create
 from flowback.common.models import BaseModel
 from flowback.group.models import Group, GroupUser, GroupUserDelegatePool, GroupTags
+from flowback.comment.models import CommentSection
 import pgtrigger
 
 
@@ -34,12 +42,15 @@ class Poll(BaseModel):
     # Determines the state of this poll
     start_date = models.DateTimeField()
     proposal_end_date = models.DateTimeField()
-    prediction_end_date = models.DateTimeField()
+    vote_start_date = models.DateTimeField()
     delegate_vote_end_date = models.DateTimeField()
     vote_end_date = models.DateTimeField()
     end_date = models.DateTimeField()
     finished = models.BooleanField(default=False)
     result = models.BooleanField(default=False)
+
+    # Comment section
+    comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.DO_NOTHING)
 
     # Optional dynamic counting support
     participants = models.IntegerField(default=0)
@@ -51,7 +62,7 @@ class Poll(BaseModel):
 
         labels = ((self.start_date, 'start date'),
                   (self.proposal_end_date, 'proposal end date'),
-                  (self.prediction_end_date, 'prediction end date'),
+                  (self.vote_start_date, 'vote start date'),
                   (self.delegate_vote_end_date, 'delegate vote end date'),
                   (self.vote_end_date, 'vote end date'),
                   (self.end_date, 'end date'))
@@ -63,10 +74,10 @@ class Poll(BaseModel):
     class Meta:
         constraints = [models.CheckConstraint(check=Q(proposal_end_date__gte=F('start_date')),
                                               name='proposalenddategreaterthanstartdate_check'),
-                       models.CheckConstraint(check=Q(prediction_end_date__gte=F('proposal_end_date')),
-                                              name='predictionenddategreaterthanproposalenddate_check'),
-                       models.CheckConstraint(check=Q(delegate_vote_end_date__gte=F('prediction_end_date')),
-                                              name='delegatevoteenddategreaterthanpredictionenddate_check'),
+                       models.CheckConstraint(check=Q(vote_start_date__gte=F('proposal_end_date')),
+                                              name='votestartdategreaterthanproposalenddate_check'),
+                       models.CheckConstraint(check=Q(delegate_vote_end_date__gte=F('vote_start_date')),
+                                              name='delegatevoteenddategreaterthanvotestartdate_check'),
                        models.CheckConstraint(check=Q(vote_end_date__gte=F('delegate_vote_end_date')),
                                               name='voteenddategreaterthandelegatevoteenddate_check'),
                        models.CheckConstraint(check=Q(end_date__gte=F('vote_end_date')),
@@ -148,3 +159,41 @@ class PollVotingTypeForAgainst(BaseModel):
                            | pgtrigger.Q(new__author__isnull=False, new__author_delegate__isnull=False))
             )
         ]
+
+
+class PollPredictionStatement(PredictionStatement):
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
+
+    def clean(self):
+        if self.poll.end_date < self.end_date:
+            raise ValidationError('Poll ends earlier than prediction statement end date')
+
+    @receiver(post_delete, sender=PollProposal)
+    def clean_prediction_statement(self, instance: PollProposal, **kwargs):
+        self.objects.annotate(segment_count=Count('pollpredictionstatementsegment'))\
+            .filter(segment_count__lt=1)\
+            .delete()
+
+
+class PollPredictionStatementSegment(PredictionStatementSegment):
+    prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
+    proposal = models.ForeignKey(PollProposal, on_delete=models.CASCADE)
+
+
+class PollPredictionStatementVote(PredictionStatementVote):
+    prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+
+
+class PollPrediction(Prediction):
+    prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+
+    @receiver(post_save, sender=PredictionStatement)
+    def reset_prediction_prediction(self, instance: PredictionStatement, **kwargs):
+        self.objects.filter(prediction_statement=instance).delete()
+
+    @receiver(post_save, sender=PollProposal)
+    def reset_prediction_proposal(sender, instance: PollProposal, **kwargs): # TODO param must be sender, but needs prediction
+        PollPrediction.objects.filter(prediction_statement__pollpredictionstatementsegment__proposal=instance).delete()
