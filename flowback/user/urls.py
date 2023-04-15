@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework.authtoken import views
 
+from backend.settings import DISABLE_DEFAULT_USER_REGISTRATION
 from flowback.user.views.user import (UserCreateApi,
                                       UserCreateVerifyApi,
                                       UserListApi,
@@ -18,8 +19,6 @@ from flowback.user.views.kanban import (UserKanbanEntryListAPI,
                                         UserKanbanEntryDeleteAPI)
 
 user_patterns = [
-    path('register', UserCreateApi.as_view(), name='register'),
-    path('register/verify', UserCreateVerifyApi.as_view(), name='register_verify'),
     path('login', views.obtain_auth_token, name='login'),
     path('forgot_password', UserForgotPasswordApi.as_view(), name='forgot_password'),
     path('forgot_password/verify', UserForgotPasswordVerifyApi.as_view(), name='forgot_password_verify'),
@@ -39,3 +38,9 @@ user_patterns = [
     path('user/kanban/entry/update', UserKanbanEntryUpdateAPI.as_view(), name='user_kanban_entry_update'),
     path('user/kanban/entry/delete', UserKanbanEntryDeleteAPI.as_view(), name='user_kanban_entry_delete'),
 ]
+
+if not DISABLE_DEFAULT_USER_REGISTRATION:
+    user_patterns += [
+        path('register', UserCreateApi.as_view(), name='register'),
+        path('register/verify', UserCreateVerifyApi.as_view(), name='register_verify'),
+    ]
