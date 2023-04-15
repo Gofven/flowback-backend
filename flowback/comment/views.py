@@ -16,14 +16,14 @@ class CommentListAPI(APIView):
     class InputSerializer(serializers.Serializer):
         order_by = serializers.CharField(required=False)
         id = serializers.IntegerField(required=False)
-        author = serializers.IntegerField(required=False)
+        author_id = serializers.IntegerField(required=False)
         parent = serializers.IntegerField(required=False)
         score__gt = serializers.IntegerField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-        author = serializers.IntegerField()
+        author_id = serializers.IntegerField()
         author_name = serializers.CharField(source='author.username')
-        author_thumbnail = serializers.ImageField(source='author.profile_image')
+        author_profile_image = serializers.ImageField(source='author.profile_image')
         parent = serializers.IntegerField(allow_null=True)
         message = serializers.CharField()
         score = serializers.IntegerField()
@@ -44,7 +44,7 @@ class CommentListAPI(APIView):
 
 class CommentCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
-        parent = serializers.IntegerField(source='parent_id', required=False)
+        parent_id = serializers.IntegerField(required=False)
         message = serializers.CharField()
 
     def post(self, request, comment_section_id: int):

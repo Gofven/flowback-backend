@@ -14,8 +14,8 @@ class BaseCommentFilter(django_filters.FilterSet):
     class Meta:
         model = Comment
         fields = dict(id=['exact'],
-                      author=['exact'],
-                      parent=['exact'],
+                      author_id=['exact'],
+                      parent_id=['exact'],
                       score=['gt'])
 
 
