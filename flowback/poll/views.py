@@ -466,7 +466,7 @@ class PollProposalDelegateVoteUpdateAPI(APIView):
 
 class PollCommentListAPI(CommentListAPI):
     class InputSerializer(CommentListAPI.InputSerializer):
-        poll_id = serializers.IntegerField()
+        poll_id = serializers.IntegerField(required=False)
 
     def get(self, request, poll: int):
         serializer = self.InputSerializer(data=request.data)
@@ -483,7 +483,7 @@ class PollCommentListAPI(CommentListAPI):
 
 class PollCommentCreateAPI(CommentCreateAPI):
     def post(self, request, poll: int):
-        serializer = self.InputSerializer()
+        serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         poll_comment_create(author_id=request.user.id, poll_id=poll, **serializer.validated_data)
