@@ -160,7 +160,7 @@ def poll_refresh_cheap(*, poll_id: int) -> None:
             if event.exists():
                 event = event.first().pollproposaltypeschedule
                 group_schedule.create_event(schedule_id=poll.created_by.group.schedule_id,
-                                            title=poll.name,
+                                            title=poll.title,
                                             start_date=event.start_date,
                                             end_date=event.end_date,
                                             origin_name='poll',
