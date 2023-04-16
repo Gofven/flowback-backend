@@ -5,7 +5,7 @@ from flowback.poll.models import Poll
 from flowback.comment.services import comment_create, comment_update, comment_delete
 
 
-def poll_comment_create(*, author_id: int, poll_id: int, message: str, parent_id: int = None):
+def poll_comment_create(*, author_id: int, poll_id: int, message: str, parent_id: int = None) -> Comment:
     poll = get_object(Poll, id=poll_id)
     group_user_permissions(group=poll.created_by.group.id, user=author_id)
 

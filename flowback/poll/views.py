@@ -486,9 +486,9 @@ class PollCommentCreateAPI(CommentCreateAPI):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        poll_comment_create(author_id=request.user.id, poll_id=poll, **serializer.validated_data)
+        comment = poll_comment_create(author_id=request.user.id, poll_id=poll, **serializer.validated_data)
 
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK, data=comment.id)
 
 
 class PollCommentUpdateAPI(CommentUpdateAPI):
