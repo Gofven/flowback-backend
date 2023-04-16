@@ -54,10 +54,10 @@ class CommentCreateAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        comment_create(comment_section_id=comment_section_id, author_id=request.user.id,
-                       **serializer.validated_data)
+        comment = comment_create(comment_section_id=comment_section_id, author_id=request.user.id,
+                                 **serializer.validated_data)
 
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK, data=comment.id)
 
 
 class CommentUpdateAPI(APIView):
