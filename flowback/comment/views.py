@@ -16,15 +16,18 @@ class CommentListAPI(APIView):
     class InputSerializer(serializers.Serializer):
         order_by = serializers.CharField(required=False)
         id = serializers.IntegerField(required=False)
-        author = serializers.IntegerField(required=False)
-        parent = serializers.IntegerField(required=False)
+        author_id = serializers.IntegerField(required=False)
+        parent_id = serializers.IntegerField(required=False)
         score__gt = serializers.IntegerField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-        author = serializers.IntegerField()
+        id = serializers.IntegerField()
+        author_id = serializers.IntegerField()
         author_name = serializers.CharField(source='author.username')
-        author_thumbnail = serializers.ImageField(source='author.profile_image')
-        parent = serializers.IntegerField(allow_null=True)
+        author_profile_image = serializers.ImageField(source='author.profile_image')
+        parent_id = serializers.IntegerField(allow_null=True)
+        created_at = serializers.DateTimeField()
+        edited = serializers.BooleanField()
         message = serializers.CharField()
         score = serializers.IntegerField()
 
@@ -44,17 +47,17 @@ class CommentListAPI(APIView):
 
 class CommentCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
-        parent = serializers.IntegerField(source='parent_id', required=False)
+        parent_id = serializers.IntegerField(required=False)
         message = serializers.CharField()
 
     def post(self, request, comment_section_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        comment_create(comment_section_id=comment_section_id, author_id=request.user.id,
-                       **serializer.validated_data)
+        comment = comment_create(comment_section_id=comment_section_id, author_id=request.user.id,
+                                 **serializer.validated_data)
 
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK, data=comment.id)
 
 
 class CommentUpdateAPI(APIView):

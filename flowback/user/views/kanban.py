@@ -1,3 +1,6 @@
+from rest_framework import status
+from rest_framework.response import Response
+
 from flowback.common.pagination import get_paginated_response
 from flowback.user.selectors import user_kanban_entry_list
 from flowback.user.services import user_kanban_entry_create, user_kanban_entry_update, user_kanban_entry_delete
@@ -23,7 +26,9 @@ class UserKanbanEntryCreateAPI(KanbanEntryCreateAPI):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_kanban_entry_create(user_id=request.user.id, **serializer.validated_data)
+        kanban = user_kanban_entry_create(user_id=request.user.id, **serializer.validated_data)
+
+        return Response(data=kanban.id, status=status.HTTP_201_CREATED)
 
 
 class UserKanbanEntryUpdateAPI(KanbanEntryUpdateAPI):
@@ -35,6 +40,8 @@ class UserKanbanEntryUpdateAPI(KanbanEntryUpdateAPI):
                                  entry_id=serializer.validated_data.pop('entry_id'),
                                  data=serializer.validated_data)
 
+        return Response(status=status.HTTP_200_OK)
+
 
 class UserKanbanEntryDeleteAPI(KanbanEntryDeleteAPI):
     def post(self, request):
@@ -42,3 +49,5 @@ class UserKanbanEntryDeleteAPI(KanbanEntryDeleteAPI):
         serializer.is_valid(raise_exception=True)
 
         user_kanban_entry_delete(user_id=request.user.id, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)

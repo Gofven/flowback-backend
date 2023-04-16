@@ -466,7 +466,7 @@ class PollProposalDelegateVoteUpdateAPI(APIView):
 
 class PollCommentListAPI(CommentListAPI):
     class InputSerializer(CommentListAPI.InputSerializer):
-        poll_id = serializers.IntegerField()
+        poll_id = serializers.IntegerField(required=False)
 
     def get(self, request, poll: int):
         serializer = self.InputSerializer(data=request.data)
@@ -483,12 +483,12 @@ class PollCommentListAPI(CommentListAPI):
 
 class PollCommentCreateAPI(CommentCreateAPI):
     def post(self, request, poll: int):
-        serializer = self.InputSerializer()
+        serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        poll_comment_create(author_id=request.user.id, poll_id=poll, **serializer.validated_data)
+        comment = poll_comment_create(author_id=request.user.id, poll_id=poll, **serializer.validated_data)
 
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK, data=comment.id)
 
 
 class PollCommentUpdateAPI(CommentUpdateAPI):
@@ -499,14 +499,14 @@ class PollCommentUpdateAPI(CommentUpdateAPI):
         poll_comment_update(fetched_by=request.user.id,
                             poll_id=poll,
                             comment_id=comment_id,
-                            **serializer.validated_data)
+                            data=serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
 
 
 class PollCommentDeleteAPI(CommentDeleteAPI):
     def post(self, request, poll: int, comment_id: int):
-        poll_comment_delete(fetched_by=request.user, poll_id=poll, comment_id=comment_id)
+        poll_comment_delete(fetched_by=request.user.id, poll_id=poll, comment_id=comment_id)
 
         return Response(status=status.HTTP_200_OK)
 

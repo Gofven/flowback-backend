@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from flowback.common.services import get_object, model_update
 from flowback.kanban.models import Kanban, KanbanSubscription, KanbanEntry
@@ -8,6 +9,8 @@ def kanban_create(*, name: str, origin_type: str, origin_id: int):
     kanban = Kanban(name=name, origin_type=origin_type, origin_id=origin_id)
     kanban.full_clean()
     kanban.save()
+
+    return kanban
 
 
 def kanban_delete(*, origin_type: str, origin_id: int):
@@ -30,13 +33,17 @@ def kanban_entry_create(*,
                         assignee_id: int,
                         title: str,
                         description: str,
-                        tag: int) -> KanbanEntry:
+                        tag: int,
+                        priority: int,
+                        end_date: timezone.datetime = None) -> KanbanEntry:
     kanban = KanbanEntry(kanban_id=kanban_id,
                          created_by_id=created_by_id,
                          assignee_id=assignee_id,
                          title=title,
                          description=description,
-                         tag=tag)
+                         tag=tag,
+                         priority=priority,
+                         end_date=end_date)
 
     kanban.full_clean()
     kanban.save()
@@ -50,7 +57,7 @@ def kanban_entry_create(*,
 def kanban_entry_update(*, kanban_entry_id: int, data) -> KanbanEntry:
     kanban = get_object(KanbanEntry, id=kanban_entry_id)
 
-    non_side_effect_fields = ['title', 'description', 'assignee', 'tag']
+    non_side_effect_fields = ['title', 'description', 'assignee', 'priority', 'tag', 'end_date']
 
     kanban, has_updated = model_update(instance=kanban,
                                        fields=non_side_effect_fields,
@@ -104,13 +111,17 @@ class KanbanManager:
                             assignee_id: int,
                             title: str,
                             description: str,
-                            tag: int) -> KanbanEntry:
+                            priority: int,
+                            tag: int,
+                            end_date: timezone.datetime = None) -> KanbanEntry:
         kanban = self.get_kanban(origin_id=origin_id)
         return kanban_entry_create(kanban_id=kanban.id,
                                    created_by_id=created_by_id,
                                    assignee_id=assignee_id,
                                    title=title,
                                    description=description,
+                                   priority=priority,
+                                   end_date=end_date,
                                    tag=tag)
 
     def kanban_entry_update(self,

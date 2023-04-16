@@ -147,12 +147,16 @@ def user_kanban_entry_create(*,
                              assignee_id: int,
                              title: str,
                              description: str,
-                             tag: int):
+                             priority: int,
+                             tag: int,
+                             end_date: timezone.datetime = None):
     return user_kanban.kanban_entry_create(origin_id=user_id,
                                            created_by_id=user_id,
                                            assignee_id=assignee_id,
                                            title=title,
                                            description=description,
+                                           priority=priority,
+                                           end_date=end_date,
                                            tag=tag)
 
 

@@ -22,6 +22,7 @@ env = environ.Env(DEBUG=(bool, False),
                   REDIS_IP=(str, 'localhost'),
                   REDIS_PORT=(str, '6379'),
                   URL_SUBPATH=(str, ''),
+                  DISABLE_DEFAULT_USER_REGISTRATION=(bool, False),
                   FLOWBACK_ALLOW_GROUP_CREATION=(bool, True),
                   FLOWBACK_GROUP_ADMIN_USER_LIST_ACCESS_ONLY=(bool, False),
                   FLOWBACK_DEFAULT_PERMISSION=(str, 'rest_framework.permissions.IsAuthenticated'),
@@ -88,7 +89,7 @@ INSTALLED_APPS = [
     'flowback.kanban',
     'flowback.notification',
     'flowback.comment',
-    'flowback.schedule'
+    'flowback.schedule',
 ] + env('INTEGRATIONS')
 
 REST_FRAMEWORK = {
@@ -102,6 +103,7 @@ REST_FRAMEWORK = {
 }
 
 AUTH_USER_MODEL = 'user.User'
+DISABLE_DEFAULT_USER_REGISTRATION = env('DISABLE_DEFAULT_USER_REGISTRATION')
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',

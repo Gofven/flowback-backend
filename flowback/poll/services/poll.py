@@ -159,8 +159,8 @@ def poll_refresh_cheap(*, poll_id: int) -> None:
             event = PollProposal.objects.filter(poll=poll).order_by('score')
             if event.exists():
                 event = event.first().pollproposaltypeschedule
-                group_schedule.create_event(schedule_id=poll.group.schedule_id,
-                                            title=poll.name,
+                group_schedule.create_event(schedule_id=poll.created_by.group.schedule_id,
+                                            title=poll.title,
                                             start_date=event.start_date,
                                             end_date=event.end_date,
                                             origin_name='poll',

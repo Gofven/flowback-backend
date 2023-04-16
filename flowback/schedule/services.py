@@ -9,6 +9,8 @@ def create_schedule(*, name: str, origin_name: str, origin_id: int) -> Schedule:
     schedule.full_clean()
     schedule.save()
 
+    return schedule
+
 
 def update_schedule(*, schedule_id: int, data) -> Schedule:
     schedule = get_object(Schedule, id=schedule_id)
