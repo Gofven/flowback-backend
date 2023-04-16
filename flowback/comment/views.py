@@ -17,7 +17,7 @@ class CommentListAPI(APIView):
         order_by = serializers.CharField(required=False)
         id = serializers.IntegerField(required=False)
         author_id = serializers.IntegerField(required=False)
-        parent = serializers.IntegerField(required=False)
+        parent_id = serializers.IntegerField(required=False)
         score__gt = serializers.IntegerField(required=False)
 
     class OutputSerializer(serializers.Serializer):
@@ -25,7 +25,7 @@ class CommentListAPI(APIView):
         author_id = serializers.IntegerField()
         author_name = serializers.CharField(source='author.username')
         author_profile_image = serializers.ImageField(source='author.profile_image')
-        parent = serializers.IntegerField(allow_null=True)
+        parent_id = serializers.IntegerField(allow_null=True)
         created_at = serializers.DateTimeField()
         edited = serializers.BooleanField()
         message = serializers.CharField()

@@ -111,13 +111,17 @@ class KanbanManager:
                             assignee_id: int,
                             title: str,
                             description: str,
-                            tag: int) -> KanbanEntry:
+                            priority: int,
+                            tag: int,
+                            end_date: timezone.datetime = None) -> KanbanEntry:
         kanban = self.get_kanban(origin_id=origin_id)
         return kanban_entry_create(kanban_id=kanban.id,
                                    created_by_id=created_by_id,
                                    assignee_id=assignee_id,
                                    title=title,
                                    description=description,
+                                   priority=priority,
+                                   end_date=end_date,
                                    tag=tag)
 
     def kanban_entry_update(self,

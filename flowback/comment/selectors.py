@@ -19,11 +19,9 @@ class BaseCommentFilter(django_filters.FilterSet):
                       score=['gt'])
 
 
+# TODO group parents together
 def comment_list(*, comment_section_id: int, filters=None):
     filters = filters or {}
-
-    if 'parent' not in filters.keys():
-        filters['parent'] = None
 
     qs = Comment.objects.filter(comment_section_id=comment_section_id).all()
     return BaseCommentFilter(filters, qs).qs
