@@ -404,7 +404,9 @@ def group_kanban_entry_create(*,
                               assignee_id: int = None,
                               title: str,
                               description: str,
-                              tag: int
+                              priority: int,
+                              tag: int,
+                              end_date: timezone.datetime = None
                               ) -> KanbanEntry:
     group_user_permissions(group=group_id, user=fetched_by_id)
     return group_kanban.kanban_entry_create(origin_id=group_id,
@@ -412,6 +414,8 @@ def group_kanban_entry_create(*,
                                             assignee_id=assignee_id,
                                             title=title,
                                             description=description,
+                                            priority=priority,
+                                            end_date=end_date,
                                             tag=tag)
 
 
