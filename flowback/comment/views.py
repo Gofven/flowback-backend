@@ -28,6 +28,7 @@ class CommentListAPI(APIView):
         parent_id = serializers.IntegerField(allow_null=True)
         created_at = serializers.DateTimeField()
         edited = serializers.BooleanField()
+        active = serializers.BooleanField()
         message = serializers.CharField()
         score = serializers.IntegerField()
 

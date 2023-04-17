@@ -23,7 +23,7 @@ def comment_create(*, author_id: int, comment_section_id: int, message: str, par
     if parent_id:
         parent = get_object(Comment, id=parent_id)
 
-        if parent.deleted:
+        if not parent.active:
             raise ValidationError("Parent has already been removed")
 
     comment.full_clean()
@@ -35,7 +35,7 @@ def comment_create(*, author_id: int, comment_section_id: int, message: str, par
 def comment_update(*, fetched_by: int, comment_section_id: int,  comment_id: int, data) -> Comment:
     comment = get_object(Comment, comment_section_id=comment_section_id, id=comment_id)
 
-    if comment.deleted:
+    if not comment.active:
         raise ValidationError("Parent has already been removed")
 
     if fetched_by != comment.author_id:
@@ -59,4 +59,5 @@ def comment_delete(*, fetched_by: int, comment_section_id: int, comment_id: int)
         raise ValidationError("Comment has already been removed")
 
     comment.active = False
+    comment.message = '[Deleted]'
     comment.save()
