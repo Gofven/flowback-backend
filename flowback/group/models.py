@@ -48,12 +48,13 @@ class Group(BaseModel):
             instance.kanban = kanban_create(name=instance.name, origin_type='group', origin_id=instance.id)
             instance.save()
             return
-        fields = [field.name for field in update_fields]
-        if 'name' in fields:
-            instance.schedule.name = instance.name
-            instance.kanban.name = instance.name
-            instance.schedule.save()
-            instance.kanban.save()
+        if update_fields:
+            fields = [field.name for field in update_fields]
+            if 'name' in fields:
+                instance.schedule.name = instance.name
+                instance.kanban.name = instance.name
+                instance.schedule.save()
+                instance.kanban.save()
 
     @classmethod
     def post_delete(cls, instance, *args, **kwargs):
