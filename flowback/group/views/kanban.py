@@ -26,8 +26,10 @@ class GroupKanbanEntryCreateAPI(KanbanEntryCreateAPI):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        group_kanban_entry_create(group_id=group_id, fetched_by_id=request.user.id, **serializer.validated_data)
-        return Response(status=status.HTTP_200_OK)
+        kanban = group_kanban_entry_create(group_id=group_id,
+                                           fetched_by_id=request.user.id,
+                                           **serializer.validated_data)
+        return Response(status=status.HTTP_200_OK, data=kanban.id)
 
 
 class GroupKanbanEntryUpdateAPI(KanbanEntryUpdateAPI):
