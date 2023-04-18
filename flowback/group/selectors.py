@@ -148,7 +148,7 @@ def group_list(*, fetched_by: User, filters=None):
 
 def group_kanban_entry_list(*, fetched_by: User, group_id: int, filters=None):
     group_user = group_user_permissions(group=group_id, user=fetched_by)
-    return kanban_entry_list(kanban_id=group_user.group.kanban.id, filters=filters)
+    return kanban_entry_list(kanban_id=group_user.group.kanban.id, filters=filters, subscriptions=False)
 
 
 def group_detail(*, fetched_by: User, group_id: int):
