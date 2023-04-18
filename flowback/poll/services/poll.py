@@ -9,7 +9,10 @@ from datetime import datetime
 
 from flowback.poll.services.vote import poll_proposal_vote_count
 
-poll_notification = NotificationManager(sender_type='poll', possible_categories=['timeline', 'poll'])
+poll_notification = NotificationManager(sender_type='poll', possible_categories=['timeline',
+                                                                                 'poll',
+                                                                                 'comment_self',
+                                                                                 'comment_all'])
 
 
 def poll_notification_subscribe(*, user_id: int, poll_id: int, categories: list[str]):
