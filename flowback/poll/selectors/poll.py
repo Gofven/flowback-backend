@@ -39,7 +39,7 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
     else:
         joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
         total_comments = Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'),
-                                                deleted=False)
+                                                active=True)
         qs = Poll.objects.filter((Q(created_by__group__groupuser__user__in=[fetched_by]) | Q(public=True))
                                  & Q(start_date__lte=timezone.now())).annotate(group_joined=Exists(joined_groups),
                                                                                total_comments=Count(total_comments)
