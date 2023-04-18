@@ -83,7 +83,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         if not update_fields:
             return
 
-        fields = [field.name for field in update_fields]
+        fields = [str(field) for field in update_fields]
         if 'name' in fields:
             instance.schedule.name = instance.name
             instance.kanban.name = instance.name
