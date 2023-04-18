@@ -51,6 +51,7 @@ class PollListApi(APIView):
         group_image = serializers.ImageField(source='created_by.group.image')
         tag_name = serializers.CharField(source='tag.tag_name')
         hide_poll_users = serializers.BooleanField(source='created_by.group.hide_poll_users')
+        total_comments = serializers.IntegerField()
 
         class Meta:
             model = Poll
@@ -75,7 +76,8 @@ class PollListApi(APIView):
                       'finished',
                       'result',
                       'participants',
-                      'dynamic')
+                      'dynamic',
+                      'total_comments')
 
     def get(self, request, group: int = None):
         filter_serializer = self.FilterSerializer(data=request.query_params)

@@ -1,8 +1,10 @@
 from typing import Union
 
 import django_filters
-from django.db.models import Q, Exists, OuterRef
+from django.db.models import Q, Exists, OuterRef, Count
 from django.utils import timezone
+
+from flowback.comment.models import Comment
 from flowback.group.models import Group
 from flowback.poll.models import Poll
 from flowback.user.models import User
@@ -34,8 +36,11 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
 
     else:
         joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
+        total_comments = Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'),
+                                                deleted=False)
         qs = Poll.objects.filter((Q(created_by__group__groupuser__user__in=[fetched_by]) | Q(public=True))
-                                 & Q(start_date__lte=timezone.now())).annotate(group_joined=Exists(joined_groups))\
-            .order_by('-id').distinct('id').all()
+                                 & Q(start_date__lte=timezone.now())).annotate(group_joined=Exists(joined_groups),
+                                                                               total_comments=Count(total_comments)
+                                                                               ).distinct('id').all()
 
     return BasePollFilter(filters, qs).qs
