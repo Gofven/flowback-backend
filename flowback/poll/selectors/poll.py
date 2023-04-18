@@ -34,7 +34,8 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
 
     if group_id:
         group_user_permissions(group=group_id, user=fetched_by)
-        qs = Poll.objects.filter(created_by__group_id=group_id).order_by('-id').all()
+        qs = Poll.objects.filter(created_by__group_id=group_id)\
+            .annotate(total_comments=Count('comment_section__comment', filters=dict(active=True))).all()
 
     else:
         joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
