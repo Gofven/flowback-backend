@@ -131,8 +131,7 @@ class NotificationManager:
         notification_load_channel(sender_type=self.sender_type, sender_id=sender_id, category=category)
 
     def is_subscribed(self, user_id: int, sender_id: int, category: int):
-        return NotificationSubscription.objects.filter(NotificationSubscription,
-                                                       user_id=user_id,
+        return NotificationSubscription.objects.filter(user_id=user_id,
                                                        channel__sender_type=self.sender_type,
                                                        channel__sender_id=sender_id,
                                                        channel__category=category).exists()
