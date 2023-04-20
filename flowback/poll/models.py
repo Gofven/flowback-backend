@@ -170,10 +170,11 @@ class PollPredictionStatement(PredictionStatement):
             raise ValidationError('Poll ends earlier than prediction statement end date')
 
     @receiver(post_delete, sender=PollProposal)
-    def clean_prediction_statement(self, instance: PollProposal, **kwargs):
-        self.objects.annotate(segment_count=Count('pollpredictionstatementsegment'))\
-            .filter(segment_count__lt=1)\
-            .delete()
+    def clean_prediction_statement(sender, instance: PollProposal, **kwargs):
+        PollPredictionStatement.objects.filter(poll=instance.poll)\
+                                        .annotate(segment_count=Count('pollpredictionstatementsegment'))\
+                                        .filter(segment_count__lt=1)\
+                                        .delete()
 
 
 class PollPredictionStatementSegment(PredictionStatementSegment):

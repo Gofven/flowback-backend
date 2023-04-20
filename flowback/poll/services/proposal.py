@@ -47,9 +47,6 @@ def poll_proposal_delete(*, user_id: int, proposal_id: int) -> None:
 
     poll_refresh_cheap(poll_id=proposal.poll.id)  # TODO get celery
 
-    if proposal.poll.proposal_end_date <= timezone.now():
-        raise ValidationError("Can't delete a proposal after proposal end date")
-
     if not proposal.created_by == group_user:
         raise ValidationError('Permission denied')
 
@@ -58,5 +55,8 @@ def poll_proposal_delete(*, user_id: int, proposal_id: int) -> None:
 
     if proposal.poll.finished:
         raise ValidationError('Only site administrators and above can delete proposals after the poll is finished.')
+
+    if proposal.poll.proposal_end_date <= timezone.now():
+        raise ValidationError("Can't delete a proposal after proposal end date")
 
     proposal.delete()
