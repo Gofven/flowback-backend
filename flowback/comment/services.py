@@ -51,7 +51,7 @@ def comment_update(*, fetched_by: int, comment_section_id: int,  comment_id: int
 
 
 def comment_delete(*, fetched_by: int, comment_section_id: int, comment_id: int):
-    comment = Comment.objects.get(comment_section_id=comment_section_id, id=comment_id)
+    comment = get_object(Comment, comment_section_id=comment_section_id, id=comment_id)
     if fetched_by != comment.author_id:
         raise ValidationError("Comment doesn't belong to User")
 
