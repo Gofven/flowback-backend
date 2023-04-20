@@ -529,7 +529,6 @@ class PollPredictionStatementListAPI(APIView):
         user_vote_exists = serializers.BooleanField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-
         id = serializers.IntegerField()
         poll_id = serializers.IntegerField()
         proposals = serializers.ListField(source='pollpredictionstatementsegment_id',
