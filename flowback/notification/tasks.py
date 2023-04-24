@@ -34,6 +34,7 @@ def notification_send_update():
 
     subject = INSTANCE_NAME
     mails = []
+
     for user in recipients:
         message = []
         if user.unread_chat_notifications > 0:
@@ -45,6 +46,4 @@ def notification_send_update():
         message = f'You got {" and ".join(message)}!'
         mails.append([subject, message, DEFAULT_FROM_EMAIL, [user.email]])
 
-    print(mails)
     send_mass_mail(mails)
-    print('I sent it!')
