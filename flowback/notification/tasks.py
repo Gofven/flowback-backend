@@ -25,7 +25,7 @@ def notification_send_update():
                                 ).annotate(unread_chat_notifications=Func('pk', function='Count')
                                            ).values('unread_chat_notifications')
 
-    recipients = User.objects.filter(email_notifications=True, active=True
+    recipients = User.objects.filter(email_notifications=True, is_active=True
                                      ).annotate(unread_notifications=Count(Q(notification__read=True)),
                                                 unread_chat_notifications=Subquery(direct_message_subquery,
                                                                                    output_field=models.IntegerField())
@@ -46,4 +46,5 @@ def notification_send_update():
         message = f'You got {" and ".join(message)}!'
         mails.append([subject, message, DEFAULT_FROM_EMAIL, [user.email]])
 
-    send_mass_mail(mails)
+    if mails:
+        send_mass_mail(mails)
