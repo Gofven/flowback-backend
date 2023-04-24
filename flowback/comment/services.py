@@ -1,7 +1,7 @@
 from rest_framework.exceptions import ValidationError
 
 from flowback.comment.models import CommentSection, Comment
-from flowback.common.services import model_update
+from flowback.common.services import model_update, get_object
 
 
 def comment_section_create(*, active: bool = True) -> CommentSection:
@@ -19,6 +19,13 @@ def comment_section_delete(*, comments_id: int):
 def comment_create(*, author_id: int, comment_section_id: int, message: str, parent_id: int) -> Comment:
     comment = Comment(author_id=author_id, comment_section_id=comment_section_id,
                       message=message, parent_id=parent_id)
+
+    if parent_id:
+        parent = get_object(Comment, id=parent_id)
+
+        if not parent.active:
+            raise ValidationError("Parent has already been removed")
+
     comment.full_clean()
     comment.save()
 
@@ -26,7 +33,11 @@ def comment_create(*, author_id: int, comment_section_id: int, message: str, par
 
 
 def comment_update(*, fetched_by: int, comment_section_id: int,  comment_id: int, data) -> Comment:
-    comment = Comment.objects.get(comment_section_id=comment_section_id, id=comment_id)
+    comment = get_object(Comment, comment_section_id=comment_section_id, id=comment_id)
+
+    if not comment.active:
+        raise ValidationError("Parent has already been removed")
+
     if fetched_by != comment.author_id:
         raise ValidationError("Comment doesn't belong to User")
 
@@ -40,8 +51,13 @@ def comment_update(*, fetched_by: int, comment_section_id: int,  comment_id: int
 
 
 def comment_delete(*, fetched_by: int, comment_section_id: int, comment_id: int):
-    comment = Comment.objects.get(comment_section_id=comment_section_id, id=comment_id)
+    comment = get_object(Comment, comment_section_id=comment_section_id, id=comment_id)
     if fetched_by != comment.author_id:
         raise ValidationError("Comment doesn't belong to User")
 
-    comment.delete()
+    if not comment.active:
+        raise ValidationError("Comment has already been removed")
+
+    comment.active = False
+    comment.message = '[Deleted]'
+    comment.save()

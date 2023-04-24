@@ -170,10 +170,11 @@ class PollPredictionStatement(PredictionStatement):
             raise ValidationError('Poll ends earlier than prediction statement end date')
 
     @receiver(post_delete, sender=PollProposal)
-    def clean_prediction_statement(self, instance: PollProposal, **kwargs):
-        self.objects.annotate(segment_count=Count('pollpredictionstatementsegment'))\
-            .filter(segment_count__lt=1)\
-            .delete()
+    def clean_prediction_statement(sender, instance: PollProposal, **kwargs):
+        PollPredictionStatement.objects.filter(poll=instance.poll)\
+                                        .annotate(segment_count=Count('pollpredictionstatementsegment'))\
+                                        .filter(segment_count__lt=1)\
+                                        .delete()
 
 
 class PollPredictionStatementSegment(PredictionStatementSegment):
@@ -191,9 +192,9 @@ class PollPrediction(Prediction):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
 
     @receiver(post_save, sender=PredictionStatement)
-    def reset_prediction_prediction(self, instance: PredictionStatement, **kwargs):
-        self.objects.filter(prediction_statement=instance).delete()
+    def reset_prediction_prediction(sender, instance: PredictionStatement, **kwargs):
+        PollPrediction.objects.filter(prediction_statement=instance).delete()
 
     @receiver(post_save, sender=PollProposal)
-    def reset_prediction_proposal(sender, instance: PollProposal, **kwargs): # TODO param must be sender, but needs prediction
+    def reset_prediction_proposal(sender, instance: PollProposal, **kwargs):
         PollPrediction.objects.filter(prediction_statement__pollpredictionstatementsegment__proposal=instance).delete()

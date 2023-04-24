@@ -25,7 +25,8 @@ def notification_delete_channel(*, sender_type: str, sender_id: int, category: s
 # tag (Action), sender_type (Name), sender_id (identifier)
 # Notification subscription handled outside, notification management handled inside
 def notification_create(*, action: str, category: str, sender_type: str, sender_id: int,
-                        message: str, timestamp: datetime = None, related_id: int = None) -> NotificationObject:
+                        message: str, timestamp: datetime = None, related_id: int = None,
+                        target_user_id: int = None) -> NotificationObject:
     channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
     timestamp = timestamp or timezone.now()
     notification_object = NotificationObject.objects.create(channel=channel,
@@ -33,10 +34,19 @@ def notification_create(*, action: str, category: str, sender_type: str, sender_
                                                             message=message,
                                                             timestamp=timestamp,
                                                             related_id=related_id)
-    subscribers = NotificationSubscription.objects.filter(channel=channel).all()
-    Notification.objects.bulk_create([Notification(user=subscriber.user,
-                                                   notification_object=notification_object)
-                                      for subscriber in subscribers])
+
+    if not target_user_id:
+        subscribers = NotificationSubscription.objects.filter(channel=channel).all()
+        Notification.objects.bulk_create([Notification(user=subscriber.user,
+                                                       notification_object=notification_object)
+                                          for subscriber in subscribers])
+
+    else:
+        notification = Notification(user_id=target_user_id,
+                                    notification_object=notification_object)
+        notification.full_clean()
+        notification.save()
+
     return notification_object
 
 
@@ -120,6 +130,12 @@ class NotificationManager:
     def load_channel(self, *, sender_id: int, category: str):
         notification_load_channel(sender_type=self.sender_type, sender_id=sender_id, category=category)
 
+    def is_subscribed(self, user_id: int, sender_id: int, category: int):
+        return NotificationSubscription.objects.filter(user_id=user_id,
+                                                       channel__sender_type=self.sender_type,
+                                                       channel__sender_id=sender_id,
+                                                       channel__category=category).exists()
+
     def delete_channel(self, *, sender_id: int, category: str = None):
         if category:
             self.category_is_possible(category)
@@ -127,11 +143,11 @@ class NotificationManager:
         notification_delete_channel(sender_type=self.sender_type, sender_id=sender_id)
 
     def create(self, *, sender_id: int, action: str, category: str, message: str, timestamp: datetime = None,
-               related_id: int = None):
+               related_id: int = None, target_user_id: int = None):
         self.category_is_possible(category)
 
         notification_create(action=action, category=category, sender_type=self.sender_type, sender_id=sender_id,
-                            message=message, timestamp=timestamp, related_id=related_id)
+                            message=message, timestamp=timestamp, related_id=related_id, target_user_id=target_user_id)
 
     def delete(self, *, category: str, sender_id: int, related_id: int = None, action: str = None,
                timestamp: datetime = None, timestamp__lt: datetime = None, timestamp__gt: datetime = None):

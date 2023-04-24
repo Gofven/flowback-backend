@@ -108,7 +108,7 @@ class KanbanManager:
                             *,
                             origin_id: int,
                             created_by_id: int,
-                            assignee_id: int,
+                            assignee_id: int = None,
                             title: str,
                             description: str,
                             priority: int,

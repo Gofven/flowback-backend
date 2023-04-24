@@ -10,3 +10,5 @@ django-pgtrigger==4.5.3
 channels==4.0.0
 channels_redis==4.0.0
 daphne==4.0.0
+celery==5.2.7
+django-celery-beat==2.5.0

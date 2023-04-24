@@ -29,7 +29,7 @@ def user_schedule_event_list(*, fetched_by: User, filters=None):
 
 def user_kanban_entry_list(*, fetched_by: User, filters=None):
     filters = filters or {}
-    return kanban_entry_list(kanban_id=fetched_by.kanban.id, filters=filters)
+    return kanban_entry_list(kanban_id=fetched_by.kanban.id, filters=filters, subscriptions=True)
 
 
 def user_list(*, fetched_by: User, filters=None):

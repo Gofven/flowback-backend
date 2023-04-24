@@ -34,6 +34,7 @@ class PollListApi(APIView):
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
         id_list = serializers.ListField(child=serializers.IntegerField(), required=False)
+        order_by = serializers.CharField(default='created_at_desc')
 
         title = serializers.CharField(required=False)
         title__icontains = serializers.CharField(required=False)
@@ -51,6 +52,7 @@ class PollListApi(APIView):
         group_image = serializers.ImageField(source='created_by.group.image')
         tag_name = serializers.CharField(source='tag.tag_name')
         hide_poll_users = serializers.BooleanField(source='created_by.group.hide_poll_users')
+        total_comments = serializers.IntegerField()
 
         class Meta:
             model = Poll
@@ -75,7 +77,8 @@ class PollListApi(APIView):
                       'finished',
                       'result',
                       'participants',
-                      'dynamic')
+                      'dynamic',
+                      'total_comments')
 
     def get(self, request, group: int = None):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -526,7 +529,6 @@ class PollPredictionStatementListAPI(APIView):
         user_vote_exists = serializers.BooleanField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-
         id = serializers.IntegerField()
         poll_id = serializers.IntegerField()
         proposals = serializers.ListField(source='pollpredictionstatementsegment_id',

@@ -17,9 +17,13 @@ class BaseKanbanEntryFilter(django_filters.FilterSet):
                       tag=['exact'])
 
 
-def kanban_entry_list(*, kanban_id: int, filters=None):
+def kanban_entry_list(*, kanban_id: int, subscriptions: bool, filters=None):
     filters = filters or {}
 
-    qs = KanbanEntry.objects.filter(Q(kanban_id=kanban_id) |
-                                    Q(assignee__kanban__kanban_subscription_kanban=kanban_id)).distinct('id').all()
+    if subscriptions:
+        qs = KanbanEntry.objects.filter(Q(kanban_id=kanban_id) |
+                                        Q(assignee__kanban__kanban_subscription_kanban=kanban_id)).distinct('id').all()
+
+    else:
+        qs = KanbanEntry.objects.filter(Q(kanban_id=kanban_id)).all()
     return BaseKanbanEntryFilter(filters, qs).qs

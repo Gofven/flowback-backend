@@ -11,7 +11,8 @@ class UserAdmin(BaseUserAdmin):
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('profile_image', 'banner_image', 'bio', 'website')}),
         ('Permissions', {'fields': ('is_staff',)}),
-        ('Activity', {'fields': ('last_login',)})
+        ('Activity', {'fields': ('last_login',)}),
+        ('Notifications', {'fields': ('email_notifications',)})
     )
 
     add_fieldsets = (
