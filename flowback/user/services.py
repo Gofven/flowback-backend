@@ -97,7 +97,7 @@ def user_forgot_password_verify(*, verification_code: str, password: str):
 
 
 def user_update(*, user: User, data) -> User:
-    non_side_effects_fields = ['username', 'profile_image', 'banner_image', 'bio', 'website']
+    non_side_effects_fields = ['username', 'profile_image', 'banner_image', 'bio', 'website', 'email_notifications']
 
     user, has_updated = model_update(instance=user,
                                      fields=non_side_effects_fields,
