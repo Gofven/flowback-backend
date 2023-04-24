@@ -25,7 +25,7 @@ def notification_send_update():
                                 ).annotate(unread_chat_notifications=Func('pk', function='Count')
                                            ).values('unread_chat_notifications')
 
-    recipients = User.objects.filter(email_notifications=True
+    recipients = User.objects.filter(email_notifications=True, active=True
                                      ).annotate(unread_notifications=Count(Q(notification__read=True)),
                                                 unread_chat_notifications=Subquery(direct_message_subquery,
                                                                                    output_field=models.IntegerField())
