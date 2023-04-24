@@ -29,7 +29,8 @@ def notification_send_update():
                                      ).annotate(unread_notifications=Count(Q(notification__read=True)),
                                                 unread_chat_notifications=Subquery(direct_message_subquery,
                                                                                    output_field=models.IntegerField())
-                                                ).filter(unread_notifications__gt=0, unread_chat_notifications__gt=0).all()
+                                                ).filter(Q(unread_notifications__gt=0) |
+                                                         Q(unread_chat_notifications__gt=0)).all()
 
     subject = INSTANCE_NAME
     mails = []
