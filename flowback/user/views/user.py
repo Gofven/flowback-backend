@@ -85,7 +85,7 @@ class UserListApi(APIView):
     class OutputSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
-            fields = 'id', 'email', 'username', 'profile_image', \
+            fields = 'id', 'username', 'profile_image', \
                      'banner_image', 'bio', 'website'
 
     def get(self, request):
@@ -108,8 +108,8 @@ class UserGetApi(APIView):
             fields = 'id', 'email', 'username', 'profile_image', \
                      'banner_image', 'bio', 'website'
 
-    def get(self, request, user_id=None):
-        user = get_user(user=user_id if user_id is not None else request.user.id)
+    def get(self, request):
+        user = get_user(request.user.id)
         serializer = self.OutputSerializer(user)
         return Response(serializer.data)
 
