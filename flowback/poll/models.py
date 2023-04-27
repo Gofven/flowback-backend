@@ -69,7 +69,7 @@ class Poll(BaseModel):
                   (self.end_date, 'end date'))
 
         for x in range(len(labels) - 1):
-            if labels[x][0] > labels[x+1][0]:
+            if labels[x][0] >= labels[x+1][0]:
                 raise ValidationError(f'{labels[x][1].title()} is greater than {labels[x+1][1]}')
 
     class Meta:
