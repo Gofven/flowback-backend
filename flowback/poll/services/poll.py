@@ -85,7 +85,7 @@ def poll_update(*, user_id: int, poll_id: int, data) -> Poll:
     if not poll.created_by == group_user or not group_user.is_admin:
         raise ValidationError('Permission denied')
 
-    if not group_user.is_admin and data.get('pinned'):
+    if not group_user.is_admin and data.get('pinned', False):
         raise ValidationError('Permission denied')
 
     non_side_effect_fields = ['title', 'description', 'pinned']

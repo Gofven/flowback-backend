@@ -190,6 +190,7 @@ class PollCreateAPI(APIView):
 class PollUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField(required=False)
+        pinned = serializers.BooleanField(required=False)
         description = serializers.CharField(required=False)
 
     def post(self, request, poll: int):

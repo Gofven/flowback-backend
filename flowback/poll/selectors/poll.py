@@ -30,6 +30,7 @@ class BasePollFilter(django_filters.FilterSet):
                       pinned=['exact'])
 
 
+# TODO order_by(pinned, param)
 def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
     filters = filters or {}
 
