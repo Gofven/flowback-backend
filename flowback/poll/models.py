@@ -58,9 +58,6 @@ class Poll(BaseModel):
     dynamic = models.BooleanField()
 
     def clean(self):
-        if self.start_date < timezone.now():
-            self.start_date = timezone.now()
-
         labels = ((self.start_date, 'start date'),
                   (self.proposal_end_date, 'proposal end date'),
                   (self.vote_start_date, 'vote start date'),
