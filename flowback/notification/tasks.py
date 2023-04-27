@@ -14,7 +14,7 @@ from flowback.user.models import User
 
 
 @app.task
-def notification_send_update():
+def notification_send_mail(footer: str = None):
     direct_message_userdata_subquery = DirectMessageUserData.objects.filter(
         Q(user_id=OuterRef('user_id')) & Q(target_id=OuterRef('target_id'))).values('timestamp')[:1]
 
@@ -37,13 +37,13 @@ def notification_send_update():
 
     for user in recipients:
         message = []
-        if user.unread_chat_notifications > 0:
-            message.append(f'{user.unread_chat_notifications} unread chat notifications')
-
         if user.unread_notifications > 0:
             message.append(f'{user.unread_notifications} unread notifications')
 
-        message = f'You got {" and ".join(message)}!'
+        if user.unread_chat_notifications > 0:
+            message.append(f'{user.unread_chat_notifications} unread chat notifications')
+
+        message = f'You got {" and ".join(message)}!' + (f'\n\n{footer}' if footer else '')
         mails.append([subject, message, DEFAULT_FROM_EMAIL, [user.email]])
 
     if mails:

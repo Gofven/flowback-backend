@@ -24,7 +24,7 @@ user_patterns = [
     path('forgot_password/verify', UserForgotPasswordVerifyApi.as_view(), name='forgot_password_verify'),
     path('users', UserListApi.as_view(), name='users'),
     path('user', UserGetApi.as_view(), name='user'),
-    path('user/<int:user_id>', UserGetApi.as_view(), name='user'),
+    path('user/detail', UserGetApi.as_view(), name='user'),
     path('user/update', UserUpdateApi.as_view(), name='user_update'),
 
     path('user/schedule', UserScheduleEventListAPI.as_view(), name='user_schedule'),

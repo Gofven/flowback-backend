@@ -12,8 +12,8 @@ from flowback.group.selectors import group_user_permissions
 
 
 class BasePollFilter(django_filters.FilterSet):
-    order_by = django_filters.OrderingFilter(fields=(('created_at', 'created_at_asc'),
-                                                     ('-created_at', 'created_at_desc')))
+    order_by = django_filters.OrderingFilter(fields=(('start_date', 'start_date_asc'),
+                                                     ('-start_date', 'start_date_desc')))
     start_date = django_filters.DateFromToRangeFilter()
     end_date = django_filters.DateFromToRangeFilter()
     tag_name = django_filters.CharFilter(lookup_expr=['exact', 'icontains'], field_name='tag__name')
@@ -26,7 +26,8 @@ class BasePollFilter(django_filters.FilterSet):
                       poll_type=['exact'],
                       public=['exact'],
                       tag=['exact'],
-                      finished=['exact'])
+                      finished=['exact'],
+                      pinned=['exact'])
 
 
 def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
