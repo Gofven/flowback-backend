@@ -35,6 +35,7 @@ class PollListApi(APIView):
         id = serializers.IntegerField(required=False)
         id_list = serializers.ListField(child=serializers.IntegerField(), required=False)
         order_by = serializers.CharField(default='created_at_desc')
+        pinned = serializers.BooleanField(required=False)
 
         title = serializers.CharField(required=False)
         title__icontains = serializers.CharField(required=False)
@@ -77,6 +78,7 @@ class PollListApi(APIView):
                       'finished',
                       'result',
                       'participants',
+                      'pinned',
                       'dynamic',
                       'total_comments')
 
@@ -176,7 +178,7 @@ class PollCreateAPI(APIView):
         class Meta:
             model = Poll
             fields = ('title', 'description', 'start_date', 'proposal_end_date', 'vote_start_date',
-                      'delegate_vote_end_date', 'end_date', 'poll_type', 'public', 'tag', 'dynamic')
+                      'delegate_vote_end_date', 'end_date', 'poll_type', 'public', 'tag', 'pinned', 'dynamic')
 
     def post(self, request, group: int):
         serializer = self.InputSerializer(data=request.data)

@@ -26,7 +26,8 @@ class BasePollFilter(django_filters.FilterSet):
                       poll_type=['exact'],
                       public=['exact'],
                       tag=['exact'],
-                      finished=['exact'])
+                      finished=['exact'],
+                      pinned=['exact'])
 
 
 def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):

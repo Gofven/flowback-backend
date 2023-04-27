@@ -34,13 +34,18 @@ def poll_create(*, user_id: int,
                 poll_type: int,
                 public: bool,
                 tag: int,
+                pinned: bool,
                 dynamic: bool
                 ) -> Poll:
     group_user = group_user_permissions(user=user_id, group=group_id, permissions=['create_poll', 'admin'])
+
+    if not group_user.is_admin and pinned:
+        raise ValidationError('Permission denied')
+
     poll = Poll(created_by=group_user, title=title, description=description,
                 start_date=start_date, proposal_end_date=proposal_end_date, vote_start_date=vote_start_date,
                 delegate_vote_end_date=delegate_vote_end_date, vote_end_date=end_date, end_date=end_date,
-                poll_type=poll_type, public=public, tag_id=tag, dynamic=dynamic)
+                poll_type=poll_type, public=public, tag_id=tag, pinned=pinned, dynamic=dynamic)
     poll.full_clean()
     poll.save()
 
@@ -80,7 +85,10 @@ def poll_update(*, user_id: int, poll_id: int, data) -> Poll:
     if not poll.created_by == group_user or not group_user.is_admin:
         raise ValidationError('Permission denied')
 
-    non_side_effect_fields = ['title', 'description']
+    if not group_user.is_admin and data.get('pinned'):
+        raise ValidationError('Permission denied')
+
+    non_side_effect_fields = ['title', 'description', 'pinned']
 
     poll, has_updated = model_update(instance=poll,
                                      fields=non_side_effect_fields,

@@ -32,6 +32,7 @@ class Poll(BaseModel):
     description = models.TextField()
     poll_type = models.IntegerField(choices=PollType.choices)
     tag = models.ForeignKey(GroupTags, on_delete=models.CASCADE, null=True, blank=True)
+    pinned = models.BooleanField(default=False)
 
     # Determines the visibility of this poll
     active = models.BooleanField(default=True)
