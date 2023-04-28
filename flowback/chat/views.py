@@ -51,6 +51,7 @@ class GroupMessageListApi(APIView):
 class GroupMessagePreviewApi(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 50
+        max_limit = 1000
 
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
@@ -122,6 +123,7 @@ class DirectMessageListApi(APIView):
 class DirectMessagePreviewApi(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 50
+        max_limit = 1000
 
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
