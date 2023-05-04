@@ -8,12 +8,15 @@ class BaseKanbanEntryFilter(django_filters.FilterSet):
     origin_type = django_filters.CharFilter(field_name='kanban__origin_type')
     origin_id = django_filters.NumberFilter(field_name='kanban_origin_id')
     created_by = django_filters.NumberFilter()
+    order_by = django_filters.OrderingFilter(fields=(('priority', 'priority_asc'),
+                                                     ('-priority', 'priority_desc')))
     assignee = django_filters.NumberFilter()
 
     class Meta:
         model = KanbanEntry
         fields = dict(title=['icontains'],
                       description=['icontains'],
+                      end_date=['gt', 'lt'],
                       tag=['exact'])
 
 
