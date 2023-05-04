@@ -31,9 +31,20 @@ api_urlpatterns = [
     path('group/<int:group>/poll/', include((group_poll_patterns, 'group_poll'))),
     path('group/poll/', include((poll_patterns, 'poll'))),
     path('notification/', include((notification_patterns, 'notification'))),
+
     path('home/polls', PollListApi.as_view(), name='home_polls'),
     path('poll/user/schedule', PollUserScheduleListAPI.as_view(), name='poll_user_schedule')
 ]
+
+try:
+    from flowback_addon.urls import addon_patterns
+    api_urlpatterns.append(path('', include((addon_patterns, 'addon'))))
+
+except ModuleNotFoundError:
+    pass
+
+except Exception as e:
+    raise e
 
 urlpatterns = [
     path(f'{URL_SUBPATH}/' if URL_SUBPATH else '', include((api_urlpatterns, 'api'))),
