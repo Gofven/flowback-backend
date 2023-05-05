@@ -43,25 +43,21 @@ class Group(BaseModel):
     jitsi_room = models.UUIDField(unique=True, default=uuid.uuid4)
 
     @classmethod
-    # Updates Schedule name
     def post_save(cls, instance, created, update_fields, *args, **kwargs):
         if created:
             instance.schedule = create_schedule(name=instance.name, origin_name='group', origin_id=instance.id)
             instance.kanban = kanban_create(name=instance.name, origin_type='group', origin_id=instance.id)
             instance.save()
             return
+
         if update_fields:
             fields = [field.name for field in update_fields]
+
             if 'name' in fields:
                 instance.schedule.name = instance.name
                 instance.kanban.name = instance.name
                 instance.schedule.save()
                 instance.kanban.save()
-
-    @classmethod
-    def post_delete(cls, instance, *args, **kwargs):
-        instance.schedule.delete()
-        instance.kanban.delete()
 
     @classmethod
     def user_post_save(cls, instance: User, created: bool, *args, **kwargs):
@@ -71,6 +67,11 @@ class Group(BaseModel):
                     group_user = GroupUser(user=instance, group_id=group_id)
                     group_user.full_clean()
                     group_user.save()
+
+    @classmethod
+    def post_delete(cls, instance, *args, **kwargs):
+        instance.schedule.delete()
+        instance.kanban.delete()
 
 
 post_save.connect(Group.post_save, sender=Group)
