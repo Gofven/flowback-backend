@@ -53,8 +53,9 @@ class KanbanEntryListApi(APIView):
 
 class KanbanEntryCreateAPI(APIView):
     class InputSerializer(serializers.ModelSerializer):
-        assignee = serializers.IntegerField(source='assignee_id', required=False)
-        end_date = serializers.DateTimeField(required=False)
+        assignee = serializers.IntegerField(source='assignee_id', required=False, allow_null=True)
+        end_date = serializers.DateTimeField(required=False, allow_null=True)
+        priority = serializers.IntegerField(default=3)
 
         class Meta:
             model = KanbanEntry
