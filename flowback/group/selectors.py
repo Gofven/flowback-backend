@@ -14,8 +14,10 @@ from flowback.schedule.selectors import schedule_event_list
 from rest_framework.exceptions import ValidationError
 
 
-def group_default_permissions(*, group: int):
-    group = get_object(Group, id=group)
+def group_default_permissions(*, group: Union[Group, int]):
+    if isinstance(group, int):
+        group = get_object(Group, id=group)
+
     if group.default_permission:
         return model_to_dict(group.default_permission)
 
@@ -31,42 +33,51 @@ def group_default_permissions(*, group: int):
 
 
 def group_user_permissions(*,
-                           group: int,
-                           user: Union[User, int],
+                           user: Union[User, int] = None,
+                           group: Union[Group, int] = None,
+                           group_user: [GroupUser, int] = None,
                            permissions: list[str] = None,
                            raise_exception: bool = True) -> Union[GroupUser, bool]:
 
     if type(user) == int:
         user = get_object(User, id=user)
 
+    if type(group) == int:
+        group = get_object(Group, id=group)
+
     permissions = permissions or []
-    requires_permissions = bool(permissions)  # Avoids authentication if all permissions are removed before check
-    user = get_object(GroupUser, 'User is not in group', group=group, user=user)
+
+    if user and group:
+        group_user = get_object(GroupUser, 'User is not in group', group=group, user=user)
+
+    elif group_user:
+        if type(group_user) == int:
+            group_user = get_object(GroupUser, id=group_user)
+
+    else:
+        raise Exception('group_user_permissions is missing appropiate parameters')
+
     perobj = GroupPermissions()
-    user_permissions = model_to_dict(user.permission) if user.permission else group_default_permissions(group=group)
+    user_permissions = model_to_dict(group_user.permission) if group_user.permission else group_default_permissions(group=group_user.group)
 
     # Check if admin permission is present
     if 'admin' in permissions:
-        if user.is_admin or user.group.created_by == user.user or user.user.is_superuser:
-            return user
-
-        permissions.remove('admin')
+        if group_user.is_admin or group_user.group.created_by == group_user.user or group_user.user.is_superuser:
+            return group_user
 
     # Check if creator permission is present
     if 'creator' in permissions:
-        if user.group.created_by == user.user or user.user.is_superuser:
-            return user
+        if group_user.group.created_by == group_user.user or group_user.user.is_superuser:
+            return group_user
 
-        permissions.remove('creator')
-
-    failed_permissions = [key for key in permissions if user_permissions[key] is False]
-    if failed_permissions or (requires_permissions and failed_permissions):
+    validated_permissions = any([user_permissions.get(key, False) for key in permissions]) or not permissions
+    if not validated_permissions:
         if raise_exception:
-            raise ValidationError('Permission denied')
+            raise ValidationError(f'Permission denied, requires one of following permissions: {", ".join(permissions)})')
         else:
             return False
 
-    return user
+    return group_user
 
 
 class BaseGroupFilter(django_filters.FilterSet):

@@ -88,6 +88,9 @@ class GroupPermissions(BaseModel):
     allow_vote = models.BooleanField(default=True)
     kick_members = models.BooleanField(default=False)
     ban_members = models.BooleanField(default=False)
+    force_delete_poll = models.BooleanField(default=False)
+    force_delete_proposal = models.BooleanField(default=False)
+    force_delete_comment = models.BooleanField(default=False)
 
 
 # Permission Tags for each group, and for user to put on delegators

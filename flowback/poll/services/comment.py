@@ -45,7 +45,9 @@ def poll_comment_update(*, fetched_by: int, poll_id: int, comment_id: int, data)
 
 def poll_comment_delete(*, fetched_by: int, poll_id: int, comment_id: int):
     poll = get_object(Poll, id=poll_id)
-    group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
+    group_user = group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
+
+    bypass = group_user_permissions(group_user=group_user, permissions=['admin', 'force_delete_comment'])
 
     return comment_delete(fetched_by=fetched_by,
                           comment_section_id=poll.comment_section.id,
