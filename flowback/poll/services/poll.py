@@ -103,15 +103,18 @@ def poll_delete(*, user_id: int, poll_id: int) -> None:
     group_id = poll.created_by.group.id
     group_user = group_user_permissions(user=user_id, group=group_id)
 
-    if not poll.created_by == group_user or not group_user.is_admin:
-        raise ValidationError('Permission denied')
+    force_deletion_access = group_user_permissions(group_user=group_user, permissions=['admin', 'force_delete_poll'],
+                                                   raise_exception=False)
 
-    if (poll.created_by == group_user and not group_user.is_admin
-    and not group_user.group.created_by == group_user) and poll.start_date < timezone.now():
-        raise ValidationError('Only group admins (or above) can delete ongoing polls')
+    if poll.created_by == group_user and not force_deletion_access:
+        if poll.start_date < timezone.now():
+            raise ValidationError("Unable to delete ongoing polls")
 
-    if poll.finished:
-        raise ValidationError('Only site admins (or above) can delete finished polls')
+        if poll.finished:
+            raise ValidationError("Unable to delete finished polls")
+
+    else:
+        group_user_permissions(group_user=group_user, permissions=['admin', 'force_delete_poll'])
 
     # Remove future notifications
     if timezone.now() <= poll.start_date:
