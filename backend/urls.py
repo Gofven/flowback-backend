@@ -7,6 +7,7 @@ from flowback.group.urls import group_patterns
 from flowback.poll.urls import group_poll_patterns, poll_patterns
 from flowback.chat.urls import chat_patterns
 from flowback.notification.urls import notification_patterns
+from flowback.ledger.urls import accounts_patterns
 from django.conf.urls.static import static
 
 api_urlpatterns = [
@@ -18,7 +19,8 @@ api_urlpatterns = [
     path('notification/', include((notification_patterns, 'notification'))),
 
     path('home/polls', PollListApi.as_view(), name='home_polls'),
-    path('poll/user/schedule', PollUserScheduleListAPI.as_view(), name='poll_user_schedule')
+    path('poll/user/schedule', PollUserScheduleListAPI.as_view(), name='poll_user_schedule'),
+    path('ledger/', include((accounts_patterns, 'ledger')))
 ]
 
 try:

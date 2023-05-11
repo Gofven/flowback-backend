@@ -95,6 +95,7 @@ INSTALLED_APPS = [
     'flowback.notification',
     'flowback.comment',
     'flowback.schedule',
+    'flowback.ledger',
 ] + env('INTEGRATIONS')
 
 CELERY_BROKER_URL = env('RABBITMQ_BROKER_URL')
