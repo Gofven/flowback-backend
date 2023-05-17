@@ -10,10 +10,10 @@ from flowback.kanban.views import KanbanEntryListApi, KanbanEntryCreateAPI, Kanb
 
 class GroupKanbanEntryListAPI(KanbanEntryListApi):
     def get(self, request, group_id: int):
-        serializer = self.FilterSerializer(data=request.data)
+        serializer = self.FilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        entries = group_kanban_entry_list(fetched_by=request.user, group_id=group_id, **serializer.validated_data)
+        entries = group_kanban_entry_list(fetched_by=request.user, group_id=group_id, filters=serializer.validated_data)
         return get_paginated_response(pagination_class=self.Pagination,
                                       serializer_class=self.OutputSerializer,
                                       queryset=entries,
