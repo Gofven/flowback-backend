@@ -3,6 +3,8 @@ import uuid
 from django.db.models.signals import post_save, post_delete
 
 from backend.settings import FLOWBACK_DEFAULT_GROUP_JOIN
+from flowback.comment.models import CommentSection
+from flowback.comment.services import comment_section_create
 from flowback.common.models import BaseModel
 from flowback.common.services import get_object
 from flowback.kanban.models import Kanban
@@ -130,6 +132,13 @@ class GroupUser(BaseModel):
 
 post_save.connect(GroupUser.post_save, sender=GroupUser)
 post_delete.connect(GroupUser.post_delete, sender=GroupUser)
+
+
+class GroupThread(BaseModel):
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.DO_NOTHING)
+    active = models.BooleanField(default=True)
 
 
 # User invites

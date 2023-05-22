@@ -8,6 +8,8 @@ from django.utils import timezone
 from backend.settings import env, DEFAULT_FROM_EMAIL
 from rest_framework.exceptions import ValidationError
 
+from flowback.comment.models import Comment
+from flowback.comment.services import comment_create, comment_update, comment_delete
 from flowback.kanban.models import KanbanEntry
 from flowback.notification.services import NotificationManager
 from flowback.schedule.models import ScheduleEvent
@@ -16,7 +18,7 @@ from flowback.kanban.services import KanbanManager
 from flowback.user.services import user_schedule
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupUserDelegator, GroupTags, GroupPermissions, \
-    GroupUserDelegate, GroupUserDelegatePool
+    GroupUserDelegate, GroupUserDelegatePool, GroupThread
 from flowback.group.selectors import group_user_permissions
 from flowback.common.services import model_update, get_object
 
@@ -436,3 +438,71 @@ def group_kanban_entry_delete(*,
                               entry_id: int):
     group_user_permissions(group=group_id, user=fetched_by_id)
     return group_kanban.kanban_entry_delete(origin_id=group_id, entry_id=entry_id)
+
+
+def group_thread_create(user_id: int, group_id: int, title: str):
+    group_user = group_user_permissions(user=user_id, group=group_id)
+    thread = GroupThread(created_by=group_user, title=title)
+    thread.full_clean()
+    thread.save()
+
+    return thread
+
+
+def group_thread_update(user_id: int, thread_id: int, data):
+    thread = get_object(GroupThread, id=thread_id)
+    group_user_permissions(user=user_id, group=thread.created_by.group)
+    non_side_effect_fields = ['title']
+
+    thread, has_updated = model_update(instance=thread,
+                                       fields=non_side_effect_fields,
+                                       data=data)
+
+    return thread
+
+
+def group_thread_delete(user_id: int, thread_id: int):
+    thread = get_object(GroupThread, id=thread_id)
+    group_user_permissions(user=user_id, group=thread.created_by.group)
+
+    thread.delete()
+
+
+def group_thread_comment_create(user_id: int, thread_id: int, message: str, parent_id: int = None):
+    thread = get_object(GroupThread, id=thread_id)
+    group_user = group_user_permissions(user=user_id, group=thread.created_by.group)
+
+    comment = comment_create(author_id=group_user.user.id,
+                             comment_section_id=thread.comment_section.id,
+                             message=message,
+                             parent_id=parent_id)
+
+    return comment
+
+
+def group_thread_comment_update(user_id: int, thread_id: int, comment_id: int, data):
+    thread = get_object(GroupThread, id=thread_id)
+    comment = get_object(Comment, id=comment_id)
+
+    group_user = group_user_permissions(user=user_id, group=thread.created_by.group)
+
+    if comment.author != user_id and not group_user.is_admin:
+        raise ValidationError('Comment is not owned by user.')
+
+    return comment_update(fetched_by=user_id,
+                          comment_section_id=thread.comment_section_id,
+                          comment_id=comment_id,
+                          data=data)
+
+def group_thread_comment_delete(user_id: int, thread_id: int, comment_id: int):
+    thread = get_object(GroupThread, id=thread_id)
+    comment = get_object(Comment, id=comment_id)
+
+    group_user = group_user_permissions(user=user_id, group=thread.created_by.group)
+
+    if comment.author != user_id and not group_user.is_admin:
+        raise ValidationError('Comment is not owned by user.')
+
+    return comment_delete(fetched_by=user_id,
+                          comment_section_id=thread.comment_section_id,
+                          comment_id=comment_id)

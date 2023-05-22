@@ -32,6 +32,14 @@ from .views.kanban import (GroupKanbanEntryListAPI,
                            GroupKanbanEntryCreateAPI,
                            GroupKanbanEntryUpdateAPI,
                            GroupKanbanEntryDeleteAPI)
+from .views.thread import (GroupThreadListAPI,
+                           GroupThreadCreateAPI,
+                           GroupThreadUpdateAPI,
+                           GroupThreadDeleteAPI,
+                           GroupThreadCommentListAPI,
+                           GroupThreadCommentCreateAPI,
+                           GroupThreadCommentUpdateAPI,
+                           GroupThreadCommentDeleteAPI)
 
 group_patterns = [
     path('list', GroupListApi.as_view(), name='groups'),
@@ -84,4 +92,21 @@ group_patterns = [
     path('<int:group_id>/kanban/entry/create', GroupKanbanEntryCreateAPI.as_view(), name='group_kanban_entry_create'),
     path('<int:group_id>/kanban/entry/update', GroupKanbanEntryUpdateAPI.as_view(), name='group_kanban_entry_update'),
     path('<int:group_id>/kanban/entry/delete', GroupKanbanEntryDeleteAPI.as_view(), name='group_kanban_entry_delete'),
+
+    path('<int:group>/thread/list', GroupThreadListAPI.as_view(), name='group_thread'),
+    path('<int:group>/thread/create', GroupThreadCreateAPI.as_view(), name='group_thread_create'),
+    path('thread/<int:thread_id>/update', GroupThreadUpdateAPI.as_view(), name='group_thread_update'),
+    path('thread/<int:thread_id>/delete', GroupThreadDeleteAPI.as_view(), name='group_thread_delete'),
+    path('thread/<int:thread_id>/comment/list',
+         GroupThreadCommentListAPI.as_view(),
+         name='group_thread_comment'),
+    path('thread/<int:thread_id>/comment/create',
+         GroupThreadCommentCreateAPI.as_view(),
+         name='group_thread_comment_create'),
+    path('thread/<int:thread_id>/comment/<int:comment_id>',
+         GroupThreadCommentUpdateAPI.as_view(),
+         name='group_thread_comment_update'),
+    path('thread/<int:thread_id>/comment/<int:comment_id>',
+         GroupThreadCommentDeleteAPI.as_view(),
+         name='group_thread_comment_delete'),
 ]

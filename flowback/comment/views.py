@@ -13,7 +13,7 @@ class CommentListAPI(APIView):
         default_limit = 20
         max_limit = 100
 
-    class InputSerializer(serializers.Serializer):
+    class FilterSerializer(serializers.Serializer):
         order_by = serializers.CharField(required=False)
         id = serializers.IntegerField(required=False)
         author_id = serializers.IntegerField(required=False)
@@ -33,7 +33,7 @@ class CommentListAPI(APIView):
         score = serializers.IntegerField()
 
     def get(self, request, comment_section_id: int):
-        serializer = self.InputSerializer(data=request.query_params)
+        serializer = self.FilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
         comments = comment_list(comment_section_id=comment_section_id,

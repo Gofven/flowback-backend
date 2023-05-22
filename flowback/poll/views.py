@@ -471,7 +471,7 @@ class PollProposalDelegateVoteUpdateAPI(APIView):
 
 
 class PollCommentListAPI(CommentListAPI):
-    class InputSerializer(CommentListAPI.InputSerializer):
+    class InputSerializer(CommentListAPI.FilterSerializer):
         poll_id = serializers.IntegerField(required=False)
 
     def get(self, request, poll: int):
