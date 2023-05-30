@@ -3,7 +3,7 @@ from rest_framework.exceptions import ValidationError
 from flowback.common.services import get_object
 from flowback.group.models import GroupUserDelegatePool
 from flowback.poll.models import Poll, PollProposal, PollVoting, PollVotingTypeRanking, PollDelegateVoting, \
-    PollVotingTypeForAgainst
+    PollVotingTypeForAgainst, PollVotingTypeCardinal
 from flowback.group.selectors import group_user_permissions
 from flowback.group.services import group_schedule
 from django.utils import timezone
@@ -37,6 +37,29 @@ def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None
                              for priority, proposal in enumerate(data['votes'])]
         PollVotingTypeRanking.objects.filter(author=poll_vote).delete()
         PollVotingTypeRanking.objects.bulk_create(poll_vote_ranking)
+
+    if poll.poll_type == Poll.PollType.CARDINAL:
+
+        # Delete votes if no polls are registered
+        if not data['proposals']:
+            PollVoting.objects.filter(created_by=group_user, poll=poll).delete()
+            return
+
+        if len(data['scores'] != len(data['proposals'])):
+            raise ValidationError("The amount of votes don't match the amount of polls")
+
+        proposals = poll.pollproposal_set.filter(id__in=data['proposals']).all()
+        if len(proposals) != len(data['proposals']):
+            raise ValidationError('Not all proposals are available to vote for')
+
+        user_vote, created = PollVoting.objects.get_or_create(created_by=group_user, poll=poll)
+        poll_vote_cardinal = [PollVotingTypeCardinal(author=user_vote,
+                                                     proposal_id=data['proposals'][i],
+                                                     score=data['scores'][i])
+                             for i in range(len(data['proposals']))]
+
+        PollVotingTypeCardinal.objects.filter(author=user_vote).delete()
+        PollVotingTypeCardinal.objects.bulk_create(poll_vote_cardinal)
 
     elif poll.poll_type == Poll.PollType.SCHEDULE:
         if not data['votes']:
@@ -92,6 +115,29 @@ def poll_proposal_delegate_vote_update(*, user_id: int, poll_id: int, data) -> N
                              for priority, proposal in enumerate(data['votes'])]
         PollVotingTypeRanking.objects.filter(author_delegate=poll_vote).delete()
         PollVotingTypeRanking.objects.bulk_create(poll_vote_ranking)
+
+    if poll.poll_type == Poll.PollType.CARDINAL:
+
+        # Delete votes if no polls are registered
+        if not data['proposals']:
+            PollDelegateVoting.objects.filter(created_by=delegate_pool, poll=poll).delete()
+            return
+
+        if len(data['scores'] != len(data['proposals'])):
+            raise ValidationError("The amount of votes don't match the amount of polls")
+
+        proposals = poll.pollproposal_set.filter(id__in=data['proposals']).all()
+        if len(proposals) != len(data['proposals']):
+            raise ValidationError('Not all proposals are available to vote for')
+
+        pool_vote, created = PollDelegateVoting.objects.get_or_create(created_by=delegate_pool, poll=poll)
+        poll_vote_cardinal = [PollVotingTypeCardinal(author_delegate=pool_vote,
+                                                     proposal_id=data['proposals'][i],
+                                                     score=data['scores'][i])
+                             for i in range(len(data['proposals']))]
+
+        PollVotingTypeCardinal.objects.filter(author_delegate=pool_vote).delete()
+        PollVotingTypeCardinal.objects.bulk_create(poll_vote_cardinal)
 
     elif poll.poll_type == Poll.PollType.SCHEDULE:
         if not data['votes']:
@@ -162,6 +208,14 @@ def poll_proposal_vote_count(*, poll_id: int) -> None:
 
             poll.participants = mandate + PollVoting.objects.filter(poll=poll).all().count()
             poll.save()
+
+    if poll.poll_type == Poll.PollType.CARDINAL:
+        if poll.tag:
+            user_proposal_scores = PollVotingTypeCardinal.objects.filter(author__poll=OuterRef('poll')).values('score')
+            delegate_proposal_scores = PollVotingTypeCardinal.objects.filter(author_delegate__poll=OuterRef('poll')
+                                            ).annotate(final_score=F('score') * Subquery(mandate_subquery)).values('final_score')
+
+            PollProposal.objects.filter(poll=poll).update(score=Subquery(user_proposal_scores) + Subquery(delegate_proposal_scores))
 
     if poll.poll_type == Poll.PollType.SCHEDULE:
         if poll.tag:
