@@ -37,6 +37,8 @@ env = environ.Env(DEBUG=(bool, False),
                   EMAIL_USE_TLS=(bool, None),
                   EMAIL_USE_SSL=(bool, None),
                   INTEGRATIONS=(list, []),
+                  SCORE_VOTE_CEILING=(int, None),
+                  SCORE_VOTE_FLOOR=(int, None)
                   )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -206,6 +208,12 @@ EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = env('EMAIL_USE_TLS') or True
 EMAIL_USE_SSL = env('EMAIL_USE_SSL') or False
 DEFAULT_FROM_EMAIL = env('EMAIL_FROM', default=env('EMAIL_HOST_USER'))
+
+
+# Poll related settings
+SCORE_VOTE_CEILING = env('SCORE_VOTE_CEILING')
+SCORE_VOTE_FLOOR = env('SCORE_VOTE_FLOOR')
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/

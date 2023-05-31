@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 
+from backend.settings import SCORE_VOTE_CEILING, SCORE_VOTE_FLOOR
 from flowback.prediction.models import (Prediction,
                                         PredictionStatement,
                                         PredictionStatementSegment,
@@ -143,6 +144,13 @@ class PollVotingTypeCardinal(BaseModel):
 
     proposal = models.ForeignKey(PollProposal, on_delete=models.CASCADE)
     score = models.IntegerField()  # Raw vote score
+
+    def clean(self):
+        if SCORE_VOTE_CEILING is not None and self.score >= SCORE_VOTE_CEILING:
+            raise ValidationError(f'Voting scores exceeds ceiling bounds (currently set at {SCORE_VOTE_CEILING})')
+
+        if SCORE_VOTE_FLOOR is not None and self.score <= SCORE_VOTE_FLOOR:
+            raise ValidationError(f'Voting scores exceeds floor bounds (currently set at {SCORE_VOTE_FLOOR})')
 
     class Meta:
         unique_together = (('author', 'proposal'), ('author_delegate', 'proposal'))

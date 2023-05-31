@@ -1,5 +1,7 @@
 from django.db.models import Sum, Q, Count, F, OuterRef, Subquery
 from rest_framework.exceptions import ValidationError
+
+from backend.settings import SCORE_VOTE_CEILING, SCORE_VOTE_FLOOR
 from flowback.common.services import get_object
 from flowback.group.models import GroupUserDelegatePool
 from flowback.poll.models import Poll, PollProposal, PollVoting, PollVotingTypeRanking, PollDelegateVoting, \
@@ -39,6 +41,12 @@ def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None
         PollVotingTypeRanking.objects.bulk_create(poll_vote_ranking)
 
     if poll.poll_type == Poll.PollType.CARDINAL:
+
+        if SCORE_VOTE_CEILING is not None and any([score >= SCORE_VOTE_CEILING for score in data['score']]):
+            raise ValidationError(f'Voting scores exceeds ceiling bounds (currently set at {SCORE_VOTE_CEILING})')
+
+        if SCORE_VOTE_FLOOR is not None and any([score <= SCORE_VOTE_FLOOR for score in data['score']]):
+            raise ValidationError(f'Voting scores exceeds floor bounds (currently set at {SCORE_VOTE_FLOOR})')
 
         # Delete votes if no polls are registered
         if not data['proposals']:
