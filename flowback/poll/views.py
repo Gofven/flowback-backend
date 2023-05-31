@@ -520,13 +520,11 @@ class PollProposalDelegateVoteUpdateAPI(APIView):
 
 
 class PollCommentListAPI(CommentListAPI):
-    class InputSerializer(CommentListAPI.FilterSerializer):
-        poll_id = serializers.IntegerField(required=False)
-
     def get(self, request, poll: int):
-        serializer = self.InputSerializer(data=request.data)
+        serializer = self.FilterSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
 
-        comments = poll_comment_list(fetched_by=request.user, poll_id=poll)
+        comments = poll_comment_list(fetched_by=request.user, poll_id=poll, filters=serializer.validated_data)
 
         return get_paginated_response(pagination_class=self.Pagination,
                                       serializer_class=self.OutputSerializer,
