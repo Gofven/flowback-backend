@@ -3,7 +3,7 @@ from rest_framework.exceptions import ValidationError
 
 from backend.settings import SCORE_VOTE_CEILING, SCORE_VOTE_FLOOR
 from flowback.common.services import get_object
-from flowback.group.models import GroupUserDelegatePool
+from flowback.group.models import GroupUserDelegatePool, GroupUser
 from flowback.poll.models import Poll, PollProposal, PollVoting, PollVotingTypeRanking, PollDelegateVoting, \
     PollVotingTypeForAgainst, PollVotingTypeCardinal
 from flowback.group.selectors import group_user_permissions
@@ -171,6 +171,7 @@ def poll_proposal_delegate_vote_update(*, user_id: int, poll_id: int, data) -> N
 
 def poll_proposal_vote_count(*, poll_id: int) -> None:
     poll = get_object(Poll, id=poll_id)
+    group = poll.created_by.group
     total_proposals = poll.pollproposal_set.count()
 
     # Count mandate for each delegate, multiply it by score
@@ -256,5 +257,14 @@ def poll_proposal_vote_count(*, poll_id: int) -> None:
             # PollProposal.objects.bulk_update(proposals, fields=('score',))
 
             poll.participants = mandate + PollVoting.objects.filter(poll=poll).all().count()
+            total_group_users = GroupUser.objects.filter(group=group).count()
+
+            # Check if poll reaches quorum limits
+            if total_group_users / poll.participants < \
+               (poll.quorum if poll.quorum is not None else group.default_quorum) / 100:
+                poll.status = -1
+
+            else:
+                poll.status = 1
 
             poll.save()

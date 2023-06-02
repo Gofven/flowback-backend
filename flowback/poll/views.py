@@ -80,7 +80,9 @@ class PollListApi(APIView):
                       'participants',
                       'pinned',
                       'dynamic',
-                      'total_comments')
+                      'total_comments',
+                      'quorum',
+                      'status')
 
     def get(self, request, group: int = None):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -186,6 +188,7 @@ class PollNotificationSubscribeApi(APIView):
 class PollCreateAPI(APIView):
     class InputSerializer(serializers.ModelSerializer):
         tag = serializers.IntegerField()
+        quorum = serializers.IntegerField(required=False)
         public = serializers.BooleanField(default=False)
 
         class Meta:

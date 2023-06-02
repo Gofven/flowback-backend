@@ -104,6 +104,7 @@ class GroupUpdateApi(APIView):
         hide_poll_users = serializers.BooleanField(required=False)
         direct_join = serializers.BooleanField(required=False)
         default_permission = serializers.IntegerField(required=False, allow_null=True)
+        default_quorum = serializers.IntegerField(required=False, allow_null=True)
 
     def post(self, request, group: int):
         serializer = self.InputSerializer(data=request.data)

@@ -60,7 +60,7 @@ def group_create(*, user: int, name: str, description: str, image: str, cover_im
 def group_update(*, user: int, group: int, data) -> Group:
     group_user = group_user_permissions(group=group, user=user, permissions=['admin'])
     non_side_effect_fields = ['name', 'description', 'image', 'cover_image', 'hide_poll_users',
-                              'public', 'direct_join', 'default_permission']
+                              'public', 'direct_join', 'default_permission', 'default_quorum']
 
     # Check if group_permission exists to allow for a new default_permission
     if default_permission := data.get('default_permission'):
@@ -84,19 +84,9 @@ def group_permission_create(*,
                             user: int,
                             group: int,
                             role_name: str,
-                            invite_user: bool,
-                            create_poll: bool,
-                            allow_vote: bool,
-                            kick_members: bool,
-                            ban_members: bool) -> GroupPermissions:
+                            **permissions) -> GroupPermissions:
     group_user_permissions(group=group, user=user, permissions=['admin'])
-    group_permission = GroupPermissions(role_name=role_name,
-                                        author_id=group,
-                                        invite_user=invite_user,
-                                        create_poll=create_poll,
-                                        allow_vote=allow_vote,
-                                        kick_members=kick_members,
-                                        ban_members=ban_members)
+    group_permission = GroupPermissions(role_name=role_name, author_id=group, **permissions)
     group_permission.full_clean()
     group_permission.save()
 
@@ -105,7 +95,19 @@ def group_permission_create(*,
 
 def group_permission_update(*, user: int, group: int, permission_id: int, data) -> GroupPermissions:
     group_user_permissions(group=group, user=user, permissions=['admin'])
-    non_side_effect_fields = ['role_name', 'invite_user', 'create_poll', 'allow_vote', 'kick_members', 'ban_members']
+    non_side_effect_fields = ['role_name',
+                              'invite_user',
+                              'create_poll',
+                              'poll_quorum'
+                              'allow_vote',
+                              'kick_members',
+                              'ban_members',
+                              'create_proposal',
+                              'update_proposal',
+                              'delete_proposal',
+                              'force_delete_poll',
+                              'force_delete_proposal',
+                              'force_delete_comment']
     group_permission = get_object(GroupPermissions, id=permission_id, author_id=group)
 
     group_permission, has_updated = model_update(instance=group_permission,

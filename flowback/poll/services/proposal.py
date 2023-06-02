@@ -13,7 +13,7 @@ from flowback.poll.services.poll import poll_refresh_cheap
 def poll_proposal_create(*, user_id: int, poll_id: int,
                          title: str = None, description: str = None, **data) -> PollProposal:
     poll = get_object(Poll, id=poll_id)
-    group_user = group_user_permissions(user=user_id, group=poll.created_by.group.id)
+    group_user = group_user_permissions(user=user_id, group=poll.created_by.group.id, permissions=['create_proposal', 'admin'])
 
     if group_user.group.id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
@@ -43,18 +43,17 @@ def poll_proposal_create(*, user_id: int, poll_id: int,
 
 def poll_proposal_delete(*, user_id: int, proposal_id: int) -> None:
     proposal = get_object(PollProposal, id=proposal_id)
-    group_user = group_user_permissions(user=user_id, group=proposal.created_by.group.id)
+    group_user = group_user_permissions(group=proposal.group, user=user_id,
+                                        permissions=['admin', 'delete_proposal' 'force_delete_proposal'],
+                                        raise_exception=False)
     poll_refresh_cheap(poll_id=proposal.poll.id)  # TODO get celery
 
-    force_deletion_access = group_user_permissions(group_user=group_user,
-                                                   permissions=['admin', 'force_delete_proposal'],
-                                                   raise_exception=False)
-
-    if proposal.created_by == group_user and not force_deletion_access:
+    if proposal.created_by == group_user and group_user.permission.delete_proposal:
         if proposal.poll.proposal_end_date <= timezone.now():
             raise ValidationError("Can't delete a proposal after proposal end date")
 
-    else:
-        group_user_permissions(group_user=group_user, permissions=['admin', 'force_delete_proposal'])
+    elif not group_user.permission.force_delete_proposal or group_user.is_admin:
+        raise ValidationError("Deleting other users proposals needs either "
+                              "group admin or force_delete_proposal permission")
 
     proposal.delete()

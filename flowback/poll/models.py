@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import Q, F, Count
 from django.db.models.signals import post_save, post_delete
@@ -32,6 +33,8 @@ class Poll(BaseModel):
     title = models.CharField(max_length=255)
     description = models.TextField()
     poll_type = models.IntegerField(choices=PollType.choices)
+    quorum = models.IntegerField(default=None, null=True, blank=True,
+                                 validators=[MinValueValidator(0), MaxValueValidator(100)])
     tag = models.ForeignKey(GroupTags, on_delete=models.CASCADE, null=True, blank=True)
     pinned = models.BooleanField(default=False)
 
@@ -48,8 +51,15 @@ class Poll(BaseModel):
     delegate_vote_end_date = models.DateTimeField()
     vote_end_date = models.DateTimeField()
     end_date = models.DateTimeField()
-    finished = models.BooleanField(default=False)
     result = models.BooleanField(default=False)
+
+    """
+    Poll Status Code
+    0 - Ongoing
+    1 - Finished
+    -1 - Failed Quorum
+    """
+    status = models.IntegerField(default=0)
 
     # Comment section
     comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.DO_NOTHING)

@@ -35,17 +35,21 @@ def poll_create(*, user_id: int,
                 public: bool,
                 tag: int,
                 pinned: bool,
-                dynamic: bool
+                dynamic: bool,
+                quorum: int
                 ) -> Poll:
     group_user = group_user_permissions(user=user_id, group=group_id, permissions=['create_poll', 'admin'])
 
     if not group_user.is_admin and pinned:
         raise ValidationError('Permission denied')
 
+    if quorum is not None and not group_user.permission.poll_quorum and not group_user.is_admin:
+        raise ValidationError("Permission denied for custom poll quorum")
+
     poll = Poll(created_by=group_user, title=title, description=description,
                 start_date=start_date, proposal_end_date=proposal_end_date, vote_start_date=vote_start_date,
                 delegate_vote_end_date=delegate_vote_end_date, vote_end_date=end_date, end_date=end_date,
-                poll_type=poll_type, public=public, tag_id=tag, pinned=pinned, dynamic=dynamic)
+                poll_type=poll_type, public=public, tag_id=tag, pinned=pinned, dynamic=dynamic, quorum=quorum)
     poll.full_clean()
     poll.save()
 
@@ -110,7 +114,7 @@ def poll_delete(*, user_id: int, poll_id: int) -> None:
         if poll.start_date < timezone.now():
             raise ValidationError("Unable to delete ongoing polls")
 
-        if poll.finished:
+        if poll.status:
             raise ValidationError("Unable to delete finished polls")
 
     else:
@@ -135,11 +139,10 @@ def poll_delete(*, user_id: int, poll_id: int) -> None:
 def poll_finish(*, poll_id: int) -> None:
     poll = get_object(Poll, id=poll_id)
 
-    if poll.finished:
+    if poll.status:
         raise ValidationError("Poll is already finished")
 
     poll_proposal_vote_count(poll_id=poll_id)
-    poll.finished = True
     poll.result = True
     poll.save()
 
@@ -150,7 +153,7 @@ def poll_refresh(*, poll_id: int) -> None:
     if not poll.dynamic:
         raise ValidationError("Attempted to refresh a poll that doesn't allow live update")
 
-    if poll.finished:
+    if poll.status:
         raise ValidationError("Attempted to refresh a poll that's already finished")
 
     poll_proposal_vote_count(poll_id=poll_id)
@@ -159,11 +162,8 @@ def poll_refresh(*, poll_id: int) -> None:
 # TODO setup celery
 def poll_refresh_cheap(*, poll_id: int) -> None:
     poll = get_object(Poll, id=poll_id)
-    if poll.end_date <= timezone.now() and not poll.result:
-        poll.finished = True
-        poll.save()
 
-    if (poll.finished and not poll.result) or (poll.dynamic and not poll.finished):
+    if not poll.status or (poll.dynamic and not poll.status):
         poll_proposal_vote_count(poll_id=poll_id)
         poll.refresh_from_db()
         poll.result = True

@@ -1,5 +1,6 @@
 import uuid
 
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models.signals import post_save, post_delete
 
 from backend.settings import FLOWBACK_DEFAULT_GROUP_JOIN
@@ -38,7 +39,7 @@ class Group(BaseModel):
     image = models.ImageField(upload_to='group/image')
     cover_image = models.ImageField(upload_to='group/cover_image')
     hide_poll_users = models.BooleanField(default=False)  # Hides users in polls, TODO remove bool from views
-
+    default_quorum = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
     schedule = models.ForeignKey(Schedule, null=True, blank=True, on_delete=models.SET_NULL)
     kanban = models.ForeignKey(Kanban, null=True, blank=True, on_delete=models.SET_NULL)
 
@@ -87,9 +88,13 @@ class GroupPermissions(BaseModel):
     author = models.ForeignKey('Group', on_delete=models.CASCADE)
     invite_user = models.BooleanField(default=False)
     create_poll = models.BooleanField(default=True)
+    poll_quorum = models.BooleanField(default=False)
     allow_vote = models.BooleanField(default=True)
     kick_members = models.BooleanField(default=False)
     ban_members = models.BooleanField(default=False)
+    create_proposal = models.BooleanField(default=True)
+    update_proposal = models.BooleanField(default=True)
+    delete_proposal = models.BooleanField(default=True)
     force_delete_poll = models.BooleanField(default=False)
     force_delete_proposal = models.BooleanField(default=False)
     force_delete_comment = models.BooleanField(default=False)
