@@ -159,7 +159,7 @@ class BaseGroupUserInviteFilter(django_filters.FilterSet):
     username__icontains = django_filters.CharFilter(field_name='user__username', lookup_expr='icontains')
 
     class Meta:
-        model = GroupUser
+        model = GroupUserInvite
         fields = ['user', 'group']
 
 
