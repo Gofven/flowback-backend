@@ -36,7 +36,7 @@ def poll_create(*, user_id: int,
                 tag: int,
                 pinned: bool,
                 dynamic: bool,
-                quorum: int
+                quorum: int = None
                 ) -> Poll:
     group_user = group_user_permissions(user=user_id, group=group_id, permissions=['create_poll', 'admin'])
 
