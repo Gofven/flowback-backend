@@ -43,7 +43,7 @@ class PollListApi(APIView):
         tag = serializers.IntegerField(required=False)
         tag_name = serializers.CharField(required=False)
         tag_name__icontains = serializers.CharField(required=False)
-        finished = serializers.NullBooleanField(required=False, default=None)
+        status = serializers.IntegerField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
         created_by = GroupUserSerializer()
@@ -75,7 +75,6 @@ class PollListApi(APIView):
                       'vote_start_date',
                       'delegate_vote_end_date',
                       'end_date',
-                      'finished',
                       'result',
                       'participants',
                       'pinned',
