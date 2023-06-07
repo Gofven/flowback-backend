@@ -107,7 +107,7 @@ class UserGetApi(APIView):
         class Meta:
             model = User
             fields = 'id', 'email', 'username', 'profile_image', \
-                     'banner_image', 'bio', 'website'
+                     'banner_image', 'bio', 'website', 'dark_theme'
 
     def get(self, request):
         user = get_user(request.user.id)
@@ -125,7 +125,7 @@ class UserUpdateApi(APIView):
 
         class Meta:
             model = User
-            fields = 'username', 'profile_image', 'banner_image', 'bio', 'website'
+            fields = 'username', 'profile_image', 'banner_image', 'bio', 'website', 'dark_theme'
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
