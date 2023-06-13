@@ -1,6 +1,17 @@
 import uuid
 
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models.signals import post_save, post_delete
+
+from backend.settings import FLOWBACK_DEFAULT_GROUP_JOIN
+from flowback.comment.models import CommentSection
+from flowback.comment.services import comment_section_create
 from flowback.common.models import BaseModel
+from flowback.common.services import get_object
+from flowback.kanban.models import Kanban
+from flowback.kanban.services import kanban_create, kanban_subscription_create, kanban_subscription_delete
+from flowback.schedule.models import Schedule
+from flowback.schedule.services import create_schedule
 from flowback.user.models import User
 from django.db import models
 
@@ -27,8 +38,48 @@ class Group(BaseModel):
     description = models.TextField()
     image = models.ImageField(upload_to='group/image')
     cover_image = models.ImageField(upload_to='group/cover_image')
+    hide_poll_users = models.BooleanField(default=False)  # Hides users in polls, TODO remove bool from views
+    default_quorum = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    schedule = models.ForeignKey(Schedule, null=True, blank=True, on_delete=models.SET_NULL)
+    kanban = models.ForeignKey(Kanban, null=True, blank=True, on_delete=models.SET_NULL)
 
     jitsi_room = models.UUIDField(unique=True, default=uuid.uuid4)
+
+    @classmethod
+    def post_save(cls, instance, created, update_fields, *args, **kwargs):
+        if created:
+            instance.schedule = create_schedule(name=instance.name, origin_name='group', origin_id=instance.id)
+            instance.kanban = kanban_create(name=instance.name, origin_type='group', origin_id=instance.id)
+            instance.save()
+            return
+
+        if update_fields:
+            fields = [field.name for field in update_fields]
+
+            if 'name' in fields:
+                instance.schedule.name = instance.name
+                instance.kanban.name = instance.name
+                instance.schedule.save()
+                instance.kanban.save()
+
+    @classmethod
+    def user_post_save(cls, instance: User, created: bool, *args, **kwargs):
+        if created and FLOWBACK_DEFAULT_GROUP_JOIN:
+            for group_id in FLOWBACK_DEFAULT_GROUP_JOIN:
+                if get_object(Group, id=group_id, raise_exception=False):
+                    group_user = GroupUser(user=instance, group_id=group_id)
+                    group_user.full_clean()
+                    group_user.save()
+
+    @classmethod
+    def post_delete(cls, instance, *args, **kwargs):
+        instance.schedule.delete()
+        instance.kanban.delete()
+
+
+post_save.connect(Group.post_save, sender=Group)
+post_save.connect(Group.user_post_save, sender=User)
+post_delete.connect(Group.post_delete, sender=Group)
 
 
 # Permission class for each Group
@@ -36,10 +87,17 @@ class GroupPermissions(BaseModel):
     role_name = models.TextField()
     author = models.ForeignKey('Group', on_delete=models.CASCADE)
     invite_user = models.BooleanField(default=False)
-    create_poll = models.BooleanField(default=False)
-    allow_vote = models.BooleanField(default=False)
+    create_poll = models.BooleanField(default=True)
+    poll_quorum = models.BooleanField(default=False)
+    allow_vote = models.BooleanField(default=True)
     kick_members = models.BooleanField(default=False)
     ban_members = models.BooleanField(default=False)
+    create_proposal = models.BooleanField(default=True)
+    update_proposal = models.BooleanField(default=True)
+    delete_proposal = models.BooleanField(default=True)
+    force_delete_poll = models.BooleanField(default=False)
+    force_delete_proposal = models.BooleanField(default=False)
+    force_delete_comment = models.BooleanField(default=False)
 
 
 # Permission Tags for each group, and for user to put on delegators
@@ -59,8 +117,33 @@ class GroupUser(BaseModel):
     is_admin = models.BooleanField(default=False)
     permission = models.ForeignKey(GroupPermissions, null=True, blank=True, on_delete=models.SET_NULL)
 
+    @classmethod
+    # Updates Schedule name
+    def post_save(cls, instance, created, update_fields, *args, **kwargs):
+        if created:
+            kanban_subscription_create(kanban_id=instance.user.kanban_id,
+                                       target_id=instance.group.kanban_id)
+            instance.save()
+            return
+
+    @classmethod
+    def post_delete(cls, instance, *args, **kwargs):
+        kanban_subscription_delete(kanban_id=instance.user.kanban_id,
+                                   target_id=instance.group.kanban_id)
+
     class Meta:
         unique_together = ('user', 'group')
+
+
+post_save.connect(GroupUser.post_save, sender=GroupUser)
+post_delete.connect(GroupUser.post_delete, sender=GroupUser)
+
+
+class GroupThread(BaseModel):
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.DO_NOTHING)
+    active = models.BooleanField(default=True)
 
 
 # User invites

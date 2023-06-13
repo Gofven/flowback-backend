@@ -15,20 +15,31 @@ from pathlib import Path
 
 
 env = environ.Env(DEBUG=(bool, False),
+                  SECURE_PROXY_SSL_HEADERS=(bool, False),
                   DJANGO_SECRET=str,
                   FLOWBACK_URL=(str, None),
+                  INSTANCE_NAME=(str, 'Flowback'),
                   PG_SERVICE=(str, 'flowback'),
                   REDIS_IP=(str, 'localhost'),
                   REDIS_PORT=(str, '6379'),
+                  RABBITMQ_BROKER_URL=str,
+                  URL_SUBPATH=(str, ''),
+                  DISABLE_DEFAULT_USER_REGISTRATION=(bool, False),
+                  FLOWBACK_DEFAULT_GROUP_JOIN=(str, None),
                   FLOWBACK_ALLOW_GROUP_CREATION=(bool, True),
                   FLOWBACK_GROUP_ADMIN_USER_LIST_ACCESS_ONLY=(bool, False),
                   FLOWBACK_DEFAULT_PERMISSION=(str, 'rest_framework.permissions.IsAuthenticated'),
                   EMAIL_HOST=(str, None),
                   EMAIL_PORT=(str, None),
+                  EMAIL_FROM=(str, None),
                   EMAIL_HOST_USER=(str, None),
                   EMAIL_HOST_PASSWORD=(str, None),
                   EMAIL_USE_TLS=(bool, None),
-                  EMAIL_USE_SSL=(bool, None))
+                  EMAIL_USE_SSL=(bool, None),
+                  INTEGRATIONS=(list, []),
+                  SCORE_VOTE_CEILING=(int, None),
+                  SCORE_VOTE_FLOOR=(int, None)
+                  )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,15 +53,25 @@ env.read_env(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = env('DJANGO_SECRET')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG')
 
 FLOWBACK_URL = env('FLOWBACK_URL')
+INSTANCE_NAME = env('INSTANCE_NAME')
 PG_SERVICE = env('PG_SERVICE')
-ALLOWED_HOSTS = [FLOWBACK_URL or '*']
+
+ALLOWED_HOSTS = [FLOWBACK_URL or "*"]
+
 CORS_ALLOW_ALL_ORIGINS = not bool(FLOWBACK_URL)
 if not CORS_ALLOW_ALL_ORIGINS:
-    CORS_ALLOWED_ORIGINS = (FLOWBACK_URL,)
+    if env('SECURE_PROXY_SSL_HEADERS'):
+        CORS_ALLOWED_ORIGINS = [f'https://{FLOWBACK_URL}', f'wss://{FLOWBACK_URL}']
+    else:
+        CORS_ALLOWED_ORIGINS = [f'http://{FLOWBACK_URL}', f'ws://{FLOWBACK_URL}']
 
+if env('SECURE_PROXY_SSL_HEADERS'):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+URL_SUBPATH = env('URL_SUBPATH')
 
 # Application definition
 
@@ -66,12 +87,19 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_extensions',
     'rest_framework.authtoken',
+    'django_celery_beat',
     'pgtrigger',
     'flowback.user',
     'flowback.group',
     'flowback.poll',
-    'flowback.chat'
-]
+    'flowback.chat',
+    'flowback.kanban',
+    'flowback.notification',
+    'flowback.comment',
+    'flowback.schedule',
+] + env('INTEGRATIONS')
+
+CELERY_BROKER_URL = env('RABBITMQ_BROKER_URL')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -84,6 +112,13 @@ REST_FRAMEWORK = {
 }
 
 AUTH_USER_MODEL = 'user.User'
+DISABLE_DEFAULT_USER_REGISTRATION = env('DISABLE_DEFAULT_USER_REGISTRATION')
+
+if data := env('FLOWBACK_DEFAULT_GROUP_JOIN'):
+    FLOWBACK_DEFAULT_GROUP_JOIN = [int(i) for i in env('FLOWBACK_DEFAULT_GROUP_JOIN').split(',')]
+
+else:
+    FLOWBACK_DEFAULT_GROUP_JOIN = []
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -172,7 +207,13 @@ EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = env('EMAIL_USE_TLS') or True
 EMAIL_USE_SSL = env('EMAIL_USE_SSL') or False
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = env('EMAIL_FROM', default=env('EMAIL_HOST_USER'))
+
+
+# Poll related settings
+SCORE_VOTE_CEILING = env('SCORE_VOTE_CEILING')
+SCORE_VOTE_FLOOR = env('SCORE_VOTE_FLOOR')
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/

@@ -1,7 +1,8 @@
-from django.db.models import Q
+from django.db import models
+from django.db.models import Q, OuterRef, Subquery, When, Case, F
 import django_filters
 
-from .models import GroupMessage, DirectMessage
+from .models import GroupMessage, DirectMessage, GroupMessageUserData, DirectMessageUserData
 from flowback.user.models import User
 from flowback.group.models import GroupUser, Group
 from flowback.group.services import group_user_permissions
@@ -36,7 +37,7 @@ class BaseGroupMessagePreviewFilter(django_filters.FilterSet):
 
 
 class BaseDirectMessageFilter(django_filters.FilterSet):
-    o = django_filters.OrderingFilter(
+    order_by = django_filters.OrderingFilter(
         fields=(
             ('created_at', 'created_at_asc'),
             ('-created_at', 'created_at_desc')
@@ -64,6 +65,7 @@ class BaseDirectMessagePreviewFilter(django_filters.FilterSet):
 def group_message_list(*, user: User, group: int, filters=None):
     group_user_permissions(user=user, group=group)
     filters = filters or {}
+
     qs = GroupMessage.objects.filter(group_user__group=group).all()
 
     return BaseGroupMessageFilter(filters, qs).qs
@@ -71,9 +73,17 @@ def group_message_list(*, user: User, group: int, filters=None):
 
 def group_message_preview(*, user: User, filters=None):
     filters = filters or {}
-    qs = GroupMessage.objects.filter(groupuser__user__in=[user]
-                                     ).order_by('group_id', '-created_at').distinct('group_id').all().qs
-    return BaseGroupMessagePreviewFilter(filters, qs)
+    subquery = GroupMessageUserData.objects.filter(group_user__group=OuterRef('group_user__group'),
+                                                   group_user__user=user).values('timestamp')
+    qs = GroupMessage.objects.filter(group_user__group__groupuser__user__in=[user]).all()\
+        .order_by('group_user__group_id')\
+        .distinct('group_user__group_id').values('id')
+
+    qs = GroupMessage.objects.filter(id__in=Subquery(qs)).all()\
+        .annotate(timestamp=Subquery(subquery[:1]))\
+        .order_by('-created_at')
+
+    return BaseGroupMessagePreviewFilter(filters, qs).qs
 
 
 def direct_message_list(*, user: User, target: int, filters=None):
@@ -85,8 +95,19 @@ def direct_message_list(*, user: User, target: int, filters=None):
 
 def direct_message_preview(*, user: User, filters=None):
     filters = filters or {}
+    subquery = DirectMessageUserData.objects.filter(user=user,
+                                                    target=Case(When(user=OuterRef('user'), then=OuterRef('target')),
+                                                                default=OuterRef('user'))).values('timestamp')
+
     qs = DirectMessage.objects.filter(Q(user=user) | Q(target=user)
-                                      ).order_by('user', 'target', 'created_at').distinct('user', 'target')
+                                      ).annotate(recipient_id=Case(When(user=user, then=F('target')),
+                                                                   When(target=user, then=F('user')))
+                                                 ).order_by('recipient_id', '-created_at'
+                                                            ).distinct('recipient_id').all()
+
+    # TODO Find a better way to order this
+    qs = DirectMessage.objects.filter(id__in=[q.id for q in qs]).annotate(timestamp=Subquery(subquery,
+                                                                          output_field=models.DateTimeField()),
+                                                                          ).order_by('-created_at').all()
 
     return BaseDirectMessagePreviewFilter(filters, qs).qs
-

@@ -6,7 +6,7 @@ __pycache__
 db.sqlite3
 media
 .flowback_pgpass
-flowback/membership/*
+flowback_addon/*
 
 # Backup files #
 *.bak
@@ -18,6 +18,7 @@ flowback/membership/*
 .idea/**/usage.statistics.xml
 .idea/**/dictionaries
 .idea/**/shelf
+.idea/vcs.xml
 
 # AWS User-specific
 .idea/**/aws.xml

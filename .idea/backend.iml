@@ -18,7 +18,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.idea/dataSources" />
       <excludeFolder url="file://$MODULE_DIR$/flowback/user_subscription/migrations" />
       <excludeFolder url="file://$MODULE_DIR$/media" />
-      <excludeFolder url="file://$MODULE_DIR$/flowback/membership/migrations" />
+      <excludeFolder url="file://$MODULE_DIR$/flowback_addon/membership/migrations" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
@@ -31,6 +31,9 @@
     <option name="TEMPLATE_FOLDERS">
       <list>
         <option value="$MODULE_DIR$/templates" />
+        <option value="$MODULE_DIR$/flowback/schedule" />
+        <option value="$MODULE_DIR$/flowback/kanban" />
+        <option value="$MODULE_DIR$/flowback/comment" />
       </list>
     </option>
   </component>

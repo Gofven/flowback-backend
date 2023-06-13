@@ -3,27 +3,24 @@ from datetime import datetime, timedelta, timezone
 from django.test import TestCase
 from flowback.user.models import User
 from flowback.group.models import GroupUser, GroupUserDelegatePool
-from flowback.group.services import (group_user_permissions,
-                                     group_user_delegate,
+from flowback.group.services import (group_user_delegate,
                                      group_permission_create,
                                      group_create,
                                      group_update,
                                      group_join,
-                                     group_user_update,
                                      group_user_delegate_pool_create,
                                      group_tag_create)
 from flowback.common.services import get_object
-from flowback.poll.services import (poll_create,
-                                    poll_update,
-                                    poll_delete,
-                                    poll_refresh,
-                                    poll_finish,
-                                    poll_refresh_cheap,
-                                    poll_proposal_create,
-                                    poll_proposal_delete,
-                                    poll_proposal_vote_count,
-                                    poll_proposal_vote_update, poll_proposal_delegate_vote_update)
-from flowback.poll.models import (Poll, PollProposal, PollVoting, PollDelegateVoting, PollVotingTypeRanking)
+from flowback.poll.services.poll import (poll_create,
+                                         poll_update,
+                                         poll_delete,
+                                         poll_finish,
+                                         poll_refresh_cheap)
+from flowback.poll.services.proposal import (poll_proposal_create,
+                                             poll_proposal_delete)
+from flowback.poll.services.vote import (poll_proposal_vote_update,
+                                         poll_proposal_delegate_vote_update)
+from flowback.poll.models import (Poll, PollProposal)
 
 
 # Create your tests here.
@@ -50,14 +47,13 @@ class GroupDelegationTests(TestCase):
                                   image='image',
                                   cover_image='cover_image',
                                   public=True,
-                                  direct_join=True)
+                                  direct_join=True,
+                                  hide_poll_users=True)
 
         permission = group_permission_create(user=self.user_creator.id, group=self.group.id, role_name='Member',
                                              invite_user=False, create_poll=True, allow_vote=True,
                                              kick_members=False, ban_members=False)
         group_update(user=self.user_creator.id, group=self.group.id, data=dict(default_permission=permission.id))
-
-
 
         self.user_non_delegate = group_join(user=self.user_non_delegate.id, group=self.group.id)
         self.user_creator = get_object(GroupUser, user=self.user_creator, group=self.group)
@@ -79,7 +75,11 @@ class GroupDelegationTests(TestCase):
         return Poll.objects.create(created_by=self.user_creator,
                                    title=title, description=description,
                                    start_date=datetime.now(tz=timezone.utc),
-                                   end_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
+                                   proposal_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=1),
+                                   vote_start_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
+                                   delegate_vote_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=3),
+                                   vote_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=4),
+                                   end_date=datetime.now(tz=timezone.utc) + timedelta(hours=5),
                                    poll_type=1, tag=self.tag_one, dynamic=True)
 
     def generate_proposal(self, poll_id: int, title: str = 'test_poll', description: str = 'test_description') -> PollProposal:
@@ -99,8 +99,11 @@ class GroupDelegationTests(TestCase):
         poll = poll_create(user_id=self.user_creator.user.id, group_id=self.group.id,
                            title='test_poll', description='test_description',
                            start_date=datetime.now(tz=timezone.utc),
-                           end_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
-                           poll_type=1, tag=self.tag_one.id, dynamic=True)
+                           proposal_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=1),
+                           vote_start_date=datetime.now(tz=timezone.utc) + timedelta(hours=2),
+                           delegate_vote_end_date=datetime.now(tz=timezone.utc) + timedelta(hours=3),
+                           end_date=datetime.now(tz=timezone.utc) + timedelta(hours=4),
+                           poll_type=1, tag=self.tag_one.id, public=True, dynamic=True)
 
         self.assertTrue(isinstance(poll, Poll))
 
@@ -108,7 +111,6 @@ class GroupDelegationTests(TestCase):
         poll = self.generate_poll()
 
         self.assertEqual(poll_update(user_id=self.user_creator.user.id,
-                                     group_id=self.group.id,
                                      poll_id=poll.id,
                                      data=dict(title='updated_test_poll')).title,
                          'updated_test_poll')
@@ -117,7 +119,7 @@ class GroupDelegationTests(TestCase):
         poll = self.generate_poll()
 
         deleted_id = poll.id
-        poll_delete(user_id=self.user_creator.user.id, group_id=self.group.id, poll_id=deleted_id)
+        poll_delete(user_id=self.user_creator.user.id, poll_id=deleted_id)
 
     def test_proposal_create(self):
         poll = self.generate_poll()
@@ -134,25 +136,20 @@ class GroupDelegationTests(TestCase):
         proposal = self.generate_proposal(poll_id=poll.id)
 
         poll_proposal_delete(user_id=self.user_creator.user.id,
-                             group_id=self.group.id,
-                             poll_id=poll.id,
                              proposal_id=proposal.id)
 
     def test_vote_update(self):
         poll, proposal_one, proposal_two, proposal_three = self.generate_voting_environment()
         poll_proposal_vote_update(user_id=self.user_creator.user.id,
-                                  group_id=self.group.id,
                                   poll_id=poll.id,
                                   data=dict(votes=[proposal_one.id, proposal_two.id, proposal_three.id]))
 
     def test_poll_finish(self):
         poll, proposal_one, proposal_two, proposal_three = self.generate_voting_environment()
         poll_proposal_vote_update(user_id=self.user_creator.user.id,
-                                  group_id=self.group.id,
                                   poll_id=poll.id,
                                   data=dict(votes=[proposal_one.id, proposal_two.id, proposal_three.id]))
         poll_proposal_vote_update(user_id=self.user_non_delegate.user.id,
-                                  group_id=self.group.id,
                                   poll_id=poll.id,
                                   data=dict(votes=[proposal_two.id, proposal_three.id]))
         poll_finish(poll_id=poll.id)
@@ -162,15 +159,12 @@ class GroupDelegationTests(TestCase):
     def test_poll_refresh(self):
         poll, proposal_one, proposal_two, proposal_three = self.generate_voting_environment()
         poll_proposal_vote_update(user_id=self.user_creator.user.id,
-                                  group_id=self.group.id,
                                   poll_id=poll.id,
                                   data=dict(votes=[proposal_one.id, proposal_two.id, proposal_three.id]))
         poll_proposal_vote_update(user_id=self.user_non_delegate.user.id,
-                                  group_id=self.group.id,
                                   poll_id=poll.id,
                                   data=dict(votes=[proposal_two.id, proposal_three.id]))
         poll_proposal_delegate_vote_update(user_id=self.user_delegate.user.id,
-                                           group_id=self.group.id,
                                            poll_id=poll.id,
                                            data=dict(votes=[proposal_one.id, proposal_two.id, proposal_three.id]))
         poll_refresh_cheap(poll_id=poll.id)

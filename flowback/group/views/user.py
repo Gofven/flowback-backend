@@ -5,6 +5,7 @@ from flowback.common.pagination import LimitOffsetPagination, get_paginated_resp
 
 from flowback.group.models import GroupUser
 from flowback.group.selectors import group_user_list, group_user_invite_list
+from flowback.group.serializers import GroupUserSerializer
 
 from flowback.group.services import group_join, group_user_update, group_leave, group_invite, group_invite_accept, \
     group_invite_reject
@@ -13,6 +14,7 @@ from flowback.group.services import group_join, group_user_update, group_leave, 
 class GroupUserListApi(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 20
+        max_limit = 1000
 
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False, source='group_user_id')
@@ -21,19 +23,6 @@ class GroupUserListApi(APIView):
         delegate = serializers.NullBooleanField(required=False, default=None)
         is_admin = serializers.NullBooleanField(required=False, default=None)
         permission = serializers.IntegerField(required=False)
-
-    class OutputSerializer(serializers.ModelSerializer):
-        username = serializers.CharField(source='user.username')
-        profile_image = serializers.ImageField(source='user.profile_image')
-        banner_image = serializers.ImageField(source='user.banner_image')
-        delegate = serializers.BooleanField()
-        permission_id = serializers.IntegerField(allow_null=True)
-        permission_name = serializers.CharField(source='permission.role_name', default='Member')
-
-        class Meta:
-            model = GroupUser
-            fields = ('id', 'user_id', 'username', 'profile_image', 'banner_image', 'delegate',
-                      'is_admin', 'permission_name', 'permission_id', 'permission_name')
 
     def get(self, request, group: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -45,7 +34,7 @@ class GroupUserListApi(APIView):
 
         return get_paginated_response(
             pagination_class=self.Pagination,
-            serializer_class=self.OutputSerializer,
+            serializer_class=GroupUserSerializer,
             queryset=users,
             request=request,
             view=self
@@ -66,6 +55,8 @@ class GroupInviteListApi(APIView):
         username = serializers.CharField(source='user.username')
         profile_image = serializers.ImageField(source='user.profile_image')
         group = serializers.IntegerField(source='group_id')
+        group_name = serializers.CharField(source='group.name')
+        group_image = serializers.ImageField(source='group.image')
         external = serializers.BooleanField()
 
     def get(self, request, group: int = None):
@@ -143,9 +134,11 @@ class GroupInviteAcceptApi(APIView):
         to = serializers.IntegerField(required=False)
 
     def post(self, request, group: int):
-        serializer = self.InputSerializer(data=request.data)
+        serializer = self.InputSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
-        group_invite_accept(fetched_by=request.user, group=group, **serializer.validated_data)
+        group_invite_accept(fetched_by=request.user.id, group=group, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class GroupInviteRejectApi(APIView):
@@ -153,6 +146,8 @@ class GroupInviteRejectApi(APIView):
         to = serializers.IntegerField(required=False)
 
     def post(self, request, group: int):
-        serializer = self.InputSerializer(data=request.data)
+        serializer = self.InputSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
-        group_invite_reject(fetched_by=request.user, group=group, **serializer.validated_data)
+        group_invite_reject(fetched_by=request.user.id, group=group, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)

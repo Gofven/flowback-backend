@@ -77,6 +77,7 @@ class UserForgotPasswordVerifyApi(APIView):
 class UserListApi(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 1
+        max_limit = 1000
 
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
@@ -85,7 +86,8 @@ class UserListApi(APIView):
     class OutputSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
-            fields = 'id', 'username', 'profile_image'
+            fields = 'id', 'username', 'profile_image', \
+                     'banner_image', 'bio', 'website'
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -105,10 +107,10 @@ class UserGetApi(APIView):
         class Meta:
             model = User
             fields = 'id', 'email', 'username', 'profile_image', \
-                     'banner_image', 'bio', 'website'
+                     'banner_image', 'bio', 'website', 'dark_theme'
 
-    def get(self, request, user_id=None):
-        user = get_user(user=user_id if user_id is not None else request.user.id)
+    def get(self, request):
+        user = get_user(request.user.id)
         serializer = self.OutputSerializer(user)
         return Response(serializer.data)
 
@@ -123,7 +125,7 @@ class UserUpdateApi(APIView):
 
         class Meta:
             model = User
-            fields = 'username', 'profile_image', 'banner_image', 'bio', 'website'
+            fields = 'username', 'profile_image', 'banner_image', 'bio', 'website', 'dark_theme'
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
