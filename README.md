@@ -37,11 +37,11 @@ Poll:
   - Has phases.
 
 Separate poll phases
-  - First phase: proposals can be inputted by proposal creators.
-  - Second phase: proposals can no longer be inputted. Predictions and their probabilities can be inputted by predictors.
-  - Third phase: predictions and their probability bets can no longer be inputted. Voters and delegates can input scores (they can vote). Proposal scores determine their position in the proposal list displayed where higher score means higher up.
-  - Fourth phase: delegates votes are locked. Prediction probability bets cannot be shown before this phase.
-  - Fifth phase: the result is calculated.
+- First phase: proposals can be inputted by proposal creators.
+- Second phase: proposals can no longer be inputted. Predictions and their probabilities can be inputted by predictors.
+- Third phase: predictions can no longer be inputted. Voters and delegates can input scores (they can vote). Proposal scores determine a proposals position in the proposal list displayed, where a higher score means higher up and vice versa.
+- Fourth phase: delegates votes are locked. Prediction bets are locked.
+- Fifth phase: the result is calculated.
 
 Poll creator:
   - Can create but not edit or delete a poll.
