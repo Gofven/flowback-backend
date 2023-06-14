@@ -40,7 +40,9 @@ Poll phase problems:
   - The last second problem: if there is some item that can be added and should possibly be interacted with as well during a phase, then if a set of items are added too close to the end of a phase it can hinder others from interacting with it.
   - To solve the last second problem, the addition of an item central to a poll requires a separate poll phase. 
   - The removal problem: if everyone should not input a copy of an item to make sure the item exists at an upcoming phase, then it cannot be removed too close to the end of a phase.
-  - To solve the removal problem, removal can be prohibited. 
+  - To solve the removal problem, removal can be prohibited.
+  - It is possible to allow predictions, prediction probability bets and voting from a previous phase and still solve the last second problem. 
+  - In order for delegates to interact minimally with each phase and to provide as much information as possible, no interaction may happen before its phase, for example betting happening during the prediction phase.
 
 Separate poll phases: 
   - First phase: proposals can be inputted by proposal creators.
@@ -50,7 +52,6 @@ Separate poll phases:
   - Proposal scores determine a proposals position in the proposal list displayed, where a higher score means higher up and vice versa.
   - Fifth phase: delegates votes are locked.
   - Sixth phase: the result is calculated. 
-  - It is possible to allow predictions, prediction probability bets and voting from a previous phase and still solve the last second problem. 
 
 Poll creator:
   - Can create but not edit or delete a poll.
@@ -66,7 +67,8 @@ Result:
 Prediction evaluation:
   - Prediction scores are updated when the prediction specified time is reached.
   - The voters can vote yes or no if it occurred or not after the time and change their votes dynamically without an end time. The majority decided which alternative wins, which is the evaluation of the prediction.
-  - It is always updated in such a way that no predictor can choose not to make certain predictions and gain a higher or keep the same prediction score as a result from it.
+  - It is always updated in such a way that no predictor can choose not to make certain prediction bets and gain a higher or keep the same prediction score as a result from it. This means that a predictor making any prediction bet on one proposal on a poll will have to make prediction bets for all of them or otherwise lose points from their prediction score. 
+  - To make sure predictors do not need to make prediction bets on predictions that are clearly one way or the other, they can make them on predictions where there have been prediction bets that 1) differ and 2) have a number of predictors with high enough prediction scores that have previously made prediction bets. 
 
 Subject area division:
   - Division of subject areas can be done by a hyper subject area that works to optimize the division of the other subjects continuously.
