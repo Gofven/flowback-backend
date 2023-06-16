@@ -135,11 +135,19 @@ Optimization outside of predictive liquid democracy:
   - Honesty can possibly be optimized toward outside the scope of predictive liquid democracy.
   - A recommendation mechanism for delegates can be implemented that recommends delegates based on value-alignment by some non-voting based measurement of that (as voting against a delegate with a certain value will happen otherwise), and perhaps also by prediction scores (a delegate with a higher such score is recommended higher than one with a lower even if the value-alignment is perfect). 
 
-Measuring the outcomes:
+Measuring the outcomes and empirical questions:
   - How can we measure how good the system does? By the utility of the members over time perhaps, but how? Can we measure the degree of honesty?
+  - How much does strategic voting affect the system negatively in reality? Can they be
+  - How much does the predictor collusion problem and irrelevant predictions affect the system negatively in reality?
+  - Which recommendation mechanism leads to the best outcome?
+  - Which prediction scoring rule is the best one to use? The Brier score is one possibility, but it becomes inadequate for too frequent or rare events [4].
+  - Does predictive liquid democracy in action lead to a higher chance to find a given ground truth compared to other systems?
+  - In general how do we optimize the system toward the factors making the system work the best?
 
 [1]: Hagberg, L. (2023). Collected papers on finitist mathematics and phenomenalism: a digital phenomenology. BoD-Books on Demand.
 
 [2]: De Condorcet, N. (2014). Essai sur l'application de l'analyse à la probabilité des décisions rendues à la pluralité des voix. Cambridge University Press.
 
 [3]: Laslier, J. F. (2006). Strategic approval voting in a large electorate.
+
+[4]: Benedetti, R. (2010). Scoring rules for forecast verification. Monthly Weather Review, 138(1), 203-211.
