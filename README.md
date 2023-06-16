@@ -66,9 +66,15 @@ Result:
 
 Prediction evaluation:
   - Prediction scores are updated when the prediction specified time is reached.
-  - The voters can vote yes or no if it occurred or not after the time and change their votes dynamically without an end time. The majority decided which alternative wins, which is the evaluation of the prediction.
-  - It is always updated in such a way that no predictor can choose not to make certain prediction bets and gain a higher or keep the same prediction score as a result from it. This means that a predictor making any prediction bet on one proposal on a poll will have to make prediction bets for all of them or otherwise lose points from their prediction score. 
-  - To make sure predictors do not need to make prediction bets on predictions that are clearly one way or the other, they can make them on predictions where there have been prediction bets that 1) differ and 2) have a number of predictors with high enough prediction scores that have previously made prediction bets. 
+  - The voters can vote yes or no (approval voting) if it occurred or not after the time and change their votes dynamically without an end time. The majority decided which alternative wins, which is the evaluation of the prediction.
+  - It is always updated in such a way that no predictor can choose not to make certain prediction bets and gain a higher or keep the same prediction score as a result from it. This means that a predictor making any prediction bet on one proposal on a poll (if it was in general they would never be able to take a break) will have to make prediction bets for all of them or otherwise lose points from their prediction score. 
+  - To make sure predictors do not need to make prediction bets on predictions that are clearly one way or the other, they can make them on predictions where there have been prediction bets that 1) differ (otherwise they can gain score by predicting things that everyone agrees upon) and 2) have a number of predictors with high enough prediction scores that have previously made prediction bets on the given prediction. 
+  - Predictions are ordered by the sum of the predictors prediction scores that bet on it, the more the higher up, and higher if there has been a counter bet.
+
+Prediction evaluation problems: 
+  - The colluding predictor problem: what if some subset of predictors bet in a way such that they are differing and with high enough prediction scores during "the last second" so that others are lowered relative to theirs? 
+  - The colluding predictor problem is improbable to create an asymmetry this way with a large set (more improbable the more members), correct bets give more positive and incorrect bets give more negative to the prediction scores so that this is normalized over time if it does happen, and finally a predictor can take such possibilities into account and can fully block such happenings by betting on everything. 
+  - The irrelevant prediction problem: what if some subset of predictors add predictions that are irrelevant to the poll or the subject area?
 
 Subject area division:
   - Division of subject areas can be done by a hyper subject area that works to optimize the division of the other subjects continuously.
@@ -123,6 +129,14 @@ Considering strategic voting using score voting:
   - It has been shown that the strong Nash equilibrium is the Condorcet winner if voters vote strategically and have full information about what the other voters are going to vote for [3].
   - It is possible to have a prediction market about the strategic voting that is stable to some degree. 
   - Allowing voters to score delegates if there is not a shared goal is not good, because such scoring could easily be strategic.
+
+
+Optimization outside of predictive liquid democracy:
+  - Honesty can possibly be optimized toward outside the scope of predictive liquid democracy.
+  - A recommendation mechanism for delegates can be implemented that recommends delegates based on value-alignment by some non-voting based measurement of that (as voting against a delegate with a certain value will happen otherwise), and perhaps also by prediction scores (a delegate with a higher such score is recommended higher than one with a lower even if the value-alignment is perfect). 
+
+Measuring the outcomes:
+  - How can we measure how good the system does? By the utility of the members over time perhaps, but how? Can we measure the degree of honesty?
 
 [1]: Hagberg, L. (2023). Collected papers on finitist mathematics and phenomenalism: a digital phenomenology. BoD-Books on Demand.
 
