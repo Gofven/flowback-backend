@@ -81,7 +81,7 @@ Subject area division:
   - The subject area tree, where more specialization is deeper down the tree, is therefore pruned or added to in order to find subject areas with stable prediction scores.
   - Stable prediction scores require the extraction of stable patterns before the event in the subject area. 
 
-Shared roles
+Shared roles:
   - Everyone in the group considered is a poll creator, proposal creator, and predictor.
 
 Delegates track record:
