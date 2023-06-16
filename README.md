@@ -137,7 +137,7 @@ Optimization outside of predictive liquid democracy:
 
 Measuring the outcomes and empirical questions:
   - How can we measure how good the system does? By the utility of the members over time perhaps, but how? Can we measure the degree of honesty?
-  - How much does strategic voting affect the system negatively in reality? Can they be
+  - How much does strategic voting affect the system negatively in reality? 
   - How much does the predictor collusion problem and irrelevant predictions affect the system negatively in reality?
   - Which recommendation mechanism leads to the best outcome?
   - Which prediction scoring rule is the best one to use? The Brier score is one possibility, but it becomes inadequate for too frequent or rare events [4].
