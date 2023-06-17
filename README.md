@@ -17,7 +17,7 @@ The following outlines predictive liquid democracy. Combining prediction markets
 Voter:
   - Can vote (with equal weight).
   - Have secret votes.
-  - Can delegate temporally in any subject area as long as they want. They can also delegate to a delegate in all areas (that exist currently and will appear).
+  - Can delegate temporally in any subject area as long as they want and prioritize these (if a poll would be in multiple subject areas, the delegate prioritized over the others is delegated to). They can also delegate to a delegate in all areas (that exist currently and will appear).
   - Can override their delegate by voting themselves or changing delegate before a poll deadline.
   - Can become or stop being a delegate.
 
