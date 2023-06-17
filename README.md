@@ -77,7 +77,7 @@ Prediction evaluation problems:
   - The irrelevant prediction problem: what if some subset of predictors add predictions that are irrelevant to the poll or the subject area?
 
 Subject area division:
-  - Division of subject areas can be done by a hyper subject area that works to optimize the division of the other subjects continuously. If only one subject area is shown to be the best, then the hyper subject area can be removed. 
+  - Division of subject areas can be done by a hyper subject area that works to optimize the division of the other subjects continuously. If only one subject area is shown to be the best, then the hyper subject area can be removed as a separate subject area. 
   - The subject area tree, where more specialization is deeper down the tree, is therefore pruned or added to in order to find subject areas with stable prediction scores.
   - Stable prediction scores require the extraction of stable patterns before the event in the subject area. 
 
