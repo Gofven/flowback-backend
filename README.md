@@ -143,6 +143,7 @@ Open questions:
   - How should tagging polls with a subject area happen in the best way?
   - What are the ideal times of the phases?
   - Is anything gained from allowing meta-delegation?
+  - Should we add a "irrelevant" alternatives for predictions when betting or evaluating?
   - Does predictive liquid democracy in action lead to a higher chance to find a given ground truth compared to other systems? In what contexts?
   - In general how do we optimize the system toward the factors making the system work the best?
 
