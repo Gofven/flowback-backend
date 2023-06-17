@@ -77,7 +77,7 @@ Prediction evaluation problems:
   - The irrelevant prediction problem: what if some subset of predictors add predictions that are irrelevant to the poll or the subject area?
 
 Subject area division:
-  - Division of subject areas can be done by a hyper subject area that works to optimize the division of the other subjects continuously.
+  - Division of subject areas can be done by a hyper subject area that works to optimize the division of the other subjects continuously. If only one subject area is shown to be the best, then the hyper subject area can be removed. 
   - The subject area tree, where more specialization is deeper down the tree, is therefore pruned or added to in order to find subject areas with stable prediction scores.
   - Stable prediction scores require the extraction of stable patterns before the event in the subject area. 
 
@@ -130,20 +130,20 @@ Considering strategic voting using score voting:
   - It is possible to have a prediction market about the strategic voting that is stable to some degree. 
   - Allowing voters to score delegates if there is not a shared goal is not good, because such scoring could easily be strategic.
 
-
 Optimization outside of predictive liquid democracy:
   - Honesty can possibly be optimized toward outside the scope of predictive liquid democracy.
   - A recommendation mechanism for delegates can be implemented that recommends delegates based on value-alignment by some non-voting based measurement of that (as voting against a delegate with a certain value will happen otherwise), and perhaps also by prediction scores (a delegate with a higher such score is recommended higher than one with a lower even if the value-alignment is perfect). 
 
-Measuring the outcomes and empirical questions:
-  - How can we measure how good the system does? By the utility of the members over time perhaps, but how? Can we measure the degree of honesty?
-  - How much does strategic voting affect the system negatively in reality? 
-  - How much does the predictor collusion problem and irrelevant predictions affect the system negatively in reality?
+Open questions:
+  - How can we measure how good the system does? One measure is how well it finds a given ground truth, but otherwise? By the utility of the members over time perhaps, but how? Further, can we measure the degree of honesty?
+  - How much does strategic voting affect the system negatively in reality? Is there another voting method that does better than score voting?  
+  - How much does the predictor collusion problem and irrelevant predictions affect the system negatively in reality? In relation to the collusion problem, how can the predictions that need to be bet on in order not to lose score given correct predictions be set with regard to the predictors prediction scores? and how large should the penalty of not betting on one or more be to get the best result?
   - Which recommendation mechanism leads to the best outcome?
-  - Which prediction scoring rule is the best one to use? The Brier score is one possibility, but it becomes inadequate for too frequent or rare events [4].
-  - Does predictive liquid democracy in action lead to a higher chance to find a given ground truth compared to other systems?
+  - Which prediction scoring rule is the best one to use? The Brier score is one possibility, but it becomes inadequate for too frequent or rare events \cite{BrierScore}.
   - How should tagging polls with a subject area happen in the best way?
   - What are the ideal times of the phases?
+  - Is anything gained from allowing meta-delegation?
+  - Does predictive liquid democracy in action lead to a higher chance to find a given ground truth compared to other systems? In what contexts?
   - In general how do we optimize the system toward the factors making the system work the best?
 
 The largest organization possible may decide that a more local region can take certain decisions themselves while the super organization audits and can intervene at any time. This is because the largest organization is more probable to find the "correct answer" using predictive liquid democracy.
