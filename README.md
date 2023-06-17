@@ -144,7 +144,7 @@ Empirical questions:
   - How much does the predictor collusion problem and irrelevant predictions affect the system negatively in reality? In relation to the collusion problem, how can the predictions that need to be bet on in order not to lose score given correct predictions be set with regard to the predictors prediction scores? and how large should the penalty of not betting on one or more be to get the best result?
   - Which recommendation mechanism leads to the best outcome?
   - Which prediction scoring rule is the best one to use? The Brier score is one possibility, but it becomes inadequate for too frequent or rare events [4]. And what interval should be used with it?
-  - Is the subject area division gamed?
+  - Is the subject area division gamed? Does it need a subject area vote quorum?
   - What are the ideal times of the phases?
   - Is anything gained from allowing meta-delegation?
   - Should we add a "irrelevant" alternatives for predictions when betting or evaluating? Or will they sort themselves out in the suggested system?
