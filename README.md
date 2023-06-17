@@ -92,7 +92,7 @@ Poll quorum:
 
 How can we ensure strategic voting not creating too large negative effects:
   - This is an empirical question which needs to be tested, even when the assumptions for when this works the best fail to be true to a larger degree, the real world outcomes might not become too negative more often or to such a degree that it is worse than the current system.
-  - It is possible to vote on goals as well, but it does not ensure that participants will not try to strategy vote if their goal is not chosen.
+  - It is possible to vote on goals as well, but it does not ensure that participants will not try to strategy vote if their goal is not chosen. When voting on goals, predictions are about the possible implications of the goals. 
 
 *The properties of predictive liquid democracy*
 
@@ -142,7 +142,11 @@ Measuring the outcomes and empirical questions:
   - Which recommendation mechanism leads to the best outcome?
   - Which prediction scoring rule is the best one to use? The Brier score is one possibility, but it becomes inadequate for too frequent or rare events [4].
   - Does predictive liquid democracy in action lead to a higher chance to find a given ground truth compared to other systems?
+  - How should tagging polls with a subject area happen in the best way?
+  - What are the ideal times of the phases?
   - In general how do we optimize the system toward the factors making the system work the best?
+
+The largest organization possible may decide that a more local region can take certain decisions themselves while the super organization audits and can intervene at any time. This is because the largest organization is more probable to find the "correct answer" using predictive liquid democracy.
 
 [1]: Hagberg, L. (2023). Collected papers on finitist mathematics and phenomenalism: a digital phenomenology. BoD-Books on Demand.
 
