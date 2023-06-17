@@ -82,7 +82,7 @@ Subject area division:
   - Division of subject areas can be done by a hyper subject area that works to optimize the division of the other subjects continuously. If only one subject area is shown to be the best, then the hyper subject area can be merged into that subject area then being for everything.
   - The subject area tree, where more specialization is deeper down the tree, is therefore pruned or added to in order to find subject areas with stable prediction scores.
   - Stable prediction scores require the extraction of stable patterns before the event in the subject area.
-  - The subject areas for a poll are voted on by voters with approval voting, and all of the positively scored subject areas apply. Prediction scores in all those areas are updated at the prediction evaluation. This is during the proposal phase. 
+  - The subject areas for a poll are voted on by voters with approval voting, and all of the positively scored subject areas over some threshold apply. Prediction scores in all those areas are updated at the prediction evaluation. This is during the proposal phase. 
 
 Shared roles:
    - Everyone in the group considered is a poll creator, proposal creator, and predictor.
@@ -144,7 +144,7 @@ Empirical questions:
   - How much does the predictor collusion problem and irrelevant predictions affect the system negatively in reality? In relation to the collusion problem, how can the predictions that need to be bet on in order not to lose score given correct predictions be set with regard to the predictors prediction scores? and how large should the penalty of not betting on one or more be to get the best result?
   - Which recommendation mechanism leads to the best outcome?
   - Which prediction scoring rule is the best one to use? The Brier score is one possibility, but it becomes inadequate for too frequent or rare events [4]. And what interval should be used with it?
-  - Is the subject area division gamed? Does it need a subject area vote quorum?
+  - Is the subject area division gamed? What should the threshold be at?
   - What are the ideal times of the phases?
   - Is anything gained from allowing meta-delegation?
   - Should we add a "irrelevant" alternatives for predictions when betting or evaluating? Or will they sort themselves out in the suggested system?
