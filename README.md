@@ -16,20 +16,20 @@ The following outlines predictive liquid democracy. Combining prediction markets
 
 Voter:
   - Can vote (with equal weight).
-  - Have secret votes.
+  - Has secret votes.
   - Can delegate temporally in any subject area as long as they want and prioritize these (if a poll would be in multiple subject areas, the delegate prioritized over the others is delegated to). They can also delegate to a delegate in all areas (that exist currently and will appear).
   - Can override their delegate by voting themselves or changing delegate before a poll deadline.
   - Can become or stop being a delegate.
 
 Delegate:
   - Can vote (with the weight of delegations to them and possibly their own vote if they are a voter as well).
-  - Have public votes.
+  - Has public votes.
   - Can not delegate (no meta-delegation).
 
 Predictor:
   - Can create predictions (the outcome of one or more relevant variables until a specified time).
   - Can bet a probability on a prediction.
-  - Have prediction scores (between 0 and 1, the interval can be made not to include 50\% by having it divided up in 5 for example with 20\% steps) based on how well they bet probabilities.
+  - Has prediction scores (between 0 and 1, the interval can be made not to include 50\% by having it divided up in 5 for example with 20\% steps) based on how well they bet probabilities.
   - Predictors might be an artificial intelligence, an algorithm, or a human with an internal model for example. 
 
 Poll:
