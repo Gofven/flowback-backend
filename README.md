@@ -67,7 +67,7 @@ Result:
   - If there has been a previous vote with a tie a random proposal wins with equal probability, otherwise the poll goes back to the third period with only the winning proposals.
 
 Prediction evaluation:
-  - Prediction scores (which are in the subject areas chosen) are updated when a prediction specified time is reached.
+  - Prediction scores (which are in the subject areas chosen) are updated based on a prediction after its prediction specified time is reached.
   - The voters can vote yes or no (approval voting) if it occurred or not after the time and change their votes dynamically without an end time. The majority decided which alternative wins, which is the evaluation of the prediction.
   - It is always updated in such a way that no predictor can choose not to make certain prediction bets and gain a higher or keep the same prediction score as a result from it. This means that a predictor making any prediction bet on one proposal on a poll (if it was in general they would never be able to take a break) will have to make prediction bets for all of them or otherwise lose points from their prediction score.
   - To make sure predictors do not need to make prediction bets on predictions that are clearly one way or the other, they can make them on predictions where there have been prediction bets that 1) differ (otherwise they can gain score by predicting things that everyone agrees upon) and 2) have a number of predictors with high enough prediction scores that have previously made prediction bets on the given prediction.
