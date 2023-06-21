@@ -141,13 +141,13 @@ Optimization outside of predictive liquid democracy:
 Empirical questions:
   - How can we measure how good the system does? One measure is how well it finds a given ground truth, but otherwise? By the utility of the members over time perhaps, but how? Further, can we measure the degree of honesty?
   - How much does strategic voting affect the system negatively in reality? Is there another voting method that does better than score voting?  
-  - How much does the predictor collusion problem and irrelevant predictions affect the system negatively in reality? In relation to the collusion problem, how can the predictions that need to be bet on in order not to lose score given correct predictions be set with regard to the predictors prediction scores? and how large should the penalty of not betting on one or more be to get the best result?
+  - How much does the predictor collusion problem and irrelevant predictions affect the system negatively in reality? In relation to the collusion problem, how can the predictions that need to be bet on in order not to lose score given correct predictions be set with regard to the predictors prediction scores? And how large should the penalty of not betting on one or more be to get the best result?
   - Which recommendation mechanism leads to the best outcome?
   - Which prediction scoring rule is the best one to use? The Brier score is one possibility, but it becomes inadequate for too frequent or rare events [4]. And what interval should be used with it?
   - Is the subject area division gamed? What should the threshold be at?
   - What are the ideal times of the phases?
   - Is anything gained from allowing meta-delegation?
-  - Should we add a "irrelevant" alternatives for predictions when betting or evaluating? Or will they sort themselves out in the suggested system?
+  - Should we add an "irrelevant" alternative for predictions when betting or evaluating? Or will they sort themselves out in the suggested system?
   - Does predictive liquid democracy in action lead to a higher chance to find a given ground truth compared to other systems? In what contexts?
   - In general how do we optimize the system toward the factors making the system work the best?
   - How would betting on predictions with money change the system?
