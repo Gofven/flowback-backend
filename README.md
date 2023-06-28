@@ -58,7 +58,7 @@ Separate poll phases:
 Poll creator:
   - Can create but not edit or delete a poll.
 
-Poll creator:
+Proposal creator:
   - Can create but not edit or delete a proposal.
 
 Result:
