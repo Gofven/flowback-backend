@@ -120,7 +120,7 @@ Properties of optimal delegates:
 
 A perfect delegate case:
   - A shared goal between all voters, predictors, and delegates.
-  - Every voter delegates to a delegate to an independent delegate in the optimal delegate set.
+  - Every voter delegates to an independent delegate in the optimal delegate set.
   - Delegates are rational based on their information.
   - Delegates know other delegates are rational based on their information, and know about predictive liquid democracy and its properties as outlined. 
 
