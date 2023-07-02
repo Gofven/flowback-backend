@@ -101,11 +101,11 @@ How can we ensure strategic voting not creating too large negative effects:
 *The properties of predictive liquid democracy*
 
 A Condorcet jury is a jury where the following is the case:
-  - A majority rule decision by the jury has a probability of over 0.5 to pick a proposal in the set of optimal proposals (regarding a given goal).
+  - The members of the jury has a probability of over 0.5 to pick a proposal in the set of optimal proposals (regarding a given goal).
   - The members of the jury are independent (in the sense of their probabilities of picking the proposal above being independent).
 
 Properties of a Condorcet jury:
-  - According to Condorcet’s jury theorem, as the size of the jury grows, the probability that an optimal proposal is chosen converges to 1 [3].
+  - According to Condorcet’s jury theorem, as the size of the jury grows, the probability that an optimal proposal is chosen converges to 1 given a majority rule decision [3]. 
   - There can be Condorcet juries in various subject areas that can be delegated to. 
 
 Optimal sets: 
