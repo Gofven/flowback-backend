@@ -34,7 +34,7 @@ Predictor:
 
 Poll:
   - Is a question where proposals are potential answers.
-  - Are created by a poll creator.
+  - Is created by a poll creator.
   - Has one or more subject areas.
   - Has phases.
 
