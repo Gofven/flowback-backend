@@ -5,31 +5,24 @@ It is a decision making platform.
 
 <sub><sub>This text is not allowed to be removed.</sub></sub>
 
-
 The following is from Collected papers on finitist mathematics and phenomenalism: a digital phenomenology by Loke Hagberg 2023 [1].
-
-```math
-
-The following is from Collected papers on finitist mathematics and phenomenalism: a digital phenomenology by Loke Hagberg 2023 \cite{predictiveliquiddemocracy}.
-
-\section*{The association for Digital Democracy}
 
 In Swedish the organization/association is called 'Föreningen för Digital Demokrati'.
 
 *Introduction*
 
-The association for Digital Democracy is a non-profit that was created to prevent the current trend of democratic backsliding in the world. According to “Democracy Facing Global Challenges: V-Dem Annual Democracy Report 2019 Institute at the University of Gothenburg”, the main causes of democratic backsliding are misinformation, socio-economic inequality and instability, undemocratic values, and the external influence of non-democratic states \cite{Vdem1} \cite{Vdem2}. We see this as a problem with our democracy as it is not rational enough to solve these issues. If the current system does not either produce or implement sufficient solutions, it is a problem with the system itself. Democracy is important to make a society aligned with the values of its members and to coordinate and cooperate on a global level to solve global issues, such as many possible existential crises like global warming, world war, and miss-aligned AGI. 
-Democracy, according to the political scientist Robert Dahl, is when a group of members rule over something by some majority rule method, with further criteria being one vote per voter, that voters have the ability to understand the process, high participation of the voters, voters controlling the agenda, and “the voters” being inclusive \cite{Dahl}. 
+The association for Digital Democracy is a non-profit that was created to prevent the current trend of democratic backsliding in the world. According to “Democracy Facing Global Challenges: V-Dem Annual Democracy Report 2019 Institute at the University of Gothenburg”, the main causes of democratic backsliding are misinformation, socio-economic inequality and instability, undemocratic values, and the external influence of non-democratic states [2] [3]. We see this as a problem with our democracy as it is not rational enough to solve these issues. If the current system does not either produce or implement sufficient solutions, it is a problem with the system itself. Democracy is important to make a society aligned with the values of its members and to coordinate and cooperate on a global level to solve global issues, such as many possible existential crises like global warming, world war, and miss-aligned AGI. 
+Democracy, according to the political scientist Robert Dahl, is when a group of members rule over something by some majority rule method, with further criteria being one vote per voter, that voters have the ability to understand the process, high participation of the voters, voters controlling the agenda, and “the voters” being inclusive [4]. 
 
 Direct democracy can be problematic as the voters do not always have the time, knowledge or energy to spend on every issue - and the result can turn out very badly when people are systematically wrong (which is likely in various important cases). Representative democracies are more rational in that sense, but can be less aligned with its voters.  
 
-This is where liquid democracy comes in. Lewis Carroll described liquid democracy in the earliest account that we know of, where it’s described as a middle-path between direct and indirect democracy. Members in the group can become delegates whereby their votes are publically displayed while non-delegates can continuously copy what the delegates vote for in some subject areas such as healthcare, education etc. and do not need to display their votes \cite{LewisCarrollLiquid}. Because time with a given deadline is limited in amount, the larger the decision space is the less time can be spent on each issue if all are to be covered. Delegation solves this issue by allowing voters to off-load work and instead spend their time overseeing that the delegates are trust-worthy and in some cases make inputs to specific polls. This allows processes to happen automatically to a larger degree. Voters ideally vote on outcomes and not paths to outcomes. Liquid democracy is difficult to implement non-digitally however. 
+This is where liquid democracy comes in. Lewis Carroll described liquid democracy in the earliest account that we know of, where it’s described as a middle-path between direct and indirect democracy. Members in the group can become delegates whereby their votes are publically displayed while non-delegates can continuously copy what the delegates vote for in some subject areas such as healthcare, education etc. and do not need to display their votes [5]. Because time with a given deadline is limited in amount, the larger the decision space is the less time can be spent on each issue if all are to be covered. Delegation solves this issue by allowing voters to off-load work and instead spend their time overseeing that the delegates are trust-worthy and in some cases make inputs to specific polls. This allows processes to happen automatically to a larger degree. Voters ideally vote on outcomes and not paths to outcomes. Liquid democracy is difficult to implement non-digitally however. 
 
-The first time in the world that a party using digital liquid democracy got positions in a political body was Demoex in Vallentuna municipality, Sweden 2002, as far as we know. They were in office for a few terms but later lost their position \cite{Demoex}. We have been in contact with them, written books in Swedish, and learnt about the problems that they faced. One problem Demoex faced was security. 
+The first time in the world that a party using digital liquid democracy got positions in a political body was Demoex in Vallentuna municipality, Sweden 2002, as far as we know. They were in office for a few terms but later lost their position [6]. We have been in contact with them, written books in Swedish, and learnt about the problems that they faced. One problem Demoex faced was security. 
 
 Using security standards and blockchain-protocol for example, the members of the group can really verify the history and in general trust the longest chain (the longer, the more they can trust it, given enough nodes). Formal verification of some components could possibly be carried out as well, which is standard for high integrity software. These measures are recent developments that can mitigate the security issues. Some have also claimed that voting online means that someone can force you to vote a certain way. There are technical solutions to make it improbable, by sending out a voting code during a period for example where the voting needs to occur within a smaller period, and special voting booths.
 
-Another problem that Demoex experienced was “neighbor delegation” and in general delegation not going to the person with the most expertise in the given area. Liquid democracy has been shown to be suboptimal in cases where voters only delegate to people they know. This is also known as “neighbor delegation”, and can be a problem because a group that actually knows more than the crowd might not be picked \cite{liquiddemocracy}. It is unlikely on many grounds that most people know of the best delegates, and that the result is more likely to be skewed toward not only suboptimality but also a worse outcome than direct democracy in various cases.
+Another problem that Demoex experienced was “neighbor delegation” and in general delegation not going to the person with the most expertise in the given area. Liquid democracy has been shown to be suboptimal in cases where voters only delegate to people they know. This is also known as “neighbor delegation”, and can be a problem because a group that actually knows more than the crowd might not be picked [8]. It is unlikely on many grounds that most people know of the best delegates, and that the result is more likely to be skewed toward not only suboptimality but also a worse outcome than direct democracy in various cases.
 
 The problem of “neighbor delegation” as explained above is something predictive liquid democracy sets out to solve. The solution is recommending delegates that vote as the best predictor suggests, taking the given voter’s goal into account. Predictive liquid democracy was first described in this very book and is the founding theory behind Digital Democracy's software: Flowback. Predictive liquid democracy is the combination of liquid democracy and prediction market features (the prediction market is not necessarily with money, and is not in the following case), where predictions are about the proposals (which may or may not pass). Diversity in perspectives and knowledge are reflected in the predictions and the votings on in predictive liquid democracy. 
 The voting itself happens with score voting (also used by Demoex) which means that elements from some finite set of values can be picked for each proposal without further constraints. Score voting is the best estimator when: 
@@ -108,7 +101,7 @@ There are various possible issues where their frequency and degree of negative i
 \section*{Predictive liquid democracy}
 
 
-The following describes predictive liquid democracy. Combining prediction markets and liquid democracy into predictive liquid democracy was done theoretically, and independently, by me ('independently' if someone else may have stated its properties, see 'Föreningen för Digital Demokrati' in Sweden - that is the association for Digital democracy - digitaldemocracy.world) when the Flowback project was in an early stage (2021). This decision system is anti-fragile, as it learns from any mistake if the mechanisms work well enough. Non-local delegation can be more optimal than local, where the locality is in regard to the network of social relations. It is possible that those who know many and seem knowledgeable are not and the result can become worse than it could be using a more objective recommendation algorithm for non-local delegation \cite{liquiddemocracy}. Predictive liquid democracy provides a base for such a recommendation algorithm. 
+The following describes predictive liquid democracy. Combining prediction markets and liquid democracy into predictive liquid democracy was done theoretically, and independently, by me ('independently' if someone else may have stated its properties, see 'Föreningen för Digital Demokrati' in Sweden - that is the association for Digital democracy - digitaldemocracy.world) when the Flowback project was in an early stage (2021). This decision system is anti-fragile, as it learns from any mistake if the mechanisms work well enough. Non-local delegation can be more optimal than local, where the locality is in regard to the network of social relations. It is possible that those who know many and seem knowledgeable are not and the result can become worse than it could be using a more objective recommendation algorithm for non-local delegation [8]. Predictive liquid democracy provides a base for such a recommendation algorithm. 
 
 *Predictive liquid democracy as implemented in Flowback 2023-01*
 
@@ -238,7 +231,7 @@ A Condorcet jury is a jury where the following is the case:
 
 Properties of a Condorcet jury:
 \begin{itemize}
-  \item According to Condorcet’s jury theorem, as the size of the jury grows, the probability that an optimal proposal is chosen converges to 1 given a majority rule decision \cite{DeCondorcetJury}. It can be extended to multiple decisions and is conjectured to hold in the same way \cite{List1} \cite{Dietrich1}. This will still be referred to as Condorcet's theorem but is implicitly Condorcet's theorem with extensions.  
+  \item According to Condorcet’s jury theorem, as the size of the jury grows, the probability that an optimal proposal is chosen converges to 1 given a majority rule decision [9]. It can be extended to multiple decisions and is conjectured to hold in the same way [10] [11]. This will still be referred to as Condorcet's theorem but is implicitly Condorcet's theorem with extensions.  
   \item There can be Condorcet juries in various subject areas that can be delegated to. 
 \end{itemize}
 
@@ -273,7 +266,7 @@ Properties of score voting:
 
 Considering strategic voting using score voting: 
 \begin{itemize}
-  \item It has been shown that the strong Nash equilibrium is the Condorcet winner if voters vote strategically and have full information about what the other voters are going to vote for \cite{strongNashEquilibriumScoreVotingFullInformation}.
+  \item It has been shown that the strong Nash equilibrium is the Condorcet winner if voters vote strategically and have full information about what the other voters are going to vote for [12].
   \item It is possible to have a prediction market about the strategic voting that is stable to some degree. 
   \item Allowing voters to score delegates if there is not a shared goal is not good, because such scoring could easily be strategic.
 \end{itemize}
@@ -290,7 +283,7 @@ Empirical questions:
   \item How much does strategic voting affect the system negatively in reality? Is there another voting method that does better than score voting?  
   \item How much does the predictor collusion problem and irrelevant predictions affect the system negatively in reality? In relation to the collusion problem, how can the predictions that need to be bet on in order not to lose score given correct predictions be set with regard to the predictors prediction scores? And how large should the penalty of not betting on one or more be to get the best result?
   \item Which recommendation mechanism leads to the best outcome?
-  \item Which prediction scoring rule is the best one to use? The Brier score is one possibility, but it becomes inadequate for too frequent or rare events \cite{BrierScore}. And what interval should be used with it?
+  \item Which prediction scoring rule is the best one to use? The Brier score is one possibility, but it becomes inadequate for too frequent or rare events [13]. And what interval should be used with it?
   \item Is the subject area division gamed? What should the threshold be at?
   \item What are the ideal times of the phases?
   \item Is anything gained from allowing meta-delegation?
@@ -304,59 +297,31 @@ Empirical questions:
 The largest organization possible may decide that a more local region can take certain decisions themselves while the super organization audits and can intervene at any time. This is because the largest organization is more probable to find the "correct answer" using predictive liquid democracy.
 
 
-\bibliographystyle{unsrt}  
-\begin{thebibliography}{}
-
-\bibitem{predictiveliquiddemocracy}
-Hagberg, L. (2023). Collected papers on finitist mathematics and phenomenalism: a digital phenomenology. BoD-Books on Demand.
-
-\bibitem{Vdem1}
-Lührmann, Anna; Lindberg, Staffan I. (2019). "A third wave of autocratization is here: what is new about it?".
-
-\bibitem{Vdem2}
-V-Dem report 2021: Global wave of autocratization accelerates, Stefan Kalberer, 14. Mar 2021
-
-\bibitem{Dahl}
-Beckman, L., \& Mörkenstam, U. (2016). Politisk teori. Liber.
-
-\bibitem{LewisCarrollLiquid}
-Carroll, Lewis (1884). The Principles of Parliamentary Representation. London: Harrison and Sons.
-
-\bibitem{Demoex}
-"Demoex (Sweden)". newDemocracy. The newDemocracy Foundation. Retrieved 23 April 2018.
-
-\bibitem{Honeybee}
-Seeley, T.D. (2011). Honeybee democracy. Princeton University Press.
-
-\bibitem{liquiddemocracy}
-Kahng, A., Mackenzie, S., \& Procaccia, A. (2021). Liquid democracy: An algorithmic perspective. Journal of Artificial Intelligence Research, 70, 1223-1252.
-
-\bibitem{DeCondorcetJury}
-De Condorcet, N. (2014). Essai sur l'application de l'analyse à la probabilité des décisions rendues à la pluralité des voix. Cambridge University Press.
-
-\bibitem{List1}
-List, C., \& Goodin, R. E. (2001). Epistemic democracy: Generalizing the Condorcet jury theorem.
-
-\bibitem{Dietrich1}
-Dietrich, F., \& Spiekermann, K. (2021). Jury theorems.
-
-\bibitem{strongNashEquilibriumScoreVotingFullInformation}
-Laslier, J. F. (2006). Strategic approval voting in a large electorate.
-
-\bibitem{BrierScore}
-Benedetti, R. (2010). Scoring rules for forecast verification. Monthly Weather Review, 138(1), 203-211.
-
-\end{thebibliography}
-
-```
-
 
 [1]: Hagberg, L. (2023). Collected papers on finitist mathematics and phenomenalism: a digital phenomenology. BoD-Books on Demand.
 
-[2]: Kahng, A., Mackenzie, S., \& Procaccia, A. (2021). Liquid democracy: An algorithmic perspective. Journal of Artificial Intelligence Research, 70, 1223-1252.
+[2]: Lührmann, Anna; Lindberg, Staffan I. (2019). "A third wave of autocratization is here: what is new about it?".
 
-[2]: De Condorcet, N. (2014). Essai sur l'application de l'analyse à la probabilité des décisions rendues à la pluralité des voix. Cambridge University Press.
+[3]: V-Dem report 2021: Global wave of autocratization accelerates, Stefan Kalberer, 14. Mar 2021
 
-[3]: Laslier, J. F. (2006). Strategic approval voting in a large electorate.
+[4]: Beckman, L., \& Mörkenstam, U. (2016). Politisk teori. Liber.
 
-[4]: Benedetti, R. (2010). Scoring rules for forecast verification. Monthly Weather Review, 138(1), 203-211.
+[5]: Carroll, Lewis (1884). The Principles of Parliamentary Representation. London: Harrison and Sons.
+
+[6]: "Demoex (Sweden)". newDemocracy. The newDemocracy Foundation. Retrieved 23 April 2018.
+
+[7]: Seeley, T.D. (2011). Honeybee democracy. Princeton University Press.
+
+[8]: Kahng, A., Mackenzie, S., \& Procaccia, A. (2021). Liquid democracy: An algorithmic perspective. Journal of Artificial Intelligence Research, 70, 1223-1252.
+
+[9]: De Condorcet, N. (2014). Essai sur l'application de l'analyse à la probabilité des décisions rendues à la pluralité des voix. Cambridge University Press.
+
+[10]: List, C., \& Goodin, R. E. (2001). Epistemic democracy: Generalizing the Condorcet jury theorem.
+
+[11]: Dietrich, F., \& Spiekermann, K. (2021). Jury theorems.
+
+[12]: Laslier, J. F. (2006). Strategic approval voting in a large electorate.
+
+[13]: Benedetti, R. (2010). Scoring rules for forecast verification. Monthly Weather Review, 138(1), 203-211.
+
+
