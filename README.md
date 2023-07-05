@@ -9,17 +9,6 @@ It is a decision making platform.
 The following is from Collected papers on finitist mathematics and phenomenalism: a digital phenomenology by Loke Hagberg 2023 [1].
 
 ```math
-\documentclass{article}
-
-\usepackage{url, hyperref, amssymb, amsmath}
-\thispagestyle{empty}
-
-
-
-\date{}
-
-
-\begin{document}
 
 The following is from Collected papers on finitist mathematics and phenomenalism: a digital phenomenology by Loke Hagberg 2023 \cite{predictiveliquiddemocracy}.
 
@@ -358,13 +347,6 @@ Laslier, J. F. (2006). Strategic approval voting in a large electorate.
 Benedetti, R. (2010). Scoring rules for forecast verification. Monthly Weather Review, 138(1), 203-211.
 
 \end{thebibliography}
-
-
-
-
-
-
-\end{document}
 
 ```
 
