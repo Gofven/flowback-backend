@@ -191,7 +191,7 @@ A Condorcet jury is a jury where the following is the case:
   - The members of the jury are independent (in the sense of their probabilities of picking the proposal above being independent).
 
 Properties of a Condorcet jury:
-  - According to Condorcet’s jury theorem, as the size of the jury grows, the probability that an optimal proposal is chosen converges to $1$ given a majority rule decision (plurality voting) as the size is larger and as it goes to infinity [9]. Condorcet's theorem is originally only for two alternatives, it can be extended to multiple alternatives and is conjectured to hold in the same way and has been proven to do so as the size goes to infinity [10] [11]. This will still be referred to as Condorcet's theorem but is implicitly Condorcet's theorem with extensions.  
+  - According to Condorcet’s jury theorem, as the size of the jury grows, the probability that an optimal proposal is chosen converges to 1 given a majority rule decision (plurality voting) as the size is larger and as it goes to infinity [9]. Condorcet's theorem is originally only for two alternatives, it can be extended to multiple alternatives and is conjectured to hold in the same way and has been proven to do so as the size goes to infinity [10] [11]. This will still be referred to as Condorcet's theorem but is implicitly Condorcet's theorem with extensions.  
   - There can be Condorcet juries in various subject areas that can be delegated to. 
 
 Optimal sets: 
