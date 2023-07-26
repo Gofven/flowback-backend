@@ -54,9 +54,10 @@ class Group(BaseModel):
             return
 
         if update_fields:
-            fields = [field.name for field in update_fields]
+            if not all(isinstance(field, str) for field in update_fields):
+                update_fields = [field.name for field in update_fields]
 
-            if 'name' in fields:
+            if 'name' in update_fields:
                 instance.schedule.name = instance.name
                 instance.kanban.name = instance.name
                 instance.schedule.save()
