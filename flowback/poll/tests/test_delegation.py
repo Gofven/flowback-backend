@@ -7,10 +7,10 @@ from flowback.common.services import get_object
 from flowback.group.models import GroupUser, GroupUserDelegatePool
 from flowback.group.services import group_create, group_permission_create, group_update, group_join, group_tag_create, \
     group_user_delegate_pool_create, group_user_delegate
-from flowback.poll.models import Poll
+from flowback.poll.models import Poll, PollProposal
 from flowback.poll.services.poll import poll_create
 from flowback.poll.services.proposal import poll_proposal_create
-from flowback.poll.services.vote import poll_proposal_vote_update
+from flowback.poll.services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
 from flowback.poll.views import DelegatePollVoteListAPI
 from flowback.user.models import User
 
@@ -94,17 +94,18 @@ class GroupDelegationTests(TestCase):
         self.poll.vote_start_date = datetime.now(tz=timezone.utc)
         self.poll.save()
 
-        poll_proposal_vote_update(user_id=self.user_delegator.user.id,
-                                  poll_id=self.poll.id,
-                                  data=dict(votes=[self.proposal.id, self.proposal_three.id, self.proposal_two.id]))
+        poll_proposal_delegate_vote_update(user_id=self.user_delegate.user.id,
+                                           poll_id=self.poll.id,
+                                           data=dict(votes=[self.proposal.id, self.proposal_three.id, self.proposal_two.id]))
 
     def test_delegate_pool_votes(self):
         factory = APIRequestFactory()
         user = self.user_creator.user
         view = DelegatePollVoteListAPI.as_view()
 
-        request = factory.get('group/poll/pool/1/votes?poll_id=1')
+        request = factory.get('/group/poll/pool/1/votes?poll_id=1')
         force_authenticate(request, user=user)
         response = view(request, delegate_pool_id=1)
 
         print(response.data)
+        print(PollProposal.objects.all())
