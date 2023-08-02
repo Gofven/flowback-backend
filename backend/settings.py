@@ -97,11 +97,13 @@ INSTALLED_APPS = [
     'flowback.notification',
     'flowback.comment',
     'flowback.schedule',
+    'drf_spectacular'
 ] + env('INTEGRATIONS')
 
 CELERY_BROKER_URL = env('RABBITMQ_BROKER_URL')
 
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'flowback.common.documentation.CustomAutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication'
     ],
@@ -109,6 +111,13 @@ REST_FRAMEWORK = {
         env('FLOWBACK_DEFAULT_PERMISSION'),
     ),
     'EXCEPTION_HANDLER': 'flowback.common.exception_handlers.drf_default_with_modifications_exception_handler'
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Flowback API',
+    'DESCRIPTION': 'Documentation for interfacing with Flowback',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
 
 AUTH_USER_MODEL = 'user.User'
