@@ -30,7 +30,6 @@ env = environ.Env(DEBUG=(bool, False),
                   FLOWBACK_GROUP_ADMIN_USER_LIST_ACCESS_ONLY=(bool, False),
                   FLOWBACK_DEFAULT_PERMISSION=(str, 'rest_framework.permissions.IsAuthenticated'),
                   EMAIL_HOST=(str, None),
-                  EMAIL_SENDER=(str, None),
                   EMAIL_PORT=(str, None),
                   EMAIL_FROM=(str, None),
                   EMAIL_HOST_USER=(str, None),
@@ -212,7 +211,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = env('EMAIL_HOST')
-EMAIL_SENDER = env('EMAIL_SENDER') or EMAIL_HOST
 EMAIL_PORT = env('EMAIL_PORT')
 EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
