@@ -34,6 +34,8 @@
         <option value="$MODULE_DIR$/flowback/schedule" />
         <option value="$MODULE_DIR$/flowback/kanban" />
         <option value="$MODULE_DIR$/flowback/comment" />
+        <option value="$MODULE_DIR$/flowback/prediction" />
+        <option value="$MODULE_DIR$/flowback/common" />
       </list>
     </option>
   </component>
