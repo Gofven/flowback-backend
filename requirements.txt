@@ -7,6 +7,8 @@ pillow==9.0.1
 django-filter==21.1
 django-cors-headers==3.13.0
 django-pgtrigger==4.5.3
+factory-boy==3.3.0
+Faker==19.2.0
 channels==4.0.0
 channels_redis==4.0.0
 daphne==4.0.0
