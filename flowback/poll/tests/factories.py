@@ -25,13 +25,14 @@ class PollFactory(factory.django.DjangoModelFactory):
     title = factory.LazyAttribute(lambda _: faker.unique.first_name().lower())
     description = factory.LazyAttribute(lambda _: faker.bs())
     poll_type = factory.LazyAttribute(lambda _: faker.pyint(min_value=1, max_value=4))
+    dynamic = factory.LazyAttribute(lambda _: faker.pybool())
+
     start_date = factory.LazyAttribute(lambda _: timezone.now())
     proposal_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=1))
     vote_start_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=2))
     delegate_vote_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=3))
     vote_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=4))
     end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=5))
-    dynamic = factory.LazyAttribute(lambda _: faker.pybool())
 
 
 class PollProposalFactory(factory.django.DjangoModelFactory):
