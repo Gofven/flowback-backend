@@ -54,7 +54,6 @@ class CustomAutoSchema(AutoSchema):
                             class Meta(serializer_class.Meta):
                                 fields = serializer_class.Meta.fields + ('count', 'next', 'previous', 'total_page')
 
-
                     OutputSerializer.__qualname__ = serializer_class.__qualname__
                     OutputSerializer.__module__ = serializer_class.__module__
                     OutputSerializer.__name__ = serializer_class.__name__
