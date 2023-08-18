@@ -580,14 +580,21 @@ class PollPredictionStatementListAPI(APIView):
         user_vote_exists = serializers.BooleanField(required=False)
 
     class OutputSerializer(serializers.Serializer):
+        class StatementSegment(serializers.Serializer):
+            proposal_id = serializers.IntegerField(source='proposal.id')
+            proposal_title = serializers.CharField(source='proposal.title', required=False)
+            proposal_description = serializers.CharField(source='proposal.description', required=False)
+            is_true = serializers.BooleanField()
+
         id = serializers.IntegerField()
         poll_id = serializers.IntegerField()
-        proposals = serializers.ListField(source='pollpredictionstatementsegment_id',
-                                          child=serializers.IntegerField())
         description = serializers.CharField()
         created_by = GroupUserSerializer()
-        user_prediction = serializers.IntegerField(source='user_prediction__score', required=False)
-        user_vote = serializers.BooleanField(source='user_vote__vote', required=False)
+        user_prediction = serializers.IntegerField(required=False)
+        user_vote = serializers.BooleanField(required=False)
+
+        segments = StatementSegment(source='pollpredictionstatementsegment_set', many=True)
+
 
     def get(self, request, group_id: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)

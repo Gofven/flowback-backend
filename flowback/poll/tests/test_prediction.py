@@ -6,12 +6,14 @@ from rest_framework.test import APIRequestFactory, force_authenticate, APITransa
 
 from flowback.group.models import GroupUser
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
-from flowback.poll.models import Poll, PollPredictionStatement, PollPredictionStatementSegment, PollPrediction
+from flowback.poll.models import Poll, PollPredictionStatement, PollPredictionStatementSegment, PollPrediction, \
+    PollPredictionStatementVote
 from flowback.poll.tests.factories import PollFactory, PollPredictionFactory, PollProposalFactory, \
-    PollPredictionStatementFactory, PollPredictionStatementSegmentFactory
+    PollPredictionStatementFactory, PollPredictionStatementSegmentFactory, PollPredictionStatementVoteFactory
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
 from flowback.poll.views import PollPredictionStatementCreateAPI, PollPredictionStatementDeleteAPI, \
-    PollPredictionCreateAPI, PollPredictionUpdateAPI, PollPredictionDeleteAPI
+    PollPredictionCreateAPI, PollPredictionUpdateAPI, PollPredictionDeleteAPI, PollPredictionStatementVoteCreateAPI, \
+    PollPredictionStatementVoteUpdateAPI, PollPredictionStatementVoteDeleteAPI, PollPredictionStatementListAPI
 from flowback.user.models import User
 
 
@@ -140,3 +142,54 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
         with self.assertRaises(PollPrediction.DoesNotExist, msg='Prediction not removed.'):
             PollPrediction.objects.get(id=self.prediction_one.id)
+
+    def test_poll_prediction_statement_vote_create(self):
+        factory = APIRequestFactory()
+        view = PollPredictionStatementVoteCreateAPI.as_view()
+
+        request = factory.post('', dict(vote=True))
+        force_authenticate(request, user=self.user_prediction_caster_one.user)
+        response = view(request, prediction_statement_id=self.prediction_statement.id)
+
+        prediction = PollPredictionStatementVote.objects.get(created_by=self.user_prediction_caster_one,
+                                                             prediction_statement=self.prediction_statement)
+        self.assertEqual(prediction.vote, True, 'Vote isnt same as requested by user')
+
+    def test_poll_prediction_statement_vote_update(self):
+        factory = APIRequestFactory()
+        view = PollPredictionStatementVoteUpdateAPI.as_view()
+        prediction_vote = PollPredictionStatementVoteFactory(prediction_statement=self.prediction_statement,
+                                                             created_by=self.user_prediction_caster_one,
+                                                             vote=True)
+
+        request = factory.post('', dict(vote=False))
+        force_authenticate(request, user=self.user_prediction_caster_one.user)
+        response = view(request, prediction_statement_vote_id=prediction_vote.id)
+
+        prediction_vote.refresh_from_db()
+
+        self.assertEqual(prediction_vote.vote, False, 'Vote isnt same as requested by user')
+
+    def test_poll_prediction_statement_vote_delete(self):
+        factory = APIRequestFactory()
+        view = PollPredictionStatementVoteDeleteAPI.as_view()
+        prediction_vote = PollPredictionStatementVoteFactory(prediction_statement=self.prediction_statement,
+                                                             created_by=self.user_prediction_caster_one,
+                                                             vote=True)
+
+        request = factory.post('')
+        force_authenticate(request, user=self.user_prediction_caster_one.user)
+        response = view(request, prediction_statement_vote_id=prediction_vote.id)
+
+        with self.assertRaises(PollPredictionStatementVote.DoesNotExist, msg='Prediction Vote not removed.'):
+            PollPredictionStatementVote.objects.get(id=prediction_vote.id)
+
+    def test_poll_prediction_statement_list(self):
+        factory = APIRequestFactory()
+        view = PollPredictionStatementListAPI.as_view()
+
+        request = factory.get('')
+        force_authenticate(request, user=self.user_prediction_caster_one.user)
+        response = view(request, group_id=self.group.id)
+
+        # print(response.rendered_content)
