@@ -13,8 +13,8 @@ from flowback.poll.tests.factories import PollFactory, PollPredictionFactory, Po
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
 from flowback.poll.views import PollPredictionStatementCreateAPI, PollPredictionStatementDeleteAPI, \
     PollPredictionCreateAPI, PollPredictionUpdateAPI, PollPredictionDeleteAPI, PollPredictionStatementVoteCreateAPI, \
-    PollPredictionStatementVoteUpdateAPI, PollPredictionStatementVoteDeleteAPI, PollPredictionStatementListAPI
-from flowback.user.models import User
+    PollPredictionStatementVoteUpdateAPI, PollPredictionStatementVoteDeleteAPI, PollPredictionStatementListAPI, \
+    PollPredictionListAPI
 
 
 class PollPredictionStatementTest(APITransactionTestCase):
@@ -192,4 +192,16 @@ class PollPredictionStatementTest(APITransactionTestCase):
         force_authenticate(request, user=self.user_prediction_caster_one.user)
         response = view(request, group_id=self.group.id)
 
-        # print(response.rendered_content)
+        self.assertEqual(len(json.loads(response.rendered_content)['results']), 1,
+                         'Incorrect amount of prediction statements returned')
+
+    def test_poll_prediction_list(self):
+        factory = APIRequestFactory()
+        view = PollPredictionListAPI.as_view()
+
+        request = factory.get('')
+        force_authenticate(request, user=self.user_prediction_caster_one.user)
+        response = view(request, group_id=self.group.id)
+
+        self.assertEqual(len(json.loads(response.rendered_content)['results']), 1,
+                         'Incorrect amount of predictions returned')

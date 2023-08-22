@@ -67,5 +67,6 @@ def poll_prediction_list(*, fetched_by: User, group_id: int = None, filters=None
     filters = filters or {}
     group_user_permissions(group=group_id, user=fetched_by)
 
-    qs = PollPrediction.objects.filter(prediction_statement__created_by__group_id=group_id).all()
+    qs = PollPrediction.objects.filter(prediction_statement__created_by__group_id=group_id,
+                                       created_by__user=fetched_by).all()
     return BasePollPredictionFilter(filters, qs).qs
