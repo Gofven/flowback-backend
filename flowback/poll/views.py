@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 # Create your views here.
 from rest_framework import serializers, status
@@ -27,6 +28,7 @@ from .services.vote import poll_proposal_vote_update, poll_proposal_delegate_vot
 from flowback.comment.views import CommentListAPI, CommentCreateAPI, CommentUpdateAPI, CommentDeleteAPI
 
 
+@extend_schema(tags=['home', 'poll'])
 class PollListApi(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 10
@@ -98,6 +100,7 @@ class PollListApi(APIView):
         )
 
 
+# TODO need fixes
 class DelegatePollVoteListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         max_limit = 20
@@ -150,7 +153,7 @@ class DelegatePollVoteListAPI(APIView):
             elif hasattr(obj, 'poll_voting_type_for_against'):
                 return self.VoteForAgainstOutputSerializer
 
-            elif hasattr(obj, 'poll_voting_type_for_cardinal'):
+            elif hasattr(obj, 'poll_voting_type_cardinal'):
                 return self.VoteCardinalOutputSerializer
 
             else:
@@ -172,6 +175,7 @@ class DelegatePollVoteListAPI(APIView):
         )
 
 
+@extend_schema(tags=['poll'])
 class PollNotificationSubscribeApi(APIView):
     class InputSerializer(serializers.Serializer):
         categories = serializers.MultipleChoiceField(choices=poll_notification.possible_categories)
@@ -183,7 +187,7 @@ class PollNotificationSubscribeApi(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-
+@extend_schema(tags=['poll'])
 class PollCreateAPI(APIView):
     class InputSerializer(serializers.ModelSerializer):
         tag = serializers.IntegerField()
@@ -202,6 +206,7 @@ class PollCreateAPI(APIView):
         return Response(status=status.HTTP_200_OK, data=poll.id)
 
 
+@extend_schema(tags=['poll'])
 class PollUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField(required=False)
@@ -216,6 +221,7 @@ class PollUpdateAPI(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['poll'])
 class PollDeleteAPI(APIView):
     def post(self, request, poll: int):
         poll_refresh_cheap(poll_id=poll)  # TODO get celery
@@ -223,6 +229,8 @@ class PollDeleteAPI(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+# TODO check alternative solution for schedule
+@extend_schema(tags=['poll'])
 class PollProposalListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 10
@@ -285,6 +293,7 @@ class PollProposalListAPI(APIView):
 
 
 # TODO Redundant API, request removal
+@extend_schema(tags=['poll'], deprecated=True)
 class PollUserScheduleListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 10
@@ -334,6 +343,7 @@ class PollUserScheduleListAPI(APIView):
         )
 
 
+@extend_schema(tags=['poll'])
 class PollProposalCreateAPI(APIView):
     class InputSerializerDefault(serializers.ModelSerializer):
         class Meta:
@@ -368,12 +378,14 @@ class PollProposalCreateAPI(APIView):
         return Response(status=status.HTTP_200_OK, data=proposal.id)
 
 
+@extend_schema(tags=['poll'])
 class PollProposalDeleteAPI(APIView):
     def post(self, request, proposal: int):
         poll_proposal_delete(user_id=request.user.id, proposal_id=proposal)
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['poll'])
 class PollProposalVoteListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 10
@@ -439,6 +451,7 @@ class PollProposalVoteListAPI(APIView):
 
 
 # TODO change serializer based upon poll type
+@extend_schema(tags=['poll'])
 class PollProposalVoteUpdateAPI(APIView):
     # For Ranking, Schedule
     class InputSerializerDefault(serializers.Serializer):
@@ -465,6 +478,7 @@ class PollProposalVoteUpdateAPI(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['poll'])
 class PollDelegatesListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 10
@@ -495,6 +509,7 @@ class PollDelegatesListAPI(APIView):
 
 
 # TODO change serializer based upon poll type
+@extend_schema(tags=['poll'])
 class PollProposalDelegateVoteUpdateAPI(APIView):
     # For Ranking, Schedule
     class InputSerializerDefault(serializers.Serializer):
@@ -521,6 +536,7 @@ class PollProposalDelegateVoteUpdateAPI(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['poll'])
 class PollCommentListAPI(CommentListAPI):
     def get(self, request, poll: int):
         serializer = self.FilterSerializer(data=request.query_params)
@@ -535,6 +551,7 @@ class PollCommentListAPI(CommentListAPI):
                                       view=self)
 
 
+@extend_schema(tags=['poll'])
 class PollCommentCreateAPI(CommentCreateAPI):
     def post(self, request, poll: int):
         serializer = self.InputSerializer(data=request.data)
@@ -545,6 +562,7 @@ class PollCommentCreateAPI(CommentCreateAPI):
         return Response(status=status.HTTP_200_OK, data=comment.id)
 
 
+@extend_schema(tags=['poll'])
 class PollCommentUpdateAPI(CommentUpdateAPI):
     def post(self, request, poll: int, comment_id: int):
         serializer = self.InputSerializer(data=request.data)
@@ -558,6 +576,7 @@ class PollCommentUpdateAPI(CommentUpdateAPI):
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['poll'])
 class PollCommentDeleteAPI(CommentDeleteAPI):
     def post(self, request, poll: int, comment_id: int):
         poll_comment_delete(fetched_by=request.user.id, poll_id=poll, comment_id=comment_id)
@@ -565,6 +584,7 @@ class PollCommentDeleteAPI(CommentDeleteAPI):
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['poll'])
 class PollPredictionStatementListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         max_limit = 100
@@ -613,6 +633,7 @@ class PollPredictionStatementListAPI(APIView):
         )
 
 
+@extend_schema(tags=['poll'])
 class PollPredictionListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         max_limit = 100
@@ -651,6 +672,7 @@ class PollPredictionListAPI(APIView):
         )
 
 
+@extend_schema(tags=['poll'])
 class PollPredictionStatementCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         class SegmentSerializer(serializers.Serializer):
@@ -671,6 +693,7 @@ class PollPredictionStatementCreateAPI(APIView):
         return Response(created_id, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(tags=['poll'])
 class PollPredictionStatementDeleteAPI(APIView):
     def post(self, request, prediction_statement_id: int):
         poll_prediction_statement_delete(user=request.user,
@@ -679,6 +702,7 @@ class PollPredictionStatementDeleteAPI(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['poll'])
 class PollPredictionCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         score = serializers.IntegerField()
@@ -694,6 +718,7 @@ class PollPredictionCreateAPI(APIView):
         return Response(created_id, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(tags=['poll'])
 class PollPredictionUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         score = serializers.IntegerField()
@@ -707,6 +732,7 @@ class PollPredictionUpdateAPI(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['poll'])
 class PollPredictionDeleteAPI(APIView):
     def post(self, request, prediction_id: int):
         poll_prediction_delete(user=request.user, prediction_id=prediction_id)
@@ -714,6 +740,7 @@ class PollPredictionDeleteAPI(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['poll'])
 class PollPredictionStatementVoteCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         vote = serializers.BooleanField()
@@ -728,6 +755,7 @@ class PollPredictionStatementVoteCreateAPI(APIView):
         return Response(status=status.HTTP_201_CREATED)
 
 
+@extend_schema(tags=['poll'])
 class PollPredictionStatementVoteUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         vote = serializers.BooleanField()
@@ -742,6 +770,7 @@ class PollPredictionStatementVoteUpdateAPI(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['poll'])
 class PollPredictionStatementVoteDeleteAPI(APIView):
     def post(self, request, prediction_statement_vote_id: int):
         poll_prediction_statement_vote_delete(user=request.user,

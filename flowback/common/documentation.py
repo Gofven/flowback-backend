@@ -65,3 +65,6 @@ class CustomAutoSchema(AutoSchema):
         prefix = ''.join([x.capitalize() for x in serializer.__class__.__module__.split('.')])
         prefix_2 = ''.join([x.replace('{', '').replace('}', '').capitalize() for x in self.path.split('/')[1:]])
         return f"{prefix_2}-{prefix}{serializer.__class__.__name__}{serializer.__class__.__qualname__.replace('.', '')}"
+
+    def get_summary(self):
+        return self.view.__class__.__name__.replace('API', '').replace('Api', '')
