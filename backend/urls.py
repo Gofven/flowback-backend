@@ -18,7 +18,7 @@ api_urlpatterns = [
     path('', include((user_patterns, 'user'))),
     path('group/', include((group_patterns, 'group'))),
     path('chat/', include((chat_patterns, 'chat'))),
-    path('group/<int:group>/poll/', include((group_poll_patterns, 'group_poll'))),
+    path('group/<int:group_id>/poll/', include((group_poll_patterns, 'group_poll'))),
     path('group/poll/', include((poll_patterns, 'poll'))),
     path('notification/', include((notification_patterns, 'notification'))),
 

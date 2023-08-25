@@ -85,11 +85,11 @@ class PollListApi(APIView):
                       'quorum',
                       'status')
 
-    def get(self, request, group: int = None):
+    def get(self, request, group_id: int = None):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
 
-        polls = poll_list(fetched_by=request.user, group_id=group, filters=filter_serializer.validated_data)
+        polls = poll_list(fetched_by=request.user, group_id=group_id, filters=filter_serializer.validated_data)
 
         return get_paginated_response(
             pagination_class=self.Pagination,
@@ -199,10 +199,10 @@ class PollCreateAPI(APIView):
             fields = ('title', 'description', 'start_date', 'proposal_end_date', 'vote_start_date',
                       'delegate_vote_end_date', 'end_date', 'poll_type', 'public', 'tag', 'pinned', 'dynamic', 'quorum')
 
-    def post(self, request, group: int):
+    def post(self, request, group_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        poll = poll_create(user_id=request.user.id, group_id=group, **serializer.validated_data)
+        poll = poll_create(user_id=request.user.id, group_id=group_id, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK, data=poll.id)
 
 
@@ -614,7 +614,6 @@ class PollPredictionStatementListAPI(APIView):
         user_vote = serializers.BooleanField(required=False)
 
         segments = StatementSegment(source='pollpredictionstatementsegment_set', many=True)
-
 
     def get(self, request, group_id: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
