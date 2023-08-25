@@ -21,7 +21,7 @@ group_poll_patterns = [
     path('list', PollListApi.as_view(), name='polls'),
     path('create', PollCreateAPI.as_view(), name='poll_create'),
 
-    path('prediction/statement/list', PollPredictionListAPI.as_view(), name='poll_prediction_statement_list'),
+    path('prediction/statement/list', PollPredictionStatementListAPI.as_view(), name='poll_prediction_statement_list'),
     path('prediction/list', PollPredictionListAPI.as_view(), name='poll_prediction_list'),
 ]
 
