@@ -29,8 +29,8 @@ def poll_prediction_statement_create(poll: int,
                                                   poll=poll).all()
     prediction_statement.full_clean()
 
-    if prediction_statement.poll.vote_start_date > timezone.now():
-        raise ValidationError("Unable to create prediction statement before poll proposal start date")
+    if prediction_statement.poll.vote_start_date < timezone.now():
+        raise ValidationError("Unable to create prediction statement after vote start date")
 
     if len(segments) < 1:
         raise ValidationError('Prediction statement must contain atleast one statement')
