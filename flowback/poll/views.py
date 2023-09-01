@@ -11,7 +11,7 @@ from flowback.common.services import get_object
 from flowback.group.serializers import GroupUserSerializer
 from flowback.poll.models import Poll, PollProposal, PollVotingTypeRanking, PollVotingTypeForAgainst
 from .selectors.poll import poll_list
-from .selectors.prediction import poll_prediction_statement_list, poll_prediction_list
+from .selectors.prediction import poll_prediction_statement_list, poll_prediction_bet_list
 from .selectors.proposal import poll_proposal_list, poll_user_schedule_list
 from .selectors.vote import poll_vote_list, poll_delegates_list, delegate_poll_vote_list
 from .selectors.comment import poll_comment_list
@@ -20,7 +20,7 @@ from .services.comment import poll_comment_create, poll_comment_update, poll_com
 from .services.poll import poll_create, poll_update, poll_delete, poll_refresh_cheap, poll_notification, \
     poll_notification_subscribe
 from .services.prediction import poll_prediction_statement_create, poll_prediction_statement_delete, \
-    poll_prediction_create, poll_prediction_update, poll_prediction_delete, poll_prediction_statement_vote_create, \
+    poll_prediction_bed_create, poll_prediction_bet_update, poll_prediction_bet_delete, poll_prediction_statement_vote_create, \
     poll_prediction_statement_vote_update, poll_prediction_statement_vote_delete
 from .services.proposal import poll_proposal_create, poll_proposal_delete
 from .services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
@@ -633,7 +633,7 @@ class PollPredictionStatementListAPI(APIView):
 
 
 @extend_schema(tags=['poll'])
-class PollPredictionListAPI(APIView):
+class PollPredictionBetListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         max_limit = 100
         default_limit = 25
@@ -658,9 +658,8 @@ class PollPredictionListAPI(APIView):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
 
-        predictions = poll_prediction_list(fetched_by=request.user,
-                                           group_id=group_id,
-                                           filters=filter_serializer.validated_data)
+        predictions = poll_prediction_bet_list(fetched_by=request.user, group_id=group_id,
+                                               filters=filter_serializer.validated_data)
 
         return get_paginated_response(
             pagination_class=self.Pagination,
@@ -710,9 +709,8 @@ class PollPredictionCreateAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        created_id = poll_prediction_create(user=request.user,
-                                            prediction_statement_id=prediction_statement_id,
-                                            **serializer.validated_data)
+        created_id = poll_prediction_bed_create(user=request.user, prediction_statement_id=prediction_statement_id,
+                                                **serializer.validated_data)
 
         return Response(created_id, status=status.HTTP_201_CREATED)
 
@@ -726,7 +724,7 @@ class PollPredictionUpdateAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        poll_prediction_update(user=request.user, prediction_id=prediction_id, data=serializer.validated_data)
+        poll_prediction_bet_update(user=request.user, prediction_id=prediction_id, data=serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -734,7 +732,7 @@ class PollPredictionUpdateAPI(APIView):
 @extend_schema(tags=['poll'])
 class PollPredictionDeleteAPI(APIView):
     def post(self, request, prediction_id: int):
-        poll_prediction_delete(user=request.user, prediction_id=prediction_id)
+        poll_prediction_bet_delete(user=request.user, prediction_id=prediction_id)
 
         return Response(status=status.HTTP_200_OK)
 

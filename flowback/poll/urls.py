@@ -9,7 +9,7 @@ from .views import (PollListApi,
                     PollProposalDelegateVoteUpdateAPI,
                     PollCommentListAPI, PollCommentCreateAPI, PollCommentUpdateAPI, PollCommentDeleteAPI,
                     DelegatePollVoteListAPI,
-                    PollPredictionStatementListAPI, PollPredictionListAPI,
+                    PollPredictionStatementListAPI, PollPredictionBetListAPI,
                     PollPredictionStatementCreateAPI, PollPredictionStatementDeleteAPI,
                     PollPredictionCreateAPI, PollPredictionUpdateAPI, PollPredictionDeleteAPI,
                     PollPredictionStatementVoteCreateAPI,
@@ -22,7 +22,7 @@ group_poll_patterns = [
     path('create', PollCreateAPI.as_view(), name='poll_create'),
 
     path('prediction/statement/list', PollPredictionStatementListAPI.as_view(), name='poll_prediction_statement_list'),
-    path('prediction/list', PollPredictionListAPI.as_view(), name='poll_prediction_list'),
+    path('prediction/list', PollPredictionBetListAPI.as_view(), name='poll_prediction_list'),
 ]
 
 

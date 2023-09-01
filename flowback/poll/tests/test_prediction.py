@@ -6,7 +6,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate, APITransa
 
 from flowback.group.models import GroupUser
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
-from flowback.poll.models import Poll, PollPredictionStatement, PollPredictionStatementSegment, PollPrediction, \
+from flowback.poll.models import Poll, PollPredictionStatement, PollPredictionStatementSegment, PollPredictionBet, \
     PollPredictionStatementVote
 from flowback.poll.tests.factories import PollFactory, PollPredictionFactory, PollProposalFactory, \
     PollPredictionStatementFactory, PollPredictionStatementSegmentFactory, PollPredictionStatementVoteFactory
@@ -14,7 +14,7 @@ from flowback.poll.tests.utils import generate_poll_phase_kwargs
 from flowback.poll.views import PollPredictionStatementCreateAPI, PollPredictionStatementDeleteAPI, \
     PollPredictionCreateAPI, PollPredictionUpdateAPI, PollPredictionDeleteAPI, PollPredictionStatementVoteCreateAPI, \
     PollPredictionStatementVoteUpdateAPI, PollPredictionStatementVoteDeleteAPI, PollPredictionStatementListAPI, \
-    PollPredictionListAPI
+    PollPredictionBetListAPI
 
 
 class PollPredictionStatementTest(APITransactionTestCase):
@@ -54,13 +54,13 @@ class PollPredictionStatementTest(APITransactionTestCase):
                                                                               self.user_prediction_caster_two,
                                                                               self.user_prediction_caster_three]]
 
-    # Prediction Statements
+    # PredictionBet Statements
     def test_create_prediction_statement(self):
         factory = APIRequestFactory()
         user = self.user_prediction_creator.user
         view = PollPredictionStatementCreateAPI.as_view()
 
-        data = dict(description="A Test Prediction",
+        data = dict(description="A Test PredictionBet",
                     end_date=timezone.now() + timezone.timedelta(hours=4),
                     segments=[dict(proposal_id=self.proposal_one.id, is_true=True),
                               dict(proposal_id=self.proposal_two.id, is_true=False)])
@@ -110,11 +110,11 @@ class PollPredictionStatementTest(APITransactionTestCase):
         force_authenticate(request, user=self.user_prediction_caster_one.user)
         response = view(request, prediction_statement_id=self.prediction_statement.id)
 
-        self.assertEqual(PollPrediction.objects.filter(id=int(response.rendered_content)).count(), 1,
-                         "Prediction not created")
+        self.assertEqual(PollPredictionBet.objects.filter(id=int(response.rendered_content)).count(), 1,
+                         "PredictionBet not created")
 
-        self.assertEqual(PollPrediction.objects.get(id=int(response.rendered_content)).score, 5,
-                         "Prediction not matching input score")
+        self.assertEqual(PollPredictionBet.objects.get(id=int(response.rendered_content)).score, 5,
+                         "PredictionBet not matching input score")
 
     def test_update_prediction(self):
         factory = APIRequestFactory()
@@ -129,7 +129,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
         force_authenticate(request, user=self.user_prediction_caster_one.user)
         view(request, prediction_id=self.prediction_one.id)
 
-        score = PollPrediction.objects.get(id=self.prediction_one.id).score
+        score = PollPredictionBet.objects.get(id=self.prediction_one.id).score
         self.assertEqual(score, new_score, f"Score '{score}' is not matching the new score {new_score}.")
 
     def test_delete_prediction(self):
@@ -140,8 +140,8 @@ class PollPredictionStatementTest(APITransactionTestCase):
         force_authenticate(request, user=self.user_prediction_caster_one.user)
         view(request, prediction_id=self.prediction_one.id)
 
-        with self.assertRaises(PollPrediction.DoesNotExist, msg='Prediction not removed.'):
-            PollPrediction.objects.get(id=self.prediction_one.id)
+        with self.assertRaises(PollPredictionBet.DoesNotExist, msg='PredictionBet not removed.'):
+            PollPredictionBet.objects.get(id=self.prediction_one.id)
 
     def test_poll_prediction_statement_vote_create(self):
         factory = APIRequestFactory()
@@ -197,7 +197,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
     def test_poll_prediction_list(self):
         factory = APIRequestFactory()
-        view = PollPredictionListAPI.as_view()
+        view = PollPredictionBetListAPI.as_view()
 
         request = factory.get('')
         force_authenticate(request, user=self.user_prediction_caster_one.user)

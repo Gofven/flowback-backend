@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 
 from backend.settings import SCORE_VOTE_CEILING, SCORE_VOTE_FLOOR
-from flowback.prediction.models import (Prediction,
+from flowback.prediction.models import (PredictionBet,
                                         PredictionStatement,
                                         PredictionStatementSegment,
                                         PredictionStatementVote)
@@ -226,14 +226,14 @@ class PollPredictionStatementVote(PredictionStatementVote):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
 
 
-class PollPrediction(Prediction):
+class PollPredictionBet(PredictionBet):
     prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
 
     @receiver(post_save, sender=PredictionStatement)
     def reset_prediction_prediction(sender, instance: PredictionStatement, **kwargs):
-        PollPrediction.objects.filter(prediction_statement=instance).delete()
+        PollPredictionBet.objects.filter(prediction_statement=instance).delete()
 
     @receiver(post_save, sender=PollProposal)
     def reset_prediction_proposal(sender, instance: PollProposal, **kwargs):
-        PollPrediction.objects.filter(prediction_statement__pollpredictionstatementsegment__proposal=instance).delete()
+        PollPredictionBet.objects.filter(prediction_statement__pollpredictionstatementsegment__proposal=instance).delete()

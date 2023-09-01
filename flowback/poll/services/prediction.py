@@ -3,7 +3,7 @@ from typing import Union
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from ..models import (PollPrediction,
+from ..models import (PollPredictionBet,
                       PollPredictionStatement,
                       PollPredictionStatementSegment,
                       PollPredictionStatementVote,
@@ -49,7 +49,7 @@ def poll_prediction_statement_create(poll: int,
         raise ValidationError('Prediction statement segment(s) contains invalid proposal(s)')
 
 
-# Prediction Statement Update (with segments)
+# PredictionBet Statement Update (with segments)
 # TODO add or remove
 def poll_prediction_statement_update(user: Union[int, User], prediction_statement_id: int) -> None:
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
@@ -69,32 +69,32 @@ def poll_prediction_statement_delete(user: Union[int, User], prediction_statemen
     prediction_statement.delete()
 
 
-def poll_prediction_create(user: Union[int, User], prediction_statement_id: int, score: int) -> int:
+def poll_prediction_bed_create(user: Union[int, User], prediction_statement_id: int, score: int) -> int:
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.created_by.group, user=user)
 
-    if prediction_statement.end_date < timezone.now():
-        raise ValidationError("Unable to create predictions after prediction statement end date")
+    if prediction_statement.poll.vote_start_date < timezone.now():
+        raise ValidationError("Unable to create prediction bets after vote start date")
 
-    prediction = PollPrediction(created_by=group_user,
-                                prediction_statement=prediction_statement,
-                                score=score)
+    prediction = PollPredictionBet(created_by=group_user,
+                                   prediction_statement=prediction_statement,
+                                   score=score)
     prediction.full_clean()
     prediction.save()
 
     return prediction.id
 
 
-def poll_prediction_update(user: Union[int, User], prediction_id: int, data) -> int:
-    prediction = get_object(PollPrediction, id=prediction_id)
+def poll_prediction_bet_update(user: Union[int, User], prediction_id: int, data) -> int:
+    prediction = get_object(PollPredictionBet, id=prediction_id)
     group_user = group_user_permissions(group=prediction.prediction_statement.poll.created_by.group,
                                         user=user)
 
-    if prediction.prediction_statement.end_date < timezone.now():
-        raise ValidationError("Unable to update predictions after prediction statement end date")
+    if prediction.prediction_statement.poll.vote_start_date < timezone.now():
+        raise ValidationError("Unable to update prediction bets after vote start date")
 
     if not prediction.created_by == group_user:
-        raise ValidationError('Prediction not created by user')
+        raise ValidationError('Prediction bet not created by user')
 
     non_side_effect_fields = ['score']
     prediction, has_updated = model_update(instance=prediction,
@@ -106,16 +106,16 @@ def poll_prediction_update(user: Union[int, User], prediction_id: int, data) -> 
     return prediction.id
 
 
-def poll_prediction_delete(user: Union[int, User], prediction_id: int):
-    prediction = get_object(PollPrediction, id=prediction_id)
+def poll_prediction_bet_delete(user: Union[int, User], prediction_id: int):
+    prediction = get_object(PollPredictionBet, id=prediction_id)
     group_user = group_user_permissions(group=prediction.prediction_statement.poll.created_by.group,
                                         user=user)
 
-    if prediction.prediction_statement.end_date < timezone.now():
-        raise ValidationError("Unable to delete predictions after prediction statement end date")
+    if prediction.prediction_statement.poll.vote_start_date < timezone.now():
+        raise ValidationError("Unable to delete prediction bets after vote start date")
 
     if not prediction.created_by == group_user:
-        raise ValidationError('Prediction not created by user')
+        raise ValidationError('Prediction bet not created by user')
 
     prediction.delete()
 

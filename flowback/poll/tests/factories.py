@@ -11,7 +11,7 @@ from flowback.poll.models import (Poll,
                                   PollVotingTypeRanking,
                                   PollVotingTypeCardinal,
                                   PollVotingTypeForAgainst,
-                                  PollPrediction,
+                                  PollPredictionBet,
                                   PollPredictionStatement,
                                   PollPredictionStatementSegment,
                                   PollPredictionStatementVote)
@@ -104,7 +104,7 @@ class PollPredictionStatementFactory(factory.django.DjangoModelFactory):
 
 class PollPredictionFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = PollPrediction
+        model = PollPredictionBet
 
     prediction_statement = factory.SubFactory(PollPredictionStatementFactory)
     created_by = factory.SubFactory(GroupUserFactory)

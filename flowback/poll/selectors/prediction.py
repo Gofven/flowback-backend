@@ -6,7 +6,7 @@ from django.db.models.lookups import LessThan
 from django.utils import timezone
 
 from flowback.group.selectors import group_user_permissions
-from flowback.poll.models import PollPredictionStatement, PollPrediction, PollPredictionStatementVote, \
+from flowback.poll.models import PollPredictionStatement, PollPredictionBet, PollPredictionStatementVote, \
     PollPredictionStatementSegment
 from flowback.user.models import User
 
@@ -31,12 +31,12 @@ def poll_prediction_statement_list(*, fetched_by: User, group_id: int, filters=N
 
     # Annotations
     score = Case(When(LessThan(F('end_date'), timezone.now()),
-                 then=Avg('pollprediction__score')),
+                 then=Avg('pollpredictionbet__score')),
                  default=None, output_field=models.FloatField())
     vote_yes = Count(F('pollpredictionstatementvote'), filter=Q(pollpredictionstatementvote__vote=True))
     vote_no = Count(F('pollpredictionstatementvote'), filter=Q(pollpredictionstatementvote__vote=False))
-    user_prediction = PollPrediction.objects.filter(prediction_statement=OuterRef('pk'),
-                                                    created_by=group_user).values('score')
+    user_prediction = PollPredictionBet.objects.filter(prediction_statement=OuterRef('pk'),
+                                                       created_by=group_user).values('score')
     user_vote = PollPredictionStatementVote.objects.filter(prediction_statement=OuterRef('pk'),
                                                            created_by=group_user).values('vote')
 
@@ -56,17 +56,17 @@ class BasePollPredictionFilter(django_filters.FilterSet):
     created_by_id = django_filters.NumberFilter(field_name='created_by__user_id')
 
     class Meta:
-        model = PollPrediction
+        model = PollPredictionBet
         fields = dict(id=['exact'],
                       prediction_statement_id=['exact'],
                       score=['exact', 'lt', 'gt'],
                       created_at=['lt', 'gt'])
 
 
-def poll_prediction_list(*, fetched_by: User, group_id: int = None, filters=None):
+def poll_prediction_bet_list(*, fetched_by: User, group_id: int = None, filters=None):
     filters = filters or {}
     group_user_permissions(group=group_id, user=fetched_by)
 
-    qs = PollPrediction.objects.filter(prediction_statement__created_by__group_id=group_id,
-                                       created_by__user=fetched_by).all()
+    qs = PollPredictionBet.objects.filter(prediction_statement__created_by__group_id=group_id,
+                                          created_by__user=fetched_by).all()
     return BasePollPredictionFilter(filters, qs).qs
