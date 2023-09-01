@@ -20,7 +20,7 @@ from .services.comment import poll_comment_create, poll_comment_update, poll_com
 from .services.poll import poll_create, poll_update, poll_delete, poll_refresh_cheap, poll_notification, \
     poll_notification_subscribe
 from .services.prediction import poll_prediction_statement_create, poll_prediction_statement_delete, \
-    poll_prediction_bed_create, poll_prediction_bet_update, poll_prediction_bet_delete, poll_prediction_statement_vote_create, \
+    poll_prediction_bet_create, poll_prediction_bet_update, poll_prediction_bet_delete, poll_prediction_statement_vote_create, \
     poll_prediction_statement_vote_update, poll_prediction_statement_vote_delete
 from .services.proposal import poll_proposal_create, poll_proposal_delete
 from .services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
@@ -701,7 +701,7 @@ class PollPredictionStatementDeleteAPI(APIView):
 
 
 @extend_schema(tags=['poll'])
-class PollPredictionCreateAPI(APIView):
+class PollPredictionBetCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         score = serializers.IntegerField()
 
@@ -709,14 +709,14 @@ class PollPredictionCreateAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        created_id = poll_prediction_bed_create(user=request.user, prediction_statement_id=prediction_statement_id,
+        created_id = poll_prediction_bet_create(user=request.user, prediction_statement_id=prediction_statement_id,
                                                 **serializer.validated_data)
 
         return Response(created_id, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=['poll'])
-class PollPredictionUpdateAPI(APIView):
+class PollPredictionBetUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         score = serializers.IntegerField()
 
@@ -730,7 +730,7 @@ class PollPredictionUpdateAPI(APIView):
 
 
 @extend_schema(tags=['poll'])
-class PollPredictionDeleteAPI(APIView):
+class PollPredictionBetDeleteAPI(APIView):
     def post(self, request, prediction_id: int):
         poll_prediction_bet_delete(user=request.user, prediction_id=prediction_id)
 

@@ -69,7 +69,7 @@ def poll_prediction_statement_delete(user: Union[int, User], prediction_statemen
     prediction_statement.delete()
 
 
-def poll_prediction_bed_create(user: Union[int, User], prediction_statement_id: int, score: int) -> int:
+def poll_prediction_bet_create(user: Union[int, User], prediction_statement_id: int, score: int) -> int:
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.created_by.group, user=user)
 

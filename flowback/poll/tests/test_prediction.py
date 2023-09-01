@@ -12,7 +12,7 @@ from flowback.poll.tests.factories import PollFactory, PollPredictionFactory, Po
     PollPredictionStatementFactory, PollPredictionStatementSegmentFactory, PollPredictionStatementVoteFactory
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
 from flowback.poll.views import PollPredictionStatementCreateAPI, PollPredictionStatementDeleteAPI, \
-    PollPredictionCreateAPI, PollPredictionUpdateAPI, PollPredictionDeleteAPI, PollPredictionStatementVoteCreateAPI, \
+    PollPredictionBetCreateAPI, PollPredictionBetUpdateAPI, PollPredictionBetDeleteAPI, PollPredictionStatementVoteCreateAPI, \
     PollPredictionStatementVoteUpdateAPI, PollPredictionStatementVoteDeleteAPI, PollPredictionStatementListAPI, \
     PollPredictionBetListAPI
 
@@ -102,7 +102,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
     # Predictions
     def test_create_prediction(self):
         factory = APIRequestFactory()
-        view = PollPredictionCreateAPI.as_view()
+        view = PollPredictionBetCreateAPI.as_view()
 
         data = dict(score=5)
 
@@ -118,7 +118,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
     def test_update_prediction(self):
         factory = APIRequestFactory()
-        view = PollPredictionUpdateAPI.as_view()
+        view = PollPredictionBetUpdateAPI.as_view()
 
         new_score = self.prediction_one.score
         new_score = random.choice([x for x in range(6) if x != new_score])
@@ -134,7 +134,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
     def test_delete_prediction(self):
         factory = APIRequestFactory()
-        view = PollPredictionDeleteAPI.as_view()
+        view = PollPredictionBetDeleteAPI.as_view()
 
         request = factory.post('')
         force_authenticate(request, user=self.user_prediction_caster_one.user)
