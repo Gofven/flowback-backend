@@ -31,7 +31,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
          self.user_prediction_caster_three) = [GroupUserFactory(group=self.group) for x in range(4)]
 
         # Poll Preparation
-        self.poll = PollFactory(created_by=self.user_group_creator, **generate_poll_phase_kwargs('vote_start_date'))
+        self.poll = PollFactory(created_by=self.user_group_creator, **generate_poll_phase_kwargs('proposal_end_date'))
         (self.proposal_one,
          self.proposal_two,
          self.proposal_three) = [PollProposalFactory(created_by=self.user_group_creator,
@@ -61,7 +61,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
         view = PollPredictionStatementCreateAPI.as_view()
 
         data = dict(description="A Test Prediction",
-                    end_date=timezone.now() + timezone.timedelta(hours=2),
+                    end_date=timezone.now() + timezone.timedelta(hours=4),
                     segments=[dict(proposal_id=self.proposal_one.id, is_true=True),
                               dict(proposal_id=self.proposal_two.id, is_true=False)])
 

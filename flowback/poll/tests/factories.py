@@ -15,6 +15,7 @@ from flowback.poll.models import (Poll,
                                   PollPredictionStatement,
                                   PollPredictionStatementSegment,
                                   PollPredictionStatementVote)
+from flowback.poll.tests.utils import generate_poll_phase_kwargs
 
 
 class PollFactory(factory.django.DjangoModelFactory):
@@ -96,9 +97,9 @@ class PollPredictionStatementFactory(factory.django.DjangoModelFactory):
         model = PollPredictionStatement
 
     created_by = factory.SubFactory(GroupUserFactory)
-    poll = factory.SubFactory(PollFactory)
+    poll = factory.SubFactory(PollFactory, **generate_poll_phase_kwargs('proposal_end_date'))
     description = factory.LazyAttribute(lambda _: faker.bs())
-    end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=1))
+    end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=4))
 
 
 class PollPredictionFactory(factory.django.DjangoModelFactory):
