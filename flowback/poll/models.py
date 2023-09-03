@@ -225,10 +225,16 @@ class PollPredictionStatementVote(PredictionStatementVote):
     prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
 
+    class Meta:
+        unique_together = ('prediction_statement', 'created_by')
+
 
 class PollPredictionBet(PredictionBet):
     prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('prediction_statement', 'created_by')
 
     @receiver(post_save, sender=PredictionStatement)
     def reset_prediction_prediction(sender, instance: PredictionStatement, **kwargs):
