@@ -36,18 +36,16 @@ def poll_prediction_statement_list(*, fetched_by: User, group_id: int, filters=N
     vote_yes = Count(F('pollpredictionstatementvote'), filter=Q(pollpredictionstatementvote__vote=True))
     vote_no = Count(F('pollpredictionstatementvote'), filter=Q(pollpredictionstatementvote__vote=False))
     user_prediction_bet = PollPredictionBet.objects.filter(prediction_statement=OuterRef('pk'),
-                                                           created_by=group_user)
+                                                           created_by=group_user).values('score')
     user_vote = PollPredictionStatementVote.objects.filter(prediction_statement=OuterRef('pk'),
-                                                           created_by=group_user)
+                                                           created_by=group_user).values('vote')
 
     qs = PollPredictionStatement.objects.filter(poll__created_by__group_id=group_id
                                                 ).annotate(score=score,
                                                            vote_yes=vote_yes,
                                                            vote_no=vote_no,
-                                                           user_prediction_bet_id=user_prediction_bet.values('id'),
-                                                           user_prediction_bet=user_prediction_bet.values('score'),
-                                                           user_prediction_statement_vote_id=user_vote.values('id'),
-                                                           user_prediction_statement_vote=user_vote.values('vote')
+                                                           user_prediction_bet=user_prediction_bet,
+                                                           user_prediction_statement_vote=user_vote
                                                            ).all()
 
     return BasePollPredictionStatementFilter(filters, qs).qs

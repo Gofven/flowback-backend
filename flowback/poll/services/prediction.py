@@ -85,8 +85,8 @@ def poll_prediction_bet_create(user: Union[int, User], prediction_statement_id: 
     return prediction.id
 
 
-def poll_prediction_bet_update(user: Union[int, User], prediction_id: int, data) -> int:
-    prediction = get_object(PollPredictionBet, id=prediction_id)
+def poll_prediction_bet_update(user: Union[int, User], prediction_statement_id: int, data) -> int:
+    prediction = get_object(PollPredictionBet, prediction_statement_id=prediction_statement_id, created_by__user=user)
     group_user = group_user_permissions(group=prediction.prediction_statement.poll.created_by.group,
                                         user=user)
 
@@ -106,8 +106,8 @@ def poll_prediction_bet_update(user: Union[int, User], prediction_id: int, data)
     return prediction.id
 
 
-def poll_prediction_bet_delete(user: Union[int, User], prediction_id: int):
-    prediction = get_object(PollPredictionBet, id=prediction_id)
+def poll_prediction_bet_delete(user: Union[int, User], prediction_statement_id: int):
+    prediction = get_object(PollPredictionBet, prediction_statement_id=prediction_statement_id, created_by__user=user)
     group_user = group_user_permissions(group=prediction.prediction_statement.poll.created_by.group,
                                         user=user)
 
@@ -135,9 +135,11 @@ def poll_prediction_statement_vote_create(user: Union[int, User], prediction_sta
 
 
 def poll_prediction_statement_vote_update(user: Union[int, User],
-                                          prediction_statement_vote_id: int,
+                                          prediction_statement_id: int,
                                           data) -> PollPredictionStatementVote:
-    prediction_statement_vote = get_object(PollPredictionStatementVote, id=prediction_statement_vote_id)
+    prediction_statement_vote = get_object(PollPredictionStatementVote,
+                                           prediction_statement_id=prediction_statement_id,
+                                           created_by__user=user)
     group_user = group_user_permissions(group=prediction_statement_vote.prediction_statement.poll.created_by.group,
                                         user=user)
 
@@ -152,8 +154,10 @@ def poll_prediction_statement_vote_update(user: Union[int, User],
     return prediction_statement_vote
 
 
-def poll_prediction_statement_vote_delete(user: Union[int, User], prediction_statement_vote_id: int):
-    prediction_statement_vote = get_object(PollPredictionStatementVote, id=prediction_statement_vote_id)
+def poll_prediction_statement_vote_delete(user: Union[int, User], prediction_statement_id: int):
+    prediction_statement_vote = get_object(PollPredictionStatementVote,
+                                           prediction_statement_id=prediction_statement_id,
+                                           created_by__user=user)
     group_user = group_user_permissions(group=prediction_statement_vote.prediction_statement.poll.created_by.group,
                                         user=user)
 

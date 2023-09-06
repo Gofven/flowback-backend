@@ -102,11 +102,12 @@ class PollPredictionStatementTest(APITransactionTestCase):
         force_authenticate(request, user=self.user_prediction_caster_one.user)
         response = view(request, prediction_statement_id=self.prediction_statement.id)
 
-        self.assertEqual(PollPredictionBet.objects.filter(id=int(response.rendered_content)).count(), 1,
-                         "PredictionBet not created")
+        bets = PollPredictionBet.objects.filter(created_by=self.user_prediction_caster_one,
+                                                prediction_statement_id=self.prediction_statement.id)
 
-        self.assertEqual(PollPredictionBet.objects.get(id=int(response.rendered_content)).score, 5,
-                         "PredictionBet not matching input score")
+        self.assertEqual(bets.count(), 1, "PredictionBet not created")
+
+        self.assertEqual(bets.first().score, 5, "PredictionBet not matching input score")
 
     def test_update_prediction_bet(self):
         factory = APIRequestFactory()
@@ -127,7 +128,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
         request = factory.post('', data)
         force_authenticate(request, user=self.user_prediction_caster_one.user)
-        view(request, prediction_id=self.prediction_one.id)
+        view(request, prediction_statement_id=self.prediction_one.id)
 
         score = PollPredictionBet.objects.get(id=self.prediction_one.id).score
         self.assertEqual(score, new_score, f"Score '{score}' is not matching the new score {new_score}.")
@@ -146,7 +147,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
         request = factory.post('')
         force_authenticate(request, user=self.user_prediction_caster_one.user)
-        view(request, prediction_id=self.prediction_one.id)
+        view(request, prediction_statement_id=self.prediction_one.id)
 
         with self.assertRaises(PollPredictionBet.DoesNotExist, msg='PredictionBet not removed.'):
             PollPredictionBet.objects.get(id=self.prediction_one.id)
@@ -172,7 +173,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
         request = factory.post('', dict(vote=False))
         force_authenticate(request, user=self.user_prediction_caster_one.user)
-        response = view(request, prediction_statement_vote_id=prediction_vote.id)
+        response = view(request, prediction_statement_id=prediction_vote.id)
 
         prediction_vote.refresh_from_db()
 
@@ -187,7 +188,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
         request = factory.post('')
         force_authenticate(request, user=self.user_prediction_caster_one.user)
-        response = view(request, prediction_statement_vote_id=prediction_vote.id)
+        response = view(request, prediction_statement_id=prediction_vote.id)
 
         with self.assertRaises(PollPredictionStatementVote.DoesNotExist, msg='Prediction Vote not removed.'):
             PollPredictionStatementVote.objects.get(id=prediction_vote.id)

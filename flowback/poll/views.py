@@ -610,9 +610,7 @@ class PollPredictionStatementListAPI(APIView):
         poll_id = serializers.IntegerField()
         description = serializers.CharField()
         created_by = GroupUserSerializer()
-        user_prediction_bet_id = serializers.IntegerField(required=False)
         user_prediction_bet = serializers.IntegerField(required=False)
-        user_prediction_statement_vote_id = serializers.IntegerField(required=False)
         user_prediction_statement_vote = serializers.BooleanField(required=False)
 
         segments = StatementSegment(source='pollpredictionstatementsegment_set', many=True)
@@ -714,7 +712,7 @@ class PollPredictionBetCreateAPI(APIView):
         created_id = poll_prediction_bet_create(user=request.user, prediction_statement_id=prediction_statement_id,
                                                 **serializer.validated_data)
 
-        return Response(created_id, status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=['poll'])
@@ -722,19 +720,20 @@ class PollPredictionBetUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         score = serializers.IntegerField()
 
-    def post(self, request, prediction_id: int):
+    def post(self, request, prediction_statement_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        poll_prediction_bet_update(user=request.user, prediction_id=prediction_id, data=serializer.validated_data)
+        poll_prediction_bet_update(user=request.user, prediction_statement_id=prediction_statement_id,
+                                   data=serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
 
 
 @extend_schema(tags=['poll'])
 class PollPredictionBetDeleteAPI(APIView):
-    def post(self, request, prediction_id: int):
-        poll_prediction_bet_delete(user=request.user, prediction_id=prediction_id)
+    def post(self, request, prediction_statement_id: int):
+        poll_prediction_bet_delete(user=request.user, prediction_statement_id=prediction_statement_id)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -759,11 +758,11 @@ class PollPredictionStatementVoteUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         vote = serializers.BooleanField()
 
-    def post(self, request, prediction_statement_vote_id: int):
+    def post(self, request, prediction_statement_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll_prediction_statement_vote_update(user=request.user,
-                                              prediction_statement_vote_id=prediction_statement_vote_id,
+                                              prediction_statement_id=prediction_statement_id,
                                               data=serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
@@ -771,8 +770,8 @@ class PollPredictionStatementVoteUpdateAPI(APIView):
 
 @extend_schema(tags=['poll'])
 class PollPredictionStatementVoteDeleteAPI(APIView):
-    def post(self, request, prediction_statement_vote_id: int):
+    def post(self, request, prediction_statement_id: int):
         poll_prediction_statement_vote_delete(user=request.user,
-                                              prediction_statement_vote_id=prediction_statement_vote_id)
+                                              prediction_statement_id=prediction_statement_id)
 
         return Response(status=status.HTTP_200_OK)
