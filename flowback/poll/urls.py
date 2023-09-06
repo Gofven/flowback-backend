@@ -57,10 +57,10 @@ poll_patterns = [
     path('prediction/<int:prediction_statement_id>/statement/vote/create',
          PollPredictionStatementVoteCreateAPI.as_view(),
          name='poll_prediction_statement_vote_create'),
-    path('prediction/<int:prediction_statement_vote_id>/statement/vote/update',
+    path('prediction/<int:prediction_statement_id>/statement/vote/update',
          PollPredictionStatementVoteUpdateAPI.as_view(),
          name='poll_prediction_statement_vote_update'),
-    path('prediction/<int:prediction_statement_vote_id>/statement/vote/delete',
+    path('prediction/<int:prediction_statement_id>/statement/vote/delete',
          PollPredictionStatementVoteDeleteAPI.as_view(),
          name='poll_prediction_statement_vote_delete'),
 ]
