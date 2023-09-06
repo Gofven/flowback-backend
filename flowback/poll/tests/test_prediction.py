@@ -46,14 +46,6 @@ class PollPredictionStatementTest(APITransactionTestCase):
                                                     proposal=proposal) for proposal in [self.proposal_one,
                                                                                         self.proposal_three]]
 
-        (self.prediction_one,
-         self.prediction_two,
-         self.prediction_three) = [PollPredictionFactory(prediction_statement=self.prediction_statement,
-                                                         created_by=group_user
-                                                         ) for group_user in [self.user_prediction_caster_one,
-                                                                              self.user_prediction_caster_two,
-                                                                              self.user_prediction_caster_three]]
-
     # PredictionBet Statements
     def test_create_prediction_statement(self):
         factory = APIRequestFactory()
@@ -100,7 +92,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
                          1, 'Possibly passed with unpermitted user.')
 
     # Predictions
-    def test_create_prediction(self):
+    def test_create_prediction_bet(self):
         factory = APIRequestFactory()
         view = PollPredictionBetCreateAPI.as_view()
 
@@ -116,9 +108,17 @@ class PollPredictionStatementTest(APITransactionTestCase):
         self.assertEqual(PollPredictionBet.objects.get(id=int(response.rendered_content)).score, 5,
                          "PredictionBet not matching input score")
 
-    def test_update_prediction(self):
+    def test_update_prediction_bet(self):
         factory = APIRequestFactory()
         view = PollPredictionBetUpdateAPI.as_view()
+
+        (self.prediction_one,
+         self.prediction_two,
+         self.prediction_three) = [PollPredictionFactory(prediction_statement=self.prediction_statement,
+                                                         created_by=group_user
+                                                         ) for group_user in [self.user_prediction_caster_one,
+                                                                              self.user_prediction_caster_two,
+                                                                              self.user_prediction_caster_three]]
 
         new_score = self.prediction_one.score
         new_score = random.choice([x for x in range(6) if x != new_score])
@@ -132,9 +132,17 @@ class PollPredictionStatementTest(APITransactionTestCase):
         score = PollPredictionBet.objects.get(id=self.prediction_one.id).score
         self.assertEqual(score, new_score, f"Score '{score}' is not matching the new score {new_score}.")
 
-    def test_delete_prediction(self):
+    def test_delete_prediction_bet(self):
         factory = APIRequestFactory()
         view = PollPredictionBetDeleteAPI.as_view()
+
+        (self.prediction_one,
+         self.prediction_two,
+         self.prediction_three) = [PollPredictionFactory(prediction_statement=self.prediction_statement,
+                                                         created_by=group_user
+                                                         ) for group_user in [self.user_prediction_caster_one,
+                                                                              self.user_prediction_caster_two,
+                                                                              self.user_prediction_caster_three]]
 
         request = factory.post('')
         force_authenticate(request, user=self.user_prediction_caster_one.user)
@@ -198,6 +206,15 @@ class PollPredictionStatementTest(APITransactionTestCase):
     def test_poll_prediction_list(self):
         factory = APIRequestFactory()
         view = PollPredictionBetListAPI.as_view()
+
+
+        (self.prediction_one,
+         self.prediction_two,
+         self.prediction_three) = [PollPredictionFactory(prediction_statement=self.prediction_statement,
+                                                         created_by=group_user
+                                                         ) for group_user in [self.user_prediction_caster_one,
+                                                                              self.user_prediction_caster_two,
+                                                                              self.user_prediction_caster_three]]
 
         request = factory.get('')
         force_authenticate(request, user=self.user_prediction_caster_one.user)

@@ -596,7 +596,7 @@ class PollPredictionStatementListAPI(APIView):
         proposals = serializers.ListField(required=False, child=serializers.IntegerField())
         description = serializers.CharField(required=False)
         created_by_id = serializers.IntegerField(required=False)
-        user_prediction_exists = serializers.BooleanField(required=False)
+        user_prediction_bet_exists = serializers.BooleanField(required=False)
         user_vote_exists = serializers.BooleanField(required=False)
 
     class OutputSerializer(serializers.Serializer):
@@ -610,8 +610,10 @@ class PollPredictionStatementListAPI(APIView):
         poll_id = serializers.IntegerField()
         description = serializers.CharField()
         created_by = GroupUserSerializer()
-        user_prediction = serializers.IntegerField(required=False)
-        user_vote = serializers.BooleanField(required=False)
+        user_prediction_bet_id = serializers.IntegerField(required=False)
+        user_prediction_bet = serializers.IntegerField(required=False)
+        user_prediction_statement_vote_id = serializers.IntegerField(required=False)
+        user_prediction_statement_vote = serializers.BooleanField(required=False)
 
         segments = StatementSegment(source='pollpredictionstatementsegment_set', many=True)
 
