@@ -15,6 +15,7 @@ from pathlib import Path
 
 
 env = environ.Env(DEBUG=(bool, False),
+                  LOGGING=(str, 'NONE'),
                   SECURE_PROXY_SSL_HEADERS=(bool, False),
                   DJANGO_SECRET=str,
                   FLOWBACK_URL=(str, None),
@@ -222,6 +223,28 @@ DEFAULT_FROM_EMAIL = env('EMAIL_FROM', default=env('EMAIL_HOST_USER'))
 # Poll related settings
 SCORE_VOTE_CEILING = env('SCORE_VOTE_CEILING')
 SCORE_VOTE_FLOOR = env('SCORE_VOTE_FLOOR')
+
+
+# Logging
+if env('LOGGING') in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "file": {
+                "level": env('LOGGING'),
+                "class": "logging.FileHandler",
+                "filename": "general.log",
+            },
+        },
+        "loggers": {
+            "django": {
+                "handlers": ["file"],
+                "level": env('LOGGING'),
+                "propagate": True,
+            },
+        },
+    }
 
 
 # Internationalization
