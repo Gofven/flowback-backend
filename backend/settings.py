@@ -246,6 +246,8 @@ if env('LOGGING') in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
         },
     }
 
+    if DEBUG:
+        LOGGING['handlers']['console'] = {'class': 'logging.StreamHandler'}
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
