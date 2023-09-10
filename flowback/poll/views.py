@@ -76,6 +76,7 @@ class PollListApi(APIView):
                       'proposal_end_date',
                       'vote_start_date',
                       'delegate_vote_end_date',
+                      'vote_end_date',
                       'end_date',
                       'result',
                       'participants',
@@ -610,6 +611,7 @@ class PollPredictionStatementListAPI(APIView):
         poll_id = serializers.IntegerField()
         description = serializers.CharField()
         created_by = GroupUserSerializer()
+        end_date = serializers.DateTimeField()
         user_prediction_bet = serializers.IntegerField(required=False)
         user_prediction_statement_vote = serializers.BooleanField(required=False)
 
