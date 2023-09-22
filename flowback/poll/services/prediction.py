@@ -29,8 +29,8 @@ def poll_prediction_statement_create(poll: int,
                                                   poll=poll).all()
     prediction_statement.full_clean()
 
-    if prediction_statement.poll.vote_start_date < timezone.now():
-        raise ValidationError("Unable to create prediction statement after vote start date")
+    if poll.current_phase != 'prediction_statement':
+        raise ValidationError("Unable to create prediction statement outside of prediction statement phase")
 
     if len(segments) < 1:
         raise ValidationError('Prediction statement must contain atleast one statement')
@@ -55,6 +55,9 @@ def poll_prediction_statement_update(user: Union[int, User], prediction_statemen
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.group, user=user)
 
+    if prediction_statement.poll.current_phase != 'prediction_statement':
+        raise ValidationError("Unable to create prediction statement outside of prediction statement phase")
+
     if not prediction_statement.created_by == group_user:
         raise ValidationError('Prediction statement not created by user')
 
@@ -62,6 +65,9 @@ def poll_prediction_statement_update(user: Union[int, User], prediction_statemen
 def poll_prediction_statement_delete(user: Union[int, User], prediction_statement_id: int) -> None:
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.created_by.group, user=user)
+
+    if prediction_statement.poll.current_phase != 'prediction_statement':
+        raise ValidationError("Unable to delete prediction statement outside of prediction statement phase")
 
     if not prediction_statement.created_by == group_user:
         raise ValidationError('Prediction statement not created by user')
@@ -73,8 +79,8 @@ def poll_prediction_bet_create(user: Union[int, User], prediction_statement_id: 
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.created_by.group, user=user)
 
-    if prediction_statement.poll.vote_start_date < timezone.now():
-        raise ValidationError("Unable to create prediction bets after vote start date")
+    if prediction_statement.poll.current_phase != 'prediction_bet':
+        raise ValidationError("Unable to create prediction bets outside of prediction bet phase")
 
     prediction = PollPredictionBet(created_by=group_user,
                                    prediction_statement=prediction_statement,
@@ -90,8 +96,8 @@ def poll_prediction_bet_update(user: Union[int, User], prediction_statement_id: 
     group_user = group_user_permissions(group=prediction.prediction_statement.poll.created_by.group,
                                         user=user)
 
-    if prediction.prediction_statement.poll.vote_start_date < timezone.now():
-        raise ValidationError("Unable to update prediction bets after vote start date")
+    if prediction.prediction_statement.poll.current_phase != 'prediction_bet':
+        raise ValidationError("Unable to update prediction bets outside of prediction bet phase")
 
     if not prediction.created_by == group_user:
         raise ValidationError('Prediction bet not created by user')
@@ -111,8 +117,8 @@ def poll_prediction_bet_delete(user: Union[int, User], prediction_statement_id: 
     group_user = group_user_permissions(group=prediction.prediction_statement.poll.created_by.group,
                                         user=user)
 
-    if prediction.prediction_statement.poll.vote_start_date < timezone.now():
-        raise ValidationError("Unable to delete prediction bets after vote start date")
+    if prediction.prediction_statement.poll.current_phase != 'prediction_bet':
+        raise ValidationError("Unable to delete prediction bets outside of prediction bet phase")
 
     if not prediction.created_by == group_user:
         raise ValidationError('Prediction bet not created by user')
@@ -124,8 +130,8 @@ def poll_prediction_statement_vote_create(user: Union[int, User], prediction_sta
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.created_by.group, user=user)
 
-    if prediction_statement.end_date < timezone.now():
-        raise ValidationError("Unable to vote ahead of prediction statement end date")
+    if prediction_statement.poll.current_phase != 'prediction_vote':
+        raise ValidationError("Unable to vote outside of prediction vote phase")
 
     prediction_vote = PollPredictionStatementVote(created_by=group_user,
                                                   prediction_statement=prediction_statement,
