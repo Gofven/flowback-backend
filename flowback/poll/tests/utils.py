@@ -4,22 +4,30 @@ from django.utils import timezone
 # Generates kwargs for Poll to match the given phase
 def generate_poll_phase_kwargs(poll_start_phase: str):
     match poll_start_phase:
-        case 'proposal_end_date':
+        case 'proposal':
             poll_offset_hours = 1
-        case 'vote_start_date':
+        case 'prediction_statement':
             poll_offset_hours = 2
-        case 'delegate_vote_end_date':
+        case 'prediction_bet':
             poll_offset_hours = 3
-        case 'vote_end_date':
+        case 'delegate_vote':
             poll_offset_hours = 4
-        case 'end_date':
+        case 'vote':
             poll_offset_hours = 5
+        case 'result':
+            poll_offset_hours = 6
+        case 'prediction_vote':
+            poll_offset_hours = 7
         case _:
             poll_offset_hours = 0
 
-    return dict(start_date=timezone.now() + timezone.timedelta(hours=0 - poll_offset_hours),
-                proposal_end_date=timezone.now() + timezone.timedelta(hours=1 - poll_offset_hours),
-                vote_start_date=timezone.now() + timezone.timedelta(hours=2 - poll_offset_hours),
-                delegate_vote_end_date=timezone.now() + timezone.timedelta(hours=3 - poll_offset_hours),
-                vote_end_date=timezone.now() + timezone.timedelta(hours=4 - poll_offset_hours),
-                end_date=timezone.now() + timezone.timedelta(hours=5 - poll_offset_hours))
+    def phase(hour: int): return timezone.now() + timezone.timedelta(hours=hour - poll_offset_hours)
+
+    return dict(start_date=phase(0),
+                area_vote_end_date=phase(1),
+                proposal_end_date=phase(2),
+                prediction_statement_end_date=phase(3),
+                prediction_bet_end_date=phase(4),
+                delegate_vote_end_date=phase(5),
+                vote_end_date=phase(6),
+                end_date=phase(7))

@@ -53,7 +53,7 @@ def poll_prediction_statement_create(poll: int,
 # TODO add or remove
 def poll_prediction_statement_update(user: Union[int, User], prediction_statement_id: int) -> None:
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
-    group_user = group_user_permissions(group=prediction_statement.poll.group, user=user)
+    group_user = group_user_permissions(group=prediction_statement.poll.created_by.group, user=user)
 
     if prediction_statement.poll.current_phase != 'prediction_statement':
         raise ValidationError("Unable to create prediction statement outside of prediction statement phase")

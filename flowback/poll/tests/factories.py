@@ -29,11 +29,13 @@ class PollFactory(factory.django.DjangoModelFactory):
     dynamic = factory.LazyAttribute(lambda _: faker.pybool())
 
     start_date = factory.LazyAttribute(lambda _: timezone.now())
-    proposal_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=1))
-    vote_start_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=2))
-    delegate_vote_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=3))
-    vote_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=4))
-    end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=5))
+    area_vote_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=1))
+    proposal_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=2))
+    prediction_statement_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=3))
+    prediction_bet_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=4))
+    delegate_vote_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=5))
+    vote_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=6))
+    end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=7))
 
 
 class PollProposalFactory(factory.django.DjangoModelFactory):

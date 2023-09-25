@@ -31,7 +31,8 @@ class PollPredictionStatementTest(APITransactionTestCase):
          self.user_prediction_caster_three) = [GroupUserFactory(group=self.group) for x in range(4)]
 
         # Poll Preparation
-        self.poll = PollFactory(created_by=self.user_group_creator, **generate_poll_phase_kwargs('proposal_end_date'))
+        self.poll = PollFactory(created_by=self.user_group_creator,
+                                **generate_poll_phase_kwargs('prediction_statement'))
         (self.proposal_one,
          self.proposal_two,
          self.proposal_three) = [PollProposalFactory(created_by=self.user_group_creator,
@@ -53,7 +54,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
         view = PollPredictionStatementCreateAPI.as_view()
 
         data = dict(description="A Test PredictionBet",
-                    end_date=timezone.now() + timezone.timedelta(hours=4),
+                    end_date=timezone.now() + timezone.timedelta(hours=8),
                     segments=[dict(proposal_id=self.proposal_one.id, is_true=True),
                               dict(proposal_id=self.proposal_two.id, is_true=False)])
 
@@ -93,6 +94,8 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
     # Predictions
     def test_create_prediction_bet(self):
+        Poll.objects.filter(id=self.poll.id).update(**generate_poll_phase_kwargs('prediction_bet'))
+
         factory = APIRequestFactory()
         view = PollPredictionBetCreateAPI.as_view()
 
@@ -110,6 +113,8 @@ class PollPredictionStatementTest(APITransactionTestCase):
         self.assertEqual(bets.first().score, 5, "PredictionBet not matching input score")
 
     def test_update_prediction_bet(self):
+        Poll.objects.filter(id=self.poll.id).update(**generate_poll_phase_kwargs('prediction_bet'))
+
         factory = APIRequestFactory()
         view = PollPredictionBetUpdateAPI.as_view()
 
@@ -134,6 +139,8 @@ class PollPredictionStatementTest(APITransactionTestCase):
         self.assertEqual(score, new_score, f"Score '{score}' is not matching the new score {new_score}.")
 
     def test_delete_prediction_bet(self):
+        Poll.objects.filter(id=self.poll.id).update(**generate_poll_phase_kwargs('prediction_bet'))
+
         factory = APIRequestFactory()
         view = PollPredictionBetDeleteAPI.as_view()
 
@@ -153,6 +160,8 @@ class PollPredictionStatementTest(APITransactionTestCase):
             PollPredictionBet.objects.get(id=self.prediction_one.id)
 
     def test_poll_prediction_statement_vote_create(self):
+        Poll.objects.filter(id=self.poll.id).update(**generate_poll_phase_kwargs('prediction_vote'))
+
         factory = APIRequestFactory()
         view = PollPredictionStatementVoteCreateAPI.as_view()
 
@@ -165,6 +174,8 @@ class PollPredictionStatementTest(APITransactionTestCase):
         self.assertEqual(prediction.vote, True, 'Vote isnt same as requested by user')
 
     def test_poll_prediction_statement_vote_update(self):
+        Poll.objects.filter(id=self.poll.id).update(**generate_poll_phase_kwargs('prediction_vote'))
+
         factory = APIRequestFactory()
         view = PollPredictionStatementVoteUpdateAPI.as_view()
         prediction_vote = PollPredictionStatementVoteFactory(prediction_statement=self.prediction_statement,
@@ -180,6 +191,8 @@ class PollPredictionStatementTest(APITransactionTestCase):
         self.assertEqual(prediction_vote.vote, False, 'Vote isnt same as requested by user')
 
     def test_poll_prediction_statement_vote_delete(self):
+        Poll.objects.filter(id=self.poll.id).update(**generate_poll_phase_kwargs('prediction_vote'))
+
         factory = APIRequestFactory()
         view = PollPredictionStatementVoteDeleteAPI.as_view()
         prediction_vote = PollPredictionStatementVoteFactory(prediction_statement=self.prediction_statement,
@@ -205,6 +218,8 @@ class PollPredictionStatementTest(APITransactionTestCase):
                          'Incorrect amount of prediction statements returned')
 
     def test_poll_prediction_list(self):
+        Poll.objects.filter(id=self.poll.id).update(**generate_poll_phase_kwargs('prediction_vote'))
+
         factory = APIRequestFactory()
         view = PollPredictionBetListAPI.as_view()
 
