@@ -46,9 +46,9 @@ class Poll(BaseModel):
 
     # Poll Phases
     start_date = models.DateTimeField()  # Poll Start
-    proposal_end_date = models.DateTimeField()  # Proposal Phase
-    prediction_statement_end_date = models.DateTimeField()  # Prediction Phase
     area_vote_end_date = models.DateTimeField()  # Area Selection Phase
+    proposal_end_date = models.DateTimeField()  # Proposal Phase~
+    prediction_statement_end_date = models.DateTimeField()  # Prediction Phase
     prediction_bet_end_date = models.DateTimeField()  # Prediction Betting Phase
     delegate_vote_end_date = models.DateTimeField()  # Delegate Voting Phase
     vote_end_date = models.DateTimeField()  # Voting Phase
@@ -72,10 +72,10 @@ class Poll(BaseModel):
 
     @property
     def labels(self) -> tuple:
-        return ((self.start_date, 'start date', 'proposal'),
+        return ((self.start_date, 'start date', 'area_vote'),
+                (self.area_vote_end_date, 'area vote end date', 'proposal'),
                 (self.proposal_end_date, 'proposal end date', 'prediction_statement'),
-                (self.prediction_statement_end_date, 'prediction statement end date', 'area_vote'),
-                (self.area_vote_end_date, 'area vote end date', 'prediction_bet'),
+                (self.prediction_statement_end_date, 'prediction statement end date', 'prediction_bet'),
                 (self.prediction_bet_end_date, 'prediction bet end date', 'delegate_vote'),
                 (self.delegate_vote_end_date, 'delegate vote end date', 'vote'),
                 (self.vote_end_date, 'vote end date', 'result'),
@@ -88,14 +88,14 @@ class Poll(BaseModel):
                 raise ValidationError(f'{labels[x][1].title()} is greater than {labels[x+1][1]}')
 
     class Meta:
-        constraints = [models.CheckConstraint(check=Q(proposal_end_date__gte=F('start_date')),
-                                              name='proposalenddategreaterthanstartdate_check'),
+        constraints = [models.CheckConstraint(check=Q(area_vote_end_date__gte=F('start_date')),
+                                              name='areavoteenddategreaterthanstartdate_check'),
+                       models.CheckConstraint(check=Q(proposal_end_date__gte=F('area_vote_end_date')),
+                                              name='proposalenddategreaterthanareavoteenddate_check'),
                        models.CheckConstraint(check=Q(prediction_statement_end_date__gte=F('proposal_end_date')),
                                               name='predictionstatementenddategreaterthanproposalenddate_check'),
-                       models.CheckConstraint(check=Q(area_vote_end_date__gte=F('prediction_statement_end_date')),
-                                              name='areavoteenddategreaterthanpredictionstatementenddate_check'),
-                       models.CheckConstraint(check=Q(prediction_bet_end_date__gte=F('area_vote_end_date')),
-                                              name='predictionbetenddategreaterthanareavoteenddate_check'),
+                       models.CheckConstraint(check=Q(prediction_bet_end_date__gte=F('prediction_statement_end_date')),
+                                              name='predictionbetenddategreaterthanpredictionstatementeneddate_check'),
                        models.CheckConstraint(check=Q(delegate_vote_end_date__gte=F('prediction_bet_end_date')),
                                               name='delegatevoteenddategreaterthanpredictionbetenddate_check'),
                        models.CheckConstraint(check=Q(vote_end_date__gte=F('delegate_vote_end_date')),
@@ -108,8 +108,8 @@ class Poll(BaseModel):
         labels = self.labels
         current_time = timezone.now()
 
-        for x in reversed(range(len(labels) - 1)):
-            if current_time < labels[x][0]:
+        for x in reversed(range(len(labels))):
+            if current_time > labels[x][0]:
                 return labels[x][2]
 
         return 'waiting'
