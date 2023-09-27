@@ -227,6 +227,25 @@ class PollVotingTypeForAgainst(BaseModel):
         ]
 
 
+class PollAreaStatement(BaseModel):
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
+
+
+class PollAreaStatementSegment(BaseModel):
+    poll_area_statement = models.ForeignKey(PollAreaStatement, on_delete=models.CASCADE)
+    tag = models.ForeignKey(GroupTags, on_delete=models.CASCADE)
+
+
+class PollAreaStatementVote(BaseModel):
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    poll_area_statement = models.ForeignKey(PollAreaStatement, on_delete=models.CASCADE)
+    vote = models.BooleanField()
+
+    class Meta:
+        unique_together = ('created_by', 'poll_area_statement')
+
+
 class PollPredictionStatement(PredictionStatement):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
