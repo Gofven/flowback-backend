@@ -114,6 +114,11 @@ class Poll(BaseModel):
 
         return 'waiting'
 
+    def check_phase(self, phase: str):
+        current_phase = self.current_phase
+        if current_phase != phase:
+            raise ValidationError(f'Poll is not in {phase}, currently in {current_phase}')
+
 
 class PollProposal(BaseModel):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
