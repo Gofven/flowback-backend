@@ -1,21 +1,27 @@
 from django.urls import path
 
-from .views import (PollListApi,
-                    PollNotificationSubscribeApi,
-                    PollCreateAPI,
-                    PollUpdateAPI,
-                    PollDeleteAPI, PollProposalListAPI, PollProposalDeleteAPI, PollProposalCreateAPI,
-                    PollProposalVoteListAPI, PollProposalVoteUpdateAPI, PollDelegatesListAPI,
-                    PollProposalDelegateVoteUpdateAPI,
-                    PollCommentListAPI, PollCommentCreateAPI, PollCommentUpdateAPI, PollCommentDeleteAPI,
-                    DelegatePollVoteListAPI,
-                    PollPredictionStatementListAPI, PollPredictionBetListAPI,
-                    PollPredictionStatementCreateAPI, PollPredictionStatementDeleteAPI,
-                    PollPredictionBetCreateAPI, PollPredictionBetUpdateAPI, PollPredictionBetDeleteAPI,
-                    PollPredictionStatementVoteCreateAPI,
-                    PollPredictionStatementVoteUpdateAPI,
-                    PollPredictionStatementVoteDeleteAPI)
-
+from .views.poll import (PollListApi,
+                         PollNotificationSubscribeApi,
+                         PollCreateAPI,
+                         PollUpdateAPI,
+                         PollDeleteAPI,
+                         PollDelegatesListAPI)
+from .views.proposal import PollProposalListAPI, PollProposalDeleteAPI, PollProposalCreateAPI
+from .views.vote import (PollProposalVoteListAPI,
+                         PollProposalVoteUpdateAPI,
+                         PollProposalDelegateVoteUpdateAPI,
+                         DelegatePollVoteListAPI)
+from .views.comment import PollCommentListAPI, PollCommentCreateAPI, PollCommentUpdateAPI, PollCommentDeleteAPI
+from .views.prediction import (PollPredictionStatementListAPI,
+                               PollPredictionBetListAPI,
+                               PollPredictionStatementCreateAPI,
+                               PollPredictionStatementDeleteAPI,
+                               PollPredictionBetCreateAPI,
+                               PollPredictionBetUpdateAPI,
+                               PollPredictionBetDeleteAPI,
+                               PollPredictionStatementVoteCreateAPI,
+                               PollPredictionStatementVoteUpdateAPI,
+                               PollPredictionStatementVoteDeleteAPI)
 
 group_poll_patterns = [
     path('list', PollListApi.as_view(), name='polls'),
@@ -24,7 +30,6 @@ group_poll_patterns = [
     path('prediction/statement/list', PollPredictionStatementListAPI.as_view(), name='poll_prediction_statement_list'),
     path('prediction/bet/list', PollPredictionBetListAPI.as_view(), name='poll_prediction_bet_list'),
 ]
-
 
 poll_patterns = [
     path('pool/<int:delegate_pool_id>/votes', DelegatePollVoteListAPI.as_view(), name='delegate_votes'),
