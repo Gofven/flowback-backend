@@ -6,7 +6,7 @@ from rest_framework import permissions
 from rest_framework.schemas import get_schema_view
 
 from backend.settings import DEBUG, MEDIA_URL, MEDIA_ROOT, URL_SUBPATH
-from flowback.poll.views import PollUserScheduleListAPI, PollListApi
+from flowback.poll.views.poll import PollUserScheduleListAPI, PollListApi
 from flowback.user.urls import user_patterns
 from flowback.group.urls import group_patterns
 from flowback.poll.urls import group_poll_patterns, poll_patterns
