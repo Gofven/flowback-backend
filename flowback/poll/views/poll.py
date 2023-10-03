@@ -71,7 +71,7 @@ class PollListApi(APIView):
                       'poll_type',
                       'public',
                       'tag',
-                      'name',
+                      'tag_name',
                       'start_date',
                       'proposal_end_date',
                       'prediction_statement_end_date',
