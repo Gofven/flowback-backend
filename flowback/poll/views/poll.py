@@ -53,7 +53,7 @@ class PollListApi(APIView):
         group_id = serializers.IntegerField(source='created_by.group_id')
         group_name = serializers.CharField(source='created_by.group.name')
         group_image = serializers.ImageField(source='created_by.group.image')
-        tag_name = serializers.CharField(source='tag.tag_name')
+        tag_name = serializers.CharField(source='tag.name')
         hide_poll_users = serializers.BooleanField(source='created_by.group.hide_poll_users')
         total_comments = serializers.IntegerField()
 
@@ -71,7 +71,7 @@ class PollListApi(APIView):
                       'poll_type',
                       'public',
                       'tag',
-                      'tag_name',
+                      'name',
                       'start_date',
                       'proposal_end_date',
                       'prediction_statement_end_date',

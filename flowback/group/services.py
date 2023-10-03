@@ -235,7 +235,7 @@ def group_invite_reject(*, fetched_by: id, group: int, to: int = None) -> None:
 
 def group_tag_create(*, user: int, group: int, tag_name: str) -> GroupTags:
     group_user_permissions(group=group, user=user, permissions=['admin'])
-    tag = GroupTags(tag_name=tag_name, group_id=group)
+    tag = GroupTags(name=tag_name, group_id=group)
     tag.full_clean()
     tag.save()
 
@@ -273,7 +273,7 @@ def group_user_delegate(*, user: int, group: int, delegate_pool_id: int, tags: l
                                          Q(id__in=tags))
     if user_tags.exists():
         raise ValidationError(f'User has already subscribed to '
-                              f'{", ".join([x.tag_name for x in user_tags.all()])}')
+                              f'{", ".join([x.name for x in user_tags.all()])}')
 
     # Check if tags exist in group
     if len(db_tags) < len(tags):
