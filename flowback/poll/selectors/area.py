@@ -10,15 +10,13 @@ from flowback.user.models import User
 
 class BasePollAreaStatementFilter(django_filters.FilterSet):
     order_by = django_filters.OrderingFilter(fields=(('created_at', 'created_at_asc'),
-                                                     ('-created_at', 'created_ate_desc'),
+                                                     ('-created_at', 'created_at_desc'),
                                                      ('score', 'score_asc'),
                                                      ('-score', 'score_desc')))
 
     vote = django_filters.BooleanFilter()
-    tag = django_filters.BooleanFilter(field_name='pollareastatementsegment__tag__tag_name',
-                                       lookup_expr='iexact')
-    number_of_tags__gt = django_filters.NumberFilter()
-    number_of_tags__lt = django_filters.NumberFilter()
+    tag = django_filters.CharFilter(field_name='pollareastatementsegment__tag__name',
+                                    lookup_expr='iexact')
 
 
 def poll_area_statement_list(*, user: User, poll_id: int, filters=None):
@@ -28,8 +26,7 @@ def poll_area_statement_list(*, user: User, poll_id: int, filters=None):
 
     user_votes = PollAreaStatementVote.objects.get(created_by=group_user,
                                                    poll_area_statement=OuterRef('pk')).values('vote')
-    qs = PollAreaStatement.objects.filter(poll=poll).annotate(number_of_tags=Count('pollareastatementsegment'),
-                                                              vote=Subquery(user_votes,
+    qs = PollAreaStatement.objects.filter(poll=poll).annotate(vote=Subquery(user_votes,
                                                                             output_field=models.BooleanField))
 
     return BasePollAreaStatementFilter(filters, qs).qs
