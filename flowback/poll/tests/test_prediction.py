@@ -11,10 +11,17 @@ from flowback.poll.models import Poll, PollPredictionStatement, PollPredictionSt
 from flowback.poll.tests.factories import PollFactory, PollPredictionFactory, PollProposalFactory, \
     PollPredictionStatementFactory, PollPredictionStatementSegmentFactory, PollPredictionStatementVoteFactory
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
-from flowback.poll.views import PollPredictionStatementCreateAPI, PollPredictionStatementDeleteAPI, \
-    PollPredictionBetCreateAPI, PollPredictionBetUpdateAPI, PollPredictionBetDeleteAPI, PollPredictionStatementVoteCreateAPI, \
-    PollPredictionStatementVoteUpdateAPI, PollPredictionStatementVoteDeleteAPI, PollPredictionStatementListAPI, \
-    PollPredictionBetListAPI
+
+from flowback.poll.views.prediction import (PollPredictionStatementCreateAPI,
+                                            PollPredictionStatementDeleteAPI,
+                                            PollPredictionBetCreateAPI,
+                                            PollPredictionBetUpdateAPI,
+                                            PollPredictionBetDeleteAPI,
+                                            PollPredictionStatementVoteCreateAPI,
+                                            PollPredictionStatementVoteUpdateAPI,
+                                            PollPredictionStatementVoteDeleteAPI,
+                                            PollPredictionStatementListAPI,
+                                            PollPredictionBetListAPI)
 
 
 class PollPredictionStatementTest(APITransactionTestCase):

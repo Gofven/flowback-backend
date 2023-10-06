@@ -1,7 +1,7 @@
 import factory
 from django.utils import timezone
 from flowback.common.tests import faker
-from flowback.group.tests.factories import GroupUserFactory, GroupUserDelegatePoolFactory
+from flowback.group.tests.factories import GroupUserFactory, GroupUserDelegatePoolFactory, GroupTagsFactory
 
 from flowback.poll.models import (Poll,
                                   PollProposal,
@@ -14,7 +14,10 @@ from flowback.poll.models import (Poll,
                                   PollPredictionBet,
                                   PollPredictionStatement,
                                   PollPredictionStatementSegment,
-                                  PollPredictionStatementVote)
+                                  PollPredictionStatementVote,
+                                  PollAreaStatement,
+                                  PollAreaStatementSegment,
+                                  PollAreaStatementVote)
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
 
 
@@ -99,9 +102,9 @@ class PollPredictionStatementFactory(factory.django.DjangoModelFactory):
         model = PollPredictionStatement
 
     created_by = factory.SubFactory(GroupUserFactory)
-    poll = factory.SubFactory(PollFactory, **generate_poll_phase_kwargs('proposal_end_date'))
+    poll = factory.SubFactory(PollFactory, **generate_poll_phase_kwargs('proposal'))
     description = factory.LazyAttribute(lambda _: faker.bs())
-    end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=4))
+    end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=99))
 
 
 class PollPredictionFactory(factory.django.DjangoModelFactory):
@@ -128,4 +131,29 @@ class PollPredictionStatementVoteFactory(factory.django.DjangoModelFactory):
 
     prediction_statement = factory.SubFactory(PollPredictionStatementFactory)
     created_by = factory.SubFactory(GroupUserFactory)
+    vote = factory.LazyAttribute(lambda _: faker.pybool())
+
+
+class PollAreaStatementFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = PollAreaStatement
+
+    created_by = factory.SubFactory(GroupUserFactory)
+    poll = factory.SubFactory(PollFactory, **generate_poll_phase_kwargs('area'))
+
+
+class PollAreaStatementSegmentFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = PollAreaStatementSegment
+
+    poll_area_statement = factory.SubFactory(PollAreaStatementFactory)
+    tag = factory.SubFactory(GroupTagsFactory)
+
+
+class PollAreaStatementVoteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = PollAreaStatementVote
+
+    created_by = factory.SubFactory(GroupUserFactory)
+    poll_area_statement = factory.SubFactory(PollAreaStatementFactory)
     vote = factory.LazyAttribute(lambda _: faker.pybool())
