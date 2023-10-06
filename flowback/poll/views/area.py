@@ -42,3 +42,25 @@ class PollAreaStatementListAPI(APIView):
                                       queryset=area_statements,
                                       request=request,
                                       view=self)
+
+
+@extend_schema(tags=['poll'])
+class PollAreaStatementUpdateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        tags = serializers.ListField(child=serializers.IntegerField())
+        vote = serializers.BooleanField()
+
+    def post(self, request, poll_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        poll_area_statement = poll_area_statement_create(user_id=request.user.id,
+                                                         poll_id=poll_id,
+                                                         **serializer.validated_data)
+
+        return Response(status=status.HTTP_201_CREATED, data=poll_area_statement.id)
+
+
+# @extend_schema(tags=['poll'])
+# class PollAreaStatementDeleteAPI(APIView):
+
