@@ -1,13 +1,15 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.group.serializers import GroupUserSerializer
 from flowback.poll.selectors.area import poll_area_statement_list
+from flowback.poll.services.area import poll_area_statement_create
 
 
-@extend_schema(tags=['home', 'poll'])
+@extend_schema(tags=['poll'])
 class PollAreaStatementListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 25
@@ -21,9 +23,10 @@ class PollAreaStatementListAPI(APIView):
 
     class OutputSerializer(serializers.Serializer):
         class SegmentSerializer(serializers.Serializer):
-            tag_name = serializers.CharField(source='tag__name')
+            tag_name = serializers.CharField(source='tag.name')
 
         created_by = GroupUserSerializer
+        vote = serializers.BooleanField(allow_null=True)
         tags = SegmentSerializer(many=True, source='pollareastatementsegment_set')
 
     def get(self, request, poll_id: int):

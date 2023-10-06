@@ -24,9 +24,9 @@ def poll_area_statement_list(*, user: User, poll_id: int, filters=None):
     poll = get_object(Poll, id=poll_id)
     group_user = group_user_permissions(user=user, group=poll.created_by.group)
 
-    user_votes = PollAreaStatementVote.objects.get(created_by=group_user,
-                                                   poll_area_statement=OuterRef('pk')).values('vote')
+    user_votes = PollAreaStatementVote.objects.filter(created_by=group_user,
+                                                      poll_area_statement=OuterRef('pk')).values('vote')
     qs = PollAreaStatement.objects.filter(poll=poll).annotate(vote=Subquery(user_votes,
-                                                                            output_field=models.BooleanField))
+                                                                            output_field=models.BooleanField()))
 
     return BasePollAreaStatementFilter(filters, qs).qs

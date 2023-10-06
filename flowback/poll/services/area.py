@@ -23,12 +23,7 @@ def poll_area_statement_create(user_id: int, poll_id: int, tags: list[int]):
 
     PollAreaStatementSegment.objects.bulk_create(poll_area_statement_segments)
 
-
-def poll_area_statement_delete(user_id: int, poll_area_statement_id: int):
-    poll_area_statement = get_object(PollAreaStatement,
-                                     id=poll_area_statement_id,
-                                     created_by__user_id=user_id)
-    poll = get_object(Poll, id=poll_area_statement.poll.id)
+    return poll_area_statement
 
     poll.check_phase('area_vote')
 
