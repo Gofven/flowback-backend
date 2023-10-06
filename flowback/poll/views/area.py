@@ -45,7 +45,7 @@ class PollAreaStatementListAPI(APIView):
 
 
 @extend_schema(tags=['poll'])
-class PollAreaStatementUpdateAPI(APIView):
+class PollAreaVoteAPI(APIView):
     class InputSerializer(serializers.Serializer):
         tags = serializers.ListField(child=serializers.IntegerField())
         vote = serializers.BooleanField()

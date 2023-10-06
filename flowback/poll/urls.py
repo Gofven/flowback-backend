@@ -22,7 +22,7 @@ from .views.prediction import (PollPredictionStatementListAPI,
                                PollPredictionStatementVoteCreateAPI,
                                PollPredictionStatementVoteUpdateAPI,
                                PollPredictionStatementVoteDeleteAPI)
-from .views.area import PollAreaStatementListAPI, PollAreaStatementUpdateAPI
+from .views.area import PollAreaStatementListAPI, PollAreaVoteAPI
 
 group_poll_patterns = [
     path('list', PollListApi.as_view(), name='polls'),
@@ -70,5 +70,5 @@ poll_patterns = [
          PollPredictionStatementVoteDeleteAPI.as_view(),
          name='poll_prediction_statement_vote_delete'),
     path('<int:poll_id>/area/list', PollAreaStatementListAPI.as_view(), name='poll_area_list'),
-    path('<int:poll_id>/area/update', PollAreaStatementUpdateAPI.as_view(), name='poll_area_update')
+    path('<int:poll_id>/area/update', PollAreaVoteAPI.as_view(), name='poll_area_update')
 ]
