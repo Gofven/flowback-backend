@@ -16,7 +16,7 @@ class GroupTagsListApi(APIView):
         id = serializers.IntegerField(required=False)
         tag_name = serializers.CharField(required=False)
         tag_name__icontains = serializers.CharField(required=False)
-        active = serializers.NullBooleanField(required=False, default=None)
+        active = serializers.BooleanField(required=False, default=None, allow_null=True)
 
     class OutputSerializer(serializers.ModelSerializer):
         class Meta:

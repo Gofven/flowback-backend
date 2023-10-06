@@ -16,7 +16,7 @@ class PollAreaStatementListAPI(APIView):
     class FilterSerializer(serializers.Serializer):
         order_by = serializers.ChoiceField(choices=['created_at', '-created_at', 'score', '-score'],
                                            required=False)
-        vote = serializers.BooleanField(required=False)
+        vote = serializers.BooleanField(required=False, allow_null=True, default=None)
         tag = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
