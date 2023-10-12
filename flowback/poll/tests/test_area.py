@@ -2,10 +2,11 @@ import json
 
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
 
-from flowback.group.models import GroupUser
+from flowback.group.models import GroupUser, GroupTags
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
 from flowback.poll.models import Poll, PollAreaStatementSegment, PollAreaStatementVote
 from flowback.poll.selectors.area import poll_area_statement_list
+from flowback.poll.tasks import poll_area_vote_count
 from flowback.poll.tests.factories import PollFactory
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
 
@@ -91,3 +92,9 @@ class PollAreaTest(APITransactionTestCase):
         data = json.loads(response.rendered_content)['results']
 
         self.assertEqual(len(data), 2)
+
+        # Check if Counting votes work
+        winning_tag = GroupTags.objects.filter(pollareastatementsegment__poll_area_statement=area_statement_one).first()
+        tag = poll_area_vote_count.apply(kwargs=dict(poll_id=self.poll.id)).get().tag
+
+        self.assertEqual(winning_tag.name, tag.name)
