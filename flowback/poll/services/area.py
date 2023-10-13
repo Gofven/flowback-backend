@@ -7,6 +7,9 @@ from flowback.poll.models import PollAreaStatement, PollAreaStatementSegment, Po
 
 
 def poll_area_statement_create(user_id: int, poll_id: int, tags: list[int]):
+    if len(tags) > 1:
+        raise ValidationError('Area statements can only have one tag at most')
+
     poll = get_object(Poll, id=poll_id)
     group_user = group_user_permissions(user=user_id, group=poll.created_by.group)
 
@@ -27,7 +30,8 @@ def poll_area_statement_create(user_id: int, poll_id: int, tags: list[int]):
     return poll_area_statement
 
 
-def poll_area_statement_vote_update(user_id: int, poll_id: int, tags: list[int], vote: bool):
+def poll_area_statement_vote_update(user_id: int, poll_id: int, tag: int, vote: bool):
+    tags = [tag]  # TODO check if we should have one or multiple tag votes
     poll = get_object(Poll, id=poll_id)
     group_user = group_user_permissions(user=user_id, group=poll.created_by.group)
 

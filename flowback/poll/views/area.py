@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.group.serializers import GroupUserSerializer
 from flowback.poll.selectors.area import poll_area_statement_list
-from flowback.poll.services.area import poll_area_statement_create
+from flowback.poll.services.area import poll_area_statement_create, poll_area_statement_vote_update
 
 
 @extend_schema(tags=['poll'])
@@ -25,7 +25,6 @@ class PollAreaStatementListAPI(APIView):
         class SegmentSerializer(serializers.Serializer):
             tag_name = serializers.CharField(source='tag.name')
 
-        created_by = GroupUserSerializer
         vote = serializers.BooleanField(allow_null=True)
         tags = SegmentSerializer(many=True, source='pollareastatementsegment_set')
 
@@ -47,20 +46,18 @@ class PollAreaStatementListAPI(APIView):
 @extend_schema(tags=['poll'])
 class PollAreaVoteAPI(APIView):
     class InputSerializer(serializers.Serializer):
-        tags = serializers.ListField(child=serializers.IntegerField())
+        tag = serializers.IntegerField()
         vote = serializers.BooleanField()
 
     def post(self, request, poll_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        poll_area_statement = poll_area_statement_create(user_id=request.user.id,
-                                                         poll_id=poll_id,
-                                                         **serializer.validated_data)
+        poll_area_statement = poll_area_statement_vote_update(user_id=request.user.id,
+                                                              poll_id=poll_id,
+                                                              **serializer.validated_data)
 
         return Response(status=status.HTTP_201_CREATED, data=poll_area_statement.id)
 
-
 # @extend_schema(tags=['poll'])
 # class PollAreaStatementDeleteAPI(APIView):
-
