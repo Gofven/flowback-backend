@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import datetime
 
 from flowback.poll.services.vote import poll_proposal_vote_count
+from flowback.poll.tasks import poll_area_vote_count
 
 poll_notification = NotificationManager(sender_type='poll', possible_categories=['timeline',
                                                                                  'poll',
@@ -62,6 +63,8 @@ def poll_create(*, user_id: int,
     group_notification.create(sender_id=group_id, action=poll_notification.Action.update, category='poll',
                               message=f'User {group_user.user.username} created poll {poll.title}',
                               timestamp=start_date, related_id=poll.id)
+
+    poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
 
     # Poll notification
     for date, name, phase in poll.labels:
