@@ -233,9 +233,9 @@ def group_invite_reject(*, fetched_by: id, group: int, to: int = None) -> None:
     invite.delete()
 
 
-def group_tag_create(*, user: int, group: int, tag_name: str) -> GroupTags:
+def group_tag_create(*, user: int, group: int, name: str) -> GroupTags:
     group_user_permissions(group=group, user=user, permissions=['admin'])
-    tag = GroupTags(name=tag_name, group_id=group)
+    tag = GroupTags(name=name, group_id=group)
     tag.full_clean()
     tag.save()
 
