@@ -25,6 +25,11 @@ env = environ.Env(DEBUG=(bool, False),
                   REDIS_PORT=(str, '6379'),
                   RABBITMQ_BROKER_URL=str,
                   URL_SUBPATH=(str, ''),
+                  AWS_S3_ENDPOINT_URL=(str, None),
+                  AWS_S3_ACCESS_KEY_ID=(str, None),
+                  AWS_S3_SECRET_ACCESS_KEY=(str, None),
+                  AWS_S3_STORAGE_BUCKET_NAME=(str, None),
+                  AWS_S3_CUSTOM_URL=(str, None),
                   DISABLE_DEFAULT_USER_REGISTRATION=(bool, False),
                   FLOWBACK_DEFAULT_GROUP_JOIN=(str, None),
                   FLOWBACK_ALLOW_GROUP_CREATION=(bool, True),
@@ -145,12 +150,53 @@ ROOT_URLCONF = 'backend.urls'
 
 MEDIA_ROOT = str(BASE_DIR) + '/media'
 MEDIA_URL = '/media/'
+STATIC_URL = 'static/'
+
+
+# Optional AWS Storage Manager
+
+aws_check = [env('AWS_S3_ACCESS_KEY_ID'),
+             env('AWS_S3_ENDPOINT_URL'),
+             env('AWS_S3_SECRET_ACCESS_KEY'),
+             env('AWS_S3_STORAGE_BUCKET_NAME')]
+
+if any(aws_check):
+    if not all(aws_check):
+        raise Exception("Missing environment variables to connect AWS S3 storage")
+
+    INSTALLED_APPS.append('storages')
+    AWS_S3_ENDPOINT_URL = f"https://{env('AWS_S3_ENDPOINT_URL')}"
+    AWS_S3_ACCESS_KEY_ID = env('AWS_S3_ACCESS_KEY_ID')
+    AWS_S3_SECRET_ACCESS_KEY = env('AWS_S3_SECRET_ACCESS_KEY')
+    aws_media_url = env('AWS_S3_CUSTOM_URL') or f"{env('AWS_S3_ENDPOINT_URL')}/{env('AWS_S3_STORAGE_BUCKET_NAME')}"
+    STATIC_URL = f'https://{env("AWS_S3_CUSTOM_URL")}/static/'
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "bucket_name": env('AWS_S3_STORAGE_BUCKET_NAME'),
+                "default_acl": "public-read",
+                "location": "media",
+                "custom_domain": aws_media_url
+            }
+        },
+        "staticfiles": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "bucket_name": env('AWS_S3_STORAGE_BUCKET_NAME'),
+                "default_acl": "public-read",
+                "location": "static",
+                "custom_domain": aws_media_url
+            }
+        }
+    }
+
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -189,7 +235,6 @@ DATABASES = {
         },
     }
 }
-
 
 
 # Password validation
@@ -263,8 +308,6 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
-
-STATIC_URL = 'static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
