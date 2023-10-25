@@ -146,7 +146,7 @@ class PollPredictionBetCreateAPI(APIView):
         created_id = poll_prediction_bet_create(user=request.user, prediction_statement_id=prediction_statement_id,
                                                 **serializer.validated_data)
 
-        return Response(status=status.HTTP_201_CREATED)
+        return Response(created_id, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=['poll'])
