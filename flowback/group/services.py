@@ -470,14 +470,15 @@ def group_thread_delete(user_id: int, thread_id: int):
     thread.delete()
 
 
-def group_thread_comment_create(user_id: int, thread_id: int, message: str, parent_id: int = None):
+def group_thread_comment_create(user_id: int, thread_id: int, message: str, attachments: list, parent_id: int = None):
     thread = get_object(GroupThread, id=thread_id)
     group_user = group_user_permissions(user=user_id, group=thread.created_by.group)
 
     comment = comment_create(author_id=group_user.user.id,
                              comment_section_id=thread.comment_section.id,
                              message=message,
-                             parent_id=parent_id)
+                             parent_id=parent_id,
+                             attachments=attachments)
 
     return comment
 
