@@ -6,10 +6,10 @@ from .models import FileCollection, FileSegment
 from ..user.models import User
 
 
-def upload_collection(*, created_by: User, file: Union[list[File], File], upload_to="", upload_to_include_timestamp=True):
+def upload_collection(*, user_id: int, file: Union[list[File], File], upload_to="", upload_to_include_timestamp=True):
     files = file if isinstance(file, list) else [file]
 
-    collection = FileCollection(created_by=created_by)
+    collection = FileCollection(created_by_id=user_id)
     collection.full_clean()
     collection.save()
 
