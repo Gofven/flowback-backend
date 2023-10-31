@@ -22,7 +22,7 @@ class CommentListAPI(APIView):
 
     class OutputSerializer(serializers.Serializer):
         class FileSerializer(serializers.Serializer):
-            file = serializers.FileField()
+            file = serializers.URLField()
 
         id = serializers.IntegerField()
         author_id = serializers.IntegerField()
@@ -42,6 +42,8 @@ class CommentListAPI(APIView):
 
         comments = comment_list(comment_section_id=comment_section_id,
                                 filters=serializer.validated_data)
+
+        print(comments.first().attachments.filesegment_set.first().file)
 
         return get_paginated_response(pagination_class=self.Pagination,
                                       serializer_class=self.OutputSerializer,

@@ -19,6 +19,9 @@ class PollCommentListAPI(CommentListAPI):
 
         comments = poll_comment_list(fetched_by=request.user, poll_id=poll, filters=serializer.validated_data)
 
+        print(comments.first().attachments.filesegment_set.first().file)
+
+
         return get_paginated_response(pagination_class=self.Pagination,
                                       serializer_class=self.OutputSerializer,
                                       queryset=comments,

@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+
 from flowback.common.models import BaseModel
 from flowback.user.models import User
 
@@ -15,12 +17,16 @@ class FileSegment(BaseModel):
 
         super(FileSegment, self).__init__(*args, **kwargs)
 
-    def upload_directory(self):
+    def upload_directory(self, file_name, *args, **kwargs):
+        directory = self.directory
+
         if self.directory != "" and not self.directory.endswith("/"):
-            self.directory += "/"
+            directory += "/"
 
         if self.include_timestamp:
-            self.directory += "%Y/%m/%d/"
+            directory += timezone.now().strftime("%Y/%m/%d/")
+
+        return directory + file_name
 
     collection = models.ForeignKey(FileCollection, on_delete=models.CASCADE)
     file = models.FileField(upload_to=upload_directory)
