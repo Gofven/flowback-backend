@@ -17,7 +17,7 @@ class FileSegment(BaseModel):
 
         super(FileSegment, self).__init__(*args, **kwargs)
 
-    def upload_directory(self, file_name, *args, **kwargs):
+    def upload_directory(self, file_name):
         directory = self.directory
 
         if self.directory != "" and not self.directory.endswith("/"):

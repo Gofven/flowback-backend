@@ -498,6 +498,7 @@ def group_thread_comment_update(user_id: int, thread_id: int, comment_id: int, d
                           comment_id=comment_id,
                           data=data)
 
+
 def group_thread_comment_delete(user_id: int, thread_id: int, comment_id: int):
     thread = get_object(GroupThread, id=thread_id)
     comment = get_object(Comment, id=comment_id)
