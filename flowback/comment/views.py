@@ -21,8 +21,8 @@ class CommentListAPI(APIView):
         score__gt = serializers.IntegerField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-        class FileSerializer(serializers.Serializer):
-            file = serializers.URLField()
+        class FileSerializer(serializers.Serializer):  # TODO why is it updated_at?
+            file = serializers.CharField(source='updated_at')
 
         id = serializers.IntegerField()
         author_id = serializers.IntegerField()
@@ -42,8 +42,6 @@ class CommentListAPI(APIView):
 
         comments = comment_list(comment_section_id=comment_section_id,
                                 filters=serializer.validated_data)
-
-        print(comments.first().attachments.filesegment_set.first().file)
 
         return get_paginated_response(pagination_class=self.Pagination,
                                       serializer_class=self.OutputSerializer,
