@@ -3,14 +3,13 @@ import json
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from .factories import CommentFactory, CommentSectionFactory
+from .factories import CommentFactory
 
-from flowback.files.models import FileCollection, FileSegment
-from ..models import CommentSection, Comment
+from ..models import Comment
 from ..views import CommentListAPI
 from ...files.tests.factories import FileCollectionFactory, FileSegmentFactory
 from ...poll.tests.factories import PollFactory
-from ...poll.views.comment import PollCommentCreateAPI
+from ...poll.views.comment import PollCommentCreateAPI, PollCommentListAPI
 
 
 class CommentAttachmentsTest(APITransactionTestCase):
@@ -21,9 +20,14 @@ class CommentAttachmentsTest(APITransactionTestCase):
         (self.file_one,
          self.file_two,
          self.file_three) = [FileSegmentFactory(collection=self.collection) for x in range(3)]
-
         self.comment = CommentFactory(attachments=self.collection)
+
         self.poll = PollFactory()
+        (self.poll_comment_one,
+         self.poll_comment_two,
+         self.poll_comment_three) = [CommentFactory(comment_section=self.poll.comment_section,
+                                                    attachments=(self.collection if x == 2 else None)
+                                                    ) for x in range(3)]
 
     def test_file_not_null(self):
         factory = APIRequestFactory()
@@ -67,3 +71,13 @@ class CommentAttachmentsTest(APITransactionTestCase):
 
         self.assertEqual(total_attachments, len(data['attachments']))
 
+    def test_poll_comment_list(self):
+        factory = APIRequestFactory()
+        view = PollCommentListAPI.as_view()
+
+        request = factory.get('')
+        force_authenticate(request, user=self.poll.created_by.user)
+        response = view(request, poll=self.poll.id)
+
+        data = json.loads(response.rendered_content)
+        print(data)
