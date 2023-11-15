@@ -125,7 +125,7 @@ def poll_proposal_delegate_vote_update(*, user_id: int, poll_id: int, data) -> N
             PollDelegateVoting.objects.filter(created_by=delegate_pool, poll=poll).delete()
             return
 
-        if len(data['scores'] != len(data['proposals'])):
+        if len(data['scores']) != len(data['proposals']):
             raise ValidationError("The amount of votes don't match the amount of polls")
 
         proposals = poll.pollproposal_set.filter(id__in=data['proposals']).all()
