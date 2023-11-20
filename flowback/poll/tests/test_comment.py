@@ -69,8 +69,8 @@ class PollCommentTest(APITransactionTestCase):
         comment_ex = Comment.objects.get(id=comment_id_ex)
         files_ex = comment_ex.attachments.filesegment_set
 
-        self.assertEqual(all('test' not in x.updated_at for x in files.all()), True)
-        self.assertEqual(all('test' not in x.updated_at for x in files_ex.all()), True)
+        self.assertEqual(all('test' not in x.file for x in files.all()), True)
+        self.assertEqual(all('test' not in x.file for x in files_ex.all()), True)
         self.assertEqual(files.count(), len(data['attachments']))
 
     def test_poll_comment_list(self):
