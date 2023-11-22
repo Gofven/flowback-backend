@@ -54,5 +54,3 @@ class PollDelegateTests(APITransactionTestCase):
         request = factory.get('')
         force_authenticate(request, user=user)
         response = view(request, delegate_pool_id=1)
-
-        print(json.loads(response.rendered_content))
