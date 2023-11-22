@@ -79,7 +79,7 @@ class PollProposalListAPI(APIView):
 @extend_schema(tags=['poll'])
 class PollProposalCreateAPI(APIView):
     class InputSerializerDefault(serializers.ModelSerializer):
-        attachments = serializers.ListField(child=serializers.FileField, required=False, max_length=10)
+        attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
         class Meta:
             model = PollProposal
@@ -88,7 +88,7 @@ class PollProposalCreateAPI(APIView):
     class InputSerializerSchedule(serializers.ModelSerializer):
         start_date = serializers.DateTimeField()
         end_date = serializers.DateTimeField()
-        attachments = serializers.ListField(child=serializers.FileField, required=False, max_length=10)
+        attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
         def validate(self, data):
             if data.get('start_date') >= data.get('end_date'):
