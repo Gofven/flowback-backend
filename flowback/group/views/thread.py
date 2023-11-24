@@ -24,8 +24,9 @@ class GroupThreadListAPI(APIView):
         title = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-        created_by = BasicUserSerializer(source='created_by__user')
+        created_by = BasicUserSerializer(source='created_by.user')
         title = serializers.CharField()
+        pinned = serializers.BooleanField()
 
     def get(self, request, group_id: int):
         serializer = self.FilterSerializer(data=request.query_params)
@@ -42,6 +43,7 @@ class GroupThreadListAPI(APIView):
 class GroupThreadCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField()
+        pinned = serializers.BooleanField(default=False)
 
     def post(self, request, group_id: int):
         serializer = self.InputSerializer(data=request.data)
@@ -54,6 +56,7 @@ class GroupThreadCreateAPI(APIView):
 class GroupThreadUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField()
+        pinned = serializers.BooleanField(default=False)
 
     def post(self, request, thread_id: int):
         serializer = self.InputSerializer(data=request.data)
