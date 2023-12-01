@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 
-from backend.settings import SCORE_VOTE_CEILING, SCORE_VOTE_FLOOR
+from backend.settings import SCORE_VOTE_CEILING, SCORE_VOTE_FLOOR, DEBUG
 from flowback.files.models import FileCollection
 from flowback.prediction.models import (PredictionBet,
                                         PredictionStatement,
@@ -18,6 +18,9 @@ from flowback.common.models import BaseModel
 from flowback.group.models import Group, GroupUser, GroupUserDelegatePool, GroupTags
 from flowback.comment.models import CommentSection
 import pgtrigger
+
+from flowback.schedule.models import Schedule, ScheduleEvent
+from flowback.schedule.services import create_schedule
 
 
 # Create your models here.
@@ -74,6 +77,14 @@ class Poll(BaseModel):
 
     @property
     def labels(self) -> tuple:
+        if self.dynamic:
+            return ((self.start_date, 'start date', 'dynamic'),
+                    (self.end_date, 'end date', 'result'))
+
+        if self.poll_type == self.PollType.SCHEDULE:
+            return ((self.start_date, 'start date', 'schedule'),
+                    (self.end_date, 'end date', 'result'))
+
         return ((self.start_date, 'start date', 'area_vote'),
                 (self.area_vote_end_date, 'area vote end date', 'proposal'),
                 (self.proposal_end_date, 'proposal end date', 'prediction_statement'),
@@ -103,24 +114,19 @@ class Poll(BaseModel):
                        models.CheckConstraint(check=Q(vote_end_date__gte=F('delegate_vote_end_date')),
                                               name='voteenddategreaterthandelegatevoteenddate_check'),
                        models.CheckConstraint(check=Q(end_date__gte=F('vote_end_date')),
-                                              name='enddategreaterthanvoteenddate_check')]
+                                              name='enddategreaterthanvoteenddate_check'),
+
+                       models.CheckConstraint(check=~Q(Q(poll_type=3) & Q(dynamic=True)),
+                                              name='polltypeisscheduleanddynamic_check')]
 
     @property
     def current_phase(self) -> str:
         labels = self.labels
         current_time = timezone.now()
 
-        if not self.dynamic:
-            for x in reversed(range(len(labels))):
-                if current_time >= labels[x][0]:
-                    return labels[x][2]
-
-        else:
-            if current_time >= labels[-1][0]:  # Return dynamic_end if finished
-                return 'dynamic_end'
-
-            if current_time >= labels[0][0]:  # Return dynamic if running
-                return 'dynamic'
+        for x in reversed(range(len(labels))):
+            if current_time >= labels[x][0]:
+                return labels[x][2]
 
         return 'waiting'
 
@@ -128,6 +134,23 @@ class Poll(BaseModel):
         current_phase = self.current_phase
         if current_phase not in phases:
             raise ValidationError(f'Poll is not in {" or ".join(phases)}, currently in {current_phase}')
+
+    def post_save(cls, instance, created, update_fields, **kwargs):
+        if created and instance.poll_type == cls.PollType.SCHEDULE:
+            try:
+                schedule = create_schedule(name='group_poll_schedule', origin_name='group_poll', origin_id=instance.id)
+                schedule_poll = PollTypeSchedule(poll=instance, schedule=schedule)
+                schedule_poll.full_clean()
+                schedule_poll.save()
+
+            except Exception as e:
+                instance.delete()
+                raise Exception('Internal server error when creating poll' + f':\n{e}' if DEBUG else '')
+
+
+class PollTypeSchedule(BaseModel):
+    poll = models.OneToOneField(Poll, on_delete=models.CASCADE)
+    schedule = models.OneToOneField(Schedule, on_delete=models.CASCADE)
 
 
 class PollProposal(BaseModel):
@@ -141,8 +164,7 @@ class PollProposal(BaseModel):
 
 class PollProposalTypeSchedule(BaseModel):
     proposal = models.OneToOneField(PollProposal, on_delete=models.CASCADE)
-    start_date = models.DateTimeField()
-    end_date = models.DateTimeField()
+    event = models.OneToOneField(ScheduleEvent, on_delete=models.CASCADE)
 
 
 class PollVoting(BaseModel):
