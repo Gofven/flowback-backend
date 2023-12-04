@@ -51,12 +51,12 @@ class Poll(BaseModel):
 
     # Poll Phases
     start_date = models.DateTimeField()  # Poll Start
-    area_vote_end_date = models.DateTimeField()  # Area Selection Phase
-    proposal_end_date = models.DateTimeField()  # Proposal Phase~
-    prediction_statement_end_date = models.DateTimeField()  # Prediction Phase
-    prediction_bet_end_date = models.DateTimeField()  # Prediction Betting Phase
-    delegate_vote_end_date = models.DateTimeField()  # Delegate Voting Phase
-    vote_end_date = models.DateTimeField()  # Voting Phase
+    area_vote_end_date = models.DateTimeField(null=True, blank=True)  # Area Selection Phase
+    proposal_end_date = models.DateTimeField(null=True, blank=True)  # Proposal Phase
+    prediction_statement_end_date = models.DateTimeField(null=True, blank=True)  # Prediction Phase
+    prediction_bet_end_date = models.DateTimeField(null=True, blank=True)  # Prediction Betting Phase
+    delegate_vote_end_date = models.DateTimeField(null=True, blank=True)  # Delegate Voting Phase
+    vote_end_date = models.DateTimeField(null=True, blank=True)  # Voting Phase
     end_date = models.DateTimeField()  # Result Phase, Prediction Vote afterward indefinitely
 
     """
@@ -101,19 +101,26 @@ class Poll(BaseModel):
                 raise ValidationError(f'{labels[x][1].title()} is greater than {labels[x+1][1]}')
 
     class Meta:
-        constraints = [models.CheckConstraint(check=Q(area_vote_end_date__gte=F('start_date')),
+        constraints = [models.CheckConstraint(check=Q(Q(area_vote_end_date__isnull=True)
+                                                      | Q(area_vote_end_date__gte=F('start_date'))),
                                               name='areavoteenddategreaterthanstartdate_check'),
-                       models.CheckConstraint(check=Q(proposal_end_date__gte=F('area_vote_end_date')),
+                       models.CheckConstraint(check=Q(Q(proposal_end_date__isnull=True)
+                                                      | Q(proposal_end_date__gte=F('area_vote_end_date'))),
                                               name='proposalenddategreaterthanareavoteenddate_check'),
-                       models.CheckConstraint(check=Q(prediction_statement_end_date__gte=F('proposal_end_date')),
+                       models.CheckConstraint(check=Q(Q(prediction_statement_end_date__isnull=True)
+                                                      | Q(prediction_statement_end_date__gte=F('proposal_end_date'))),
                                               name='predictionstatementenddategreaterthanproposalenddate_check'),
-                       models.CheckConstraint(check=Q(prediction_bet_end_date__gte=F('prediction_statement_end_date')),
+                       models.CheckConstraint(check=Q(Q(prediction_bet_end_date__isnull=True)
+                                                      | Q(prediction_bet_end_date__gte=F('prediction_statement_end_date'))),
                                               name='predictionbetenddategreaterthanpredictionstatementeneddate_check'),
-                       models.CheckConstraint(check=Q(delegate_vote_end_date__gte=F('prediction_bet_end_date')),
+                       models.CheckConstraint(check=Q(Q(delegate_vote_end_date__isnull=True)
+                                                      | Q(delegate_vote_end_date__gte=F('prediction_bet_end_date'))),
                                               name='delegatevoteenddategreaterthanpredictionbetenddate_check'),
-                       models.CheckConstraint(check=Q(vote_end_date__gte=F('delegate_vote_end_date')),
+                       models.CheckConstraint(check=Q(Q(vote_end_date__isnull=True)
+                                                      | Q(vote_end_date__gte=F('delegate_vote_end_date'))),
                                               name='voteenddategreaterthandelegatevoteenddate_check'),
-                       models.CheckConstraint(check=Q(end_date__gte=F('vote_end_date')),
+                       models.CheckConstraint(check=Q(Q(end_date__isnull=True)
+                                                      | Q(end_date__gte=F('vote_end_date'))),
                                               name='enddategreaterthanvoteenddate_check'),
 
                        models.CheckConstraint(check=~Q(Q(poll_type=3) & Q(dynamic=True)),
