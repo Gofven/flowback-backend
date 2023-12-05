@@ -17,7 +17,7 @@ def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None
                                         group=poll.created_by.group.id,
                                         permissions=['allow_vote', 'admin'])
 
-    poll.check_phase('vote', 'dynamic')
+    poll.check_phase('vote', 'dynamic', 'schedule')
 
     if poll.poll_type == Poll.PollType.RANKING:
         if not data['votes']:
@@ -25,6 +25,7 @@ def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None
             return
 
         proposals = poll.pollproposal_set.filter(id__in=[x for x in data['votes']]).all()
+
         if len(proposals) != len(data['votes']):
             raise ValidationError('Not all proposals are available to vote for')
 
@@ -96,7 +97,7 @@ def poll_proposal_delegate_vote_update(*, user_id: int, poll_id: int, data) -> N
     if group_user.group.id != poll.created_by.group.id:
         raise ValidationError('Permission denied')
 
-    poll.check_phase('delegate_vote', 'dynamic')
+    poll.check_phase('delegate_vote', 'dynamic', 'schedule')
 
     if poll.poll_type == Poll.PollType.RANKING:
         if not data['votes']:
