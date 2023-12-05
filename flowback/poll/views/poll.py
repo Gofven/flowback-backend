@@ -62,6 +62,14 @@ class PollListApi(APIView):
         hide_poll_users = serializers.BooleanField(source='created_by.group.hide_poll_users')
         total_comments = serializers.IntegerField()
 
+        proposal_end_date = serializers.DateTimeField(required=False)
+        prediction_statement_end_date = serializers.DateTimeField(required=False)
+        area_vote_end_date = serializers.DateTimeField(required=False)
+        prediction_bet_end_date = serializers.DateTimeField(required=False)
+        delegate_vote_end_date = serializers.DateTimeField(required=False)
+        vote_end_date = serializers.DateTimeField(required=False)
+        end_date = serializers.DateTimeField(required=False)
+
         class Meta:
             model = Poll
             fields = ('id',
