@@ -127,6 +127,10 @@ class Poll(BaseModel):
                                               name='polltypeisscheduleanddynamic_check')]
 
     @property
+    def schedule_origin(self):
+        return 'group_poll'
+
+    @property
     def current_phase(self) -> str:
         labels = self.labels
         current_time = timezone.now()
