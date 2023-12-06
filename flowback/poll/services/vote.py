@@ -10,6 +10,8 @@ from flowback.group.selectors import group_user_permissions
 from flowback.group.services import group_schedule
 from django.utils import timezone
 
+from flowback.schedule.services import create_event
+
 
 def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None:
     poll = get_object(Poll, id=poll_id)
@@ -264,6 +266,17 @@ def poll_proposal_vote_count(*, poll_id: int) -> None:
                 poll.status = -1
 
             else:
+                winning_proposal = PollProposal.objects.filter(poll_id=poll_id).order_by('-score').first()
+                if winning_proposal:
+                    event = winning_proposal.pollproposaltypeschedule.event
+                    create_event(schedule_id=group.schedule_id,
+                                 title=poll.title,
+                                 start_date=event.start_date,
+                                 end_date=event.end_date,
+                                 origin_name=poll.schedule_origin,
+                                 origin_id=poll.id,
+                                 description=poll.description)
+
                 poll.status = 1
 
             poll.save()
