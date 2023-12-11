@@ -172,7 +172,7 @@ class GroupUserDelegatePool(BaseModel):
 
 
 class GroupUserDelegate(BaseModel):
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)  # TODO no need for two-way group references
     group_user = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     pool = models.ForeignKey(GroupUserDelegatePool, on_delete=models.CASCADE)
 
