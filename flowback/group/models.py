@@ -107,6 +107,9 @@ class GroupPermissions(BaseModel):
     force_delete_poll = models.BooleanField(default=False)
     force_delete_proposal = models.BooleanField(default=False)
     force_delete_comment = models.BooleanField(default=False)
+    create_kanban_task = models.BooleanField(default=True)
+    update_kanban_task = models.BooleanField(default=True)
+    delete_kanban_task = models.BooleanField(default=True)
 
 
 # Permission Tags for each group, and for user to put on delegators
