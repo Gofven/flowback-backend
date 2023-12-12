@@ -59,8 +59,12 @@ def poll_create(*, user_id: int,
                                        file=attachments,
                                        upload_to="group/poll/attachments")
 
-    if poll_type == Poll.PollType.SCHEDULE and not end_date:
-        raise ValidationError('Missing required parameter(s) for schedule poll')
+    if poll_type == Poll.PollType.SCHEDULE:
+        if not end_date:
+            raise ValidationError('Missing required parameter(s) for schedule poll')
+
+        elif not dynamic:
+            raise ValidationError('Schedule poll must be dynamic')
 
     elif not all([proposal_end_date,
                   prediction_statement_end_date,

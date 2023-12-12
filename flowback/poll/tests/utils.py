@@ -2,7 +2,7 @@ from django.utils import timezone
 
 
 # Generates kwargs for Poll to match the given phase
-def generate_poll_phase_kwargs(poll_start_phase: str):
+def generate_poll_phase_kwargs(poll_start_phase: str) -> dict:
     match poll_start_phase:
         case 'proposal':
             poll_offset_hours = 1

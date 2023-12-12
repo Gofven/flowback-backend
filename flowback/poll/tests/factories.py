@@ -29,7 +29,7 @@ class PollFactory(factory.django.DjangoModelFactory):
     title = factory.LazyAttribute(lambda _: faker.unique.first_name().lower())
     description = factory.LazyAttribute(lambda _: faker.bs())
     poll_type = factory.LazyAttribute(lambda _: faker.pyint(min_value=1, max_value=4))
-    dynamic = factory.LazyAttribute(lambda _: faker.pybool())
+    dynamic = factory.LazyAttribute(lambda _: True if factory.SelfAttribute('..polltype') == 3 else faker.pybool())
 
     start_date = factory.LazyAttribute(lambda _: timezone.now())
     area_vote_end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=1))

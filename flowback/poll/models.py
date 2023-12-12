@@ -123,7 +123,7 @@ class Poll(BaseModel):
                                                       | Q(end_date__gte=F('vote_end_date'))),
                                               name='enddategreaterthanvoteenddate_check'),
 
-                       models.CheckConstraint(check=~Q(Q(poll_type=3) & Q(dynamic=True)),
+                       models.CheckConstraint(check=~Q(Q(poll_type=3) & Q(dynamic=False)),
                                               name='polltypeisscheduleanddynamic_check')]
 
     @property
