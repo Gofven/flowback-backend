@@ -161,7 +161,8 @@ class Poll(BaseModel):
 
     @classmethod
     def post_delete(cls, instance, **kwargs):
-        instance.schedule.delete()
+        if hasattr(instance, 'schedule'):
+            instance.schedule.delete()
 
 
 post_save.connect(Poll.post_save, sender=Poll)
