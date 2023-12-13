@@ -109,7 +109,7 @@ def poll_update(*, user_id: int, poll_id: int, data) -> Poll:
     poll = get_object(Poll, id=poll_id)
     group_user = group_user_permissions(user=user_id, group=poll.created_by.group.id)
 
-    if not poll.created_by == group_user or not group_user.is_admin:
+    if not poll.created_by == group_user and not group_user.is_admin:
         raise ValidationError('Permission denied')
 
     if not group_user.is_admin and data.get('pinned', False):
@@ -163,7 +163,9 @@ def poll_delete(*, user_id: int, poll_id: int) -> None:
         case 'result':
             delete_notifications_after(poll.end_date)
 
-    poll.attachments.delete()
+    if poll.attachments:
+        poll.attachments.delete()
+
     poll.delete()
 
 
