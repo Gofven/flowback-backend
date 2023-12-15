@@ -44,7 +44,7 @@ def poll_proposal_create(*, user_id: int, poll_id: int,
                                   title=f"group_poll_{poll_id}_event",
                                   start_date=data['start_date'],
                                   end_date=data['end_date'],
-                                  origin_name='group_poll_proposal',
+                                  origin_name=PollProposal.schedule_origin,
                                   origin_id=proposal.id)
 
             event.full_clean()
