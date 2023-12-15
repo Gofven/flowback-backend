@@ -182,6 +182,10 @@ class PollProposal(BaseModel):
     description = models.TextField(null=True, blank=True)
     score = models.IntegerField(null=True, blank=True)
 
+    @property
+    def schedule_origin(self):
+        return 'group_poll_proposal'
+
 
 class PollProposalTypeSchedule(BaseModel):
     proposal = models.OneToOneField(PollProposal, on_delete=models.CASCADE)

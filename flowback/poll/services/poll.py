@@ -196,7 +196,7 @@ def poll_refresh(*, poll_id: int) -> None:
 def poll_refresh_cheap(*, poll_id: int) -> None:
     poll = get_object(Poll, id=poll_id)
 
-    if not poll.status or (poll.dynamic and not poll.status):
+    if (poll.dynamic and not poll.status) or (poll.status and timezone.now() >= poll.end_date):
         poll_proposal_vote_count(poll_id=poll_id)
         poll.refresh_from_db()
         poll.result = True
@@ -205,7 +205,7 @@ def poll_refresh_cheap(*, poll_id: int) -> None:
         if poll.poll_type == Poll.PollType.SCHEDULE:
             event = PollProposal.objects.filter(poll=poll).order_by('score')
             if event.exists():
-                event = event.first().pollproposaltypeschedule
+                event = event.first().pollproposaltypeschedule.event
                 group_schedule.create_event(schedule_id=poll.created_by.group.schedule_id,
                                             title=poll.title,
                                             start_date=event.start_date,

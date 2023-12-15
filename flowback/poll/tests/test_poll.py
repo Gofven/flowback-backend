@@ -1,8 +1,6 @@
 import json
-import random
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.utils import timezone
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
 from .factories import PollFactory
 
@@ -10,7 +8,6 @@ from .utils import generate_poll_phase_kwargs
 from ..models import Poll
 from ..views.poll import PollListApi, PollCreateAPI, PollUpdateAPI, PollDeleteAPI
 from ...files.tests.factories import FileSegmentFactory
-from ...group.models import GroupUser
 from ...group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
 from ...user.models import User
 
