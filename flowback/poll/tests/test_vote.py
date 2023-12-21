@@ -1,13 +1,38 @@
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
 from .factories import PollFactory, PollProposalFactory
 from .utils import generate_poll_phase_kwargs
-from ..models import PollDelegateVoting, PollVotingTypeCardinal
+from ..models import PollDelegateVoting, PollVotingTypeCardinal, Poll
 from ..views.vote import PollProposalDelegateVoteUpdateAPI
 from ...files.tests.factories import FileSegmentFactory
-from ...group.tests.factories import GroupFactory, GroupUserFactory, GroupUserDelegateFactory
+from ...group.tests.factories import GroupFactory, GroupUserFactory, GroupUserDelegateFactory, GroupTagsFactory
 
 
-class PollTest(APITransactionTestCase):
+class PollVoteTest(APITransactionTestCase):
+    reset_sequences = True
+
+    def setUp(self):
+        self.group = GroupFactory()
+        self.group_tag = GroupTagsFactory(group=self.group)
+        self.group_user_creator = GroupUserFactory(group=self.group, user=self.group.created_by)
+        (self.group_user_one,
+         self.group_user_two,
+         self.group_user_three) = GroupUserFactory.create_batch(3, group=self.group)
+        self.poll_schedule = PollFactory(created_by=self.group_user_one, poll_type=Poll.PollType.SCHEDULE,
+                                         **generate_poll_phase_kwargs('vote'))
+        self.poll_ranking = PollFactory(created_by=self.group_user_one, poll_type=Poll.PollType.RANKING,
+                                        **generate_poll_phase_kwargs('vote'))
+        self.group_users = [self.group_user_one, self.group_user_two, self.group_user_three]
+        (self.poll_schedule_proposal_one,
+         self.poll_schedule_proposal_two,
+         self.poll_schedule_proposal_three) = [PollProposalFactory(created_by=x,
+                                                                   poll=self.poll_schedule) for x in self.group_users]
+        (self.poll_ranking_proposal_one,
+         self.poll_ranking_proposal_two,
+         self.poll_ranking_proposal_three) = [PollProposalFactory(created_by=x,
+                                                                  poll=self.poll_ranking) for x in self.group_users]
+
+
+class PollDelegateVoteTest(APITransactionTestCase):
     reset_sequences = True
 
     def setUp(self):
