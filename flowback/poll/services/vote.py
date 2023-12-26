@@ -22,20 +22,20 @@ def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None
     poll.check_phase('vote', 'dynamic', 'schedule')
 
     if poll.poll_type == Poll.PollType.RANKING:
-        if not data['votes']:
+        if not data['proposals']:
             PollVoting.objects.filter(created_by=group_user, poll=poll).delete()
             return
 
-        proposals = poll.pollproposal_set.filter(id__in=[x for x in data['votes']]).all()
+        proposals = poll.pollproposal_set.filter(id__in=[x for x in data['proposals']]).all()
 
-        if len(proposals) != len(data['votes']):
+        if len(proposals) != len(data['proposals']):
             raise ValidationError('Not all proposals are available to vote for')
 
         poll_vote, created = PollVoting.objects.get_or_create(created_by=group_user, poll=poll)
         poll_vote_ranking = [PollVotingTypeRanking(author=poll_vote,
                                                    proposal_id=proposal,
-                                                   priority=len(data['votes']) - priority)
-                             for priority, proposal in enumerate(data['votes'])]
+                                                   priority=len(data['proposals']) - priority)
+                             for priority, proposal in enumerate(data['proposals'])]
         PollVotingTypeRanking.objects.filter(author=poll_vote).delete()
         PollVotingTypeRanking.objects.bulk_create(poll_vote_ranking)
 
@@ -69,20 +69,20 @@ def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None
         PollVotingTypeCardinal.objects.bulk_create(poll_vote_cardinal)
 
     elif poll.poll_type == Poll.PollType.SCHEDULE:
-        if not data['votes']:
+        if not data['proposals']:
             PollVoting.objects.filter(created_by=group_user, poll=poll).delete()
             return
 
-        proposals = poll.pollproposal_set.filter(id__in=data['votes']).all()
+        proposals = poll.pollproposal_set.filter(id__in=data['proposals']).all()
 
-        if len(proposals) != len(data['votes']):
+        if len(proposals) != len(data['proposals']):
             raise ValidationError('Not all proposals are available to vote for')
 
         poll_vote, created = PollVoting.objects.get_or_create(created_by=group_user, poll=poll)
         poll_vote_schedule = [PollVotingTypeForAgainst(author=poll_vote,
                                                        proposal_id=proposal,
                                                        vote=True)
-                              for proposal in data['votes']]
+                              for proposal in data['proposals']]
         PollVotingTypeForAgainst.objects.filter(author=poll_vote).delete()
         PollVotingTypeForAgainst.objects.bulk_create(poll_vote_schedule)
 
