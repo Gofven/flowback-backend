@@ -1,7 +1,8 @@
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
 from .factories import PollFactory, PollProposalFactory
 from .utils import generate_poll_phase_kwargs
-from ..models import PollDelegateVoting, PollVotingTypeCardinal, Poll, PollProposal, PollVoting
+from ..models import PollDelegateVoting, PollVotingTypeCardinal, Poll, PollProposal, PollVoting, \
+    PollVotingTypeForAgainst
 from ..services.vote import poll_proposal_vote_count
 from ..views.vote import (PollProposalDelegateVoteUpdateAPI,
                           PollProposalVoteUpdateAPI,
@@ -124,6 +125,46 @@ class PollVoteTest(APITransactionTestCase):
         request = factory.post('', data=data)
         force_authenticate(request, user)
         return view(request, poll=poll.id)
+
+    def test_vote_update_schedule(self):
+        user = self.group_user_one.user
+        proposals = [self.poll_schedule_proposal_three, self.poll_schedule_proposal_one]
+        response = self.schedule_vote_update(user, self.poll_schedule, proposals)
+
+        self.assertEqual(response.status_code, 200, response.data)
+
+        voting_account = PollVoting.objects.get(created_by=self.group_user_one)
+        for x in range(2):
+            self.assertEqual(PollVotingTypeForAgainst.objects.get(author=voting_account,
+                                                                  proposal_id=proposals[x].id).vote, True)
+
+    def test_vote_update_schedule_reset(self):
+        self.test_vote_update_schedule()
+        user = self.group_user_one.user
+        proposals = [self.poll_schedule_proposal_one,
+                     self.poll_schedule_proposal_two]
+        response = self.schedule_vote_update(user, self.poll_schedule, proposals)
+
+        self.assertEqual(response.status_code, 200, response.data)
+        voting_account = PollVoting.objects.get(created_by=self.group_user_one)
+
+        for x in range(2):
+            self.assertEqual(PollVotingTypeForAgainst.objects.get(author=voting_account,
+                                                                  proposal_id=proposals[x].id).vote, True)
+
+        # Check if previous vote successfully deleted
+        self.assertFalse(PollVotingTypeForAgainst.objects.filter(author=voting_account,
+                                                                 proposal_id=self.poll_schedule_proposal_three
+                                                                 ).exists())
+
+    def test_vote_update_schedule_duplicate(self):
+        user = self.group_user_one.user
+        proposals = [self.poll_schedule_proposal_three,
+                     self.poll_schedule_proposal_one,
+                     self.poll_schedule_proposal_one]
+        response = self.schedule_vote_update(user, self.poll_schedule, proposals)
+
+        self.assertEqual(response.status_code, 400)
 
     def test_vote_count_schedule(self):
         user = self.group_user_two.user
