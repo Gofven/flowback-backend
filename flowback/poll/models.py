@@ -76,6 +76,10 @@ class Poll(BaseModel):
     dynamic = models.BooleanField()
 
     @property
+    def finished(self):
+        return self.end_date <= timezone.now()
+
+    @property
     def labels(self) -> tuple:
         if self.dynamic:
             return ((self.start_date, 'start date', 'dynamic'),

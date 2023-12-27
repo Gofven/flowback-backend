@@ -143,6 +143,7 @@ class PollVoteTest(APITransactionTestCase):
 
         Poll.objects.filter(id=self.poll_schedule.id).update(**generate_poll_phase_kwargs('result'))
         poll_proposal_vote_count(poll_id=self.poll_schedule.id)
+        poll_proposal_vote_count(poll_id=self.poll_schedule.id)  # Test if duplicate event generates
 
         self.poll_schedule_proposal_one.refresh_from_db()
         self.poll_schedule_proposal_two.refresh_from_db()
@@ -151,6 +152,13 @@ class PollVoteTest(APITransactionTestCase):
         self.assertEqual(self.poll_schedule_proposal_one.score, 1)
         self.assertEqual(self.poll_schedule_proposal_two.score, 2)
         self.assertEqual(self.poll_schedule_proposal_three.score, 3)
+
+        event = self.poll_schedule.created_by.group.schedule.scheduleevent_set.get(
+                    origin_name=self.poll_schedule.schedule_origin,
+                    origin_id=self.poll_schedule.id)
+
+        self.assertEqual(event.start_date, self.poll_schedule_proposal_three.pollproposaltypeschedule.event.start_date)
+        self.assertEqual(event.end_date, self.poll_schedule_proposal_three.pollproposaltypeschedule.event.end_date)
 
 
 class PollDelegateVoteTest(APITransactionTestCase):

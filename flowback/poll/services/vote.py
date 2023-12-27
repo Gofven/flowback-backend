@@ -279,25 +279,23 @@ def poll_proposal_vote_count(*, poll_id: int) -> None:
             # PollProposal.objects.bulk_update(proposals, fields=('score',))
 
             poll.participants = (mandate + PollVoting.objects.filter(poll=poll).all().count()) or 1
-            total_group_users = GroupUser.objects.filter(group=group).count()
-            quorum = (poll.quorum if poll.quorum is not None else group.default_quorum) / 100
 
-            # Check if poll reaches quorum limits
-            if poll.participants < total_group_users * quorum:
-                poll.status = -1
+    total_group_users = GroupUser.objects.filter(group=group).count()
+    quorum = (poll.quorum if poll.quorum is not None else group.default_quorum) / 100
 
-            else:
-                winning_proposal = PollProposal.objects.filter(poll_id=poll_id).order_by('-score').first()
-                if winning_proposal:
-                    event = winning_proposal.pollproposaltypeschedule.event
-                    create_event(schedule_id=group.schedule_id,
-                                 title=poll.title,
-                                 start_date=event.start_date,
-                                 end_date=event.end_date,
-                                 origin_name=poll.schedule_origin,
-                                 origin_id=poll.id,
-                                 description=poll.description)
+    if poll.finished and not poll.result:
+        if poll.poll_type == Poll.PollType.SCHEDULE:
+            winning_proposal = PollProposal.objects.filter(poll_id=poll_id).order_by('-score').first()
+            if winning_proposal:
+                event = winning_proposal.pollproposaltypeschedule.event
+                create_event(schedule_id=group.schedule_id,
+                             title=poll.title,
+                             start_date=event.start_date,
+                             end_date=event.end_date,
+                             origin_name=poll.schedule_origin,
+                             origin_id=poll.id,
+                             description=poll.description)
 
-                poll.status = 1
-
-            poll.save()
+        poll.status = 1 if poll.participants > total_group_users * quorum else -1
+        poll.result = True
+        poll.save()
