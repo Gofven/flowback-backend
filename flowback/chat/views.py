@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .selectors import message_list, message_channel_preview_list
-from .serializers import MessageSerializer
+from .serializers import MessageSerializer, BasicMessageSerializer
 from .services import update_message_channel_userdata, leave_message_channel, upload_message_files
 from flowback.common.pagination import get_paginated_response, LimitOffsetPagination
 
@@ -51,7 +51,7 @@ class MessageChannelPreviewAPI(APIView):
         created_at__lte = serializers.DateTimeField(required=False)
         channel_id = serializers.IntegerField(required=False)
 
-    class OutputSerializer(MessageSerializer):
+    class OutputSerializer(BasicMessageSerializer):
         timestamp = serializers.DateTimeField()
 
     def get(self, request):

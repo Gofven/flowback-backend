@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from flowback.user.serializers import BasicUserSerializer
+from flowback.files.serializers import FileSerializer
 
 
 class _MessageSerializerTemplate(serializers.Serializer):
@@ -8,7 +9,7 @@ class _MessageSerializerTemplate(serializers.Serializer):
     user = BasicUserSerializer()
     channel_id = serializers.IntegerField()
     message = serializers.CharField()
-    attachments = serializers.ListField(child=serializers.CharField())
+    attachments = FileSerializer(many=True, source='attachments.file_collection.filesegment_set', allow_null=True)
 
 
 class BasicMessageSerializer(_MessageSerializerTemplate):

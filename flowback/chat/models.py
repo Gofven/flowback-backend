@@ -25,7 +25,7 @@ class MessageChannelParticipant(BaseModel):
 class MessageFileCollection(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     channel = models.ForeignKey(MessageChannel, on_delete=models.CASCADE)
-    file_collection = models.ForeignKey(FileCollection)
+    file_collection = models.ForeignKey(FileCollection, on_delete=models.CASCADE)
 
     @property
     def attachments_upload_to(self):

@@ -68,9 +68,10 @@ def delete_message(*, user_id: int, message_id: int):
 def upload_message_files(*, user_id: int, channel_id: int, files: list) -> MessageFileCollection:
     user = get_object(User, user=user_id)
     channel = get_object(MessageChannel, id=channel_id)
+    upload_to = f"{MessageFileCollection.attachments_upload_to}/{channel.origin_name}"
 
     file_collection = upload_collection(user_id=user_id, file=files,
-                                        upload_to=MessageFileCollection.attachments_upload_to)
+                                        upload_to=upload_to)
 
     message_collection = MessageFileCollection(user=user, channel=channel, file_collection=file_collection)
     message_collection.full_clean()
