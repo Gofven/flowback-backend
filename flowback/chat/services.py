@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 
 from flowback.chat.models import MessageChannel, Message, MessageChannelParticipant, MessageFileCollection
 from flowback.common.services import get_object, model_update
+from flowback.files.models import FileCollection
 from flowback.files.services import upload_collection
 from flowback.user.models import User
 
@@ -12,8 +13,7 @@ def create_message(*,
                    user_id: int,
                    channel_id: int,
                    message: str,
-                   upload_to: str,
-                   attachments: list = None,
+                   attachments_id: int = None,
                    parent_id: int = None):
     user = get_object(User, user=user_id)
     channel = get_object(MessageChannel, channel=channel_id)
@@ -22,14 +22,16 @@ def create_message(*,
     if parent and parent.channel.id != channel_id:
         raise ValidationError('Parent does not exist')
 
-    attachments = upload_collection(user_id=user_id,
-                                    file=attachments,
-                                    upload_to=upload_to)
+    if attachments_id:
+        attachments = get_object(MessageFileCollection, id=attachments_id)
+
+        if attachments.created_by != user and attachments.channel_id != channel_id:
+            raise ValidationError("Unauthorized usage of Attachments")
 
     message = Message(user=user,
                       channel=channel,
                       message=message,
-                      attachments=attachments,
+                      attachments_id=attachments_id,
                       parent=parent)
 
     message.full_clean()
