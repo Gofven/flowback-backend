@@ -19,6 +19,10 @@ def create_message(*,
     channel = get_object(MessageChannel, channel=channel_id)
     parent = get_object(Message, id=parent_id, raise_exception=False)
 
+    # Check whether user is a participant or not
+    get_object(MessageChannelParticipant, user=user, channel=channel,
+               error_message="User is not participating in this channel")
+
     if parent and parent.channel.id != channel_id:
         raise ValidationError('Parent does not exist')
 
@@ -41,7 +45,6 @@ def create_message(*,
 
 
 def update_message(*, user_id: int, message_id: int, **data):
-
     user = get_object(User, user=user_id)
     message = get_object(Message, id=message_id)
 
@@ -82,20 +85,41 @@ def upload_message_files(*, user_id: int, channel_id: int, files: list) -> Messa
     return message_collection
 
 
-def update_message_channel_userdata(*, user_id: int, channel_id: int, timestamp: datetime):
+def update_message_channel_userdata(*, user_id: int, channel_id: int, **data):
     user = get_object(User, user=user_id)
     channel = get_object(MessageChannel, id=channel_id)
 
-    if not channel.message_set.filter(user=user).exists():
-        raise ValidationError('User never sent message in channel')
+    participant = get_object(MessageChannelParticipant, user=user, channel=channel)
+    response = model_update(instance=participant,
+                            fields=['timestamp', 'closed_at'],
+                            data=data)
 
-    user_data = MessageChannelParticipant.objects.get_or_create(user=user, channel=channel, timestamp=timestamp)
+    return response[1]
 
-    if not user_data[1]:
-        user_data[0].timestamp = timestamp
-        user_data[0].save()
 
-    return user_data[0]
+def create_message_channel(*, origin_name: str, title: str = None):
+    channel = MessageChannel(origin_name=origin_name, title=title)
+    channel.full_clean()
+    channel.save()
+
+    return channel
+
+
+def delete_message_channel(*, channel_id: int):
+    channel = get_object(MessageChannel, id=channel_id)
+    channel.delete()
+
+
+def join_message_channel(*, user_id: int, channel_id: int):
+    user = get_object(User, user=user_id)
+    channel = get_object(MessageChannel, id=channel_id)
+
+    participant = MessageChannelParticipant(user=user,
+                                            channel=channel)
+    participant.full_clean()
+    participant.save()
+
+    return participant
 
 
 def leave_message_channel(*, user_id: int, channel_id: int):

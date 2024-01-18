@@ -1,4 +1,4 @@
-from django.db.models import Q, OuterRef, Subquery
+from django.db.models import Q, OuterRef, Subquery, Case, When
 import django_filters
 
 from .models import MessageChannel, Message, MessageChannelParticipant
@@ -46,8 +46,13 @@ def message_channel_preview_list(*, user: User, origin_name: str, filters):
     filters = filters or {}
 
     timestamp = MessageChannelParticipant.objects.filter(user=user, channel=OuterRef('channel')).values('timestamp')
+    active = MessageChannelParticipant.objects.filter(user=user, channel=OuterRef('channel')).annotate(
+        active=Case(When(closed_at__isnull=True, then=True),
+                    When(closed_at__gt=OuterRef('created_at'), then=False),
+                    default=True)).values('active')
     qs = Message.objects.filter(Q(channel__messagechannelparticipant__user=user) & Q(channel__origin_name=origin_name)
-                                ).annotate(timestamp=Subquery(timestamp)).distinct('channel').all()
+                                ).annotate(timestamp=Subquery(timestamp), active=Subquery(active)
+                                           ).filter(active=True).distinct('channel').all()
 
     return BaseMessageChannelPreviewFilter(filters, qs).qs
 

@@ -9,14 +9,15 @@ from flowback.group.models import GroupUser
 
 
 class MessageChannel(BaseModel):
-    title = models.CharField(max_length=255)
     origin_name = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, null=True, blank=True)
 
 
 class MessageChannelParticipant(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     channel = models.ForeignKey(MessageChannel, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField()
+    closed_at = models.DateTimeField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('user', 'channel')

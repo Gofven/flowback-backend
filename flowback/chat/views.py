@@ -52,7 +52,7 @@ class MessageChannelPreviewAPI(APIView):
         channel_id = serializers.IntegerField(required=False)
 
     class OutputSerializer(BasicMessageSerializer):
-        timestamp = serializers.DateTimeField()
+        timestamp = serializers.DateTimeField(allow_null=True)
 
     def get(self, request):
         serializer = self.FilterSerializer(data=request.data)
@@ -87,7 +87,8 @@ class MessageFileCollectionUploadAPI(APIView):
 class MessageChannelUserDataUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         channel_id = serializers.IntegerField()
-        timestamp = serializers.DateTimeField()
+        timestamp = serializers.DateTimeField(required=False)
+        closed_at = serializers.DateTimeField(required=False)
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
