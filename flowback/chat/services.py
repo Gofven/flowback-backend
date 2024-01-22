@@ -9,7 +9,7 @@ from flowback.files.services import upload_collection
 from flowback.user.models import User
 
 
-def create_message(*,
+def message_create(*,
                    user_id: int,
                    channel_id: int,
                    message: str,
@@ -44,7 +44,7 @@ def create_message(*,
     return message
 
 
-def update_message(*, user_id: int, message_id: int, **data):
+def message_update(*, user_id: int, message_id: int, **data):
     user = get_object(User, user=user_id)
     message = get_object(Message, id=message_id)
 
@@ -58,7 +58,7 @@ def update_message(*, user_id: int, message_id: int, **data):
                  data=data)
 
 
-def delete_message(*, user_id: int, message_id: int):
+def message_delete(*, user_id: int, message_id: int):
     user = get_object(User, user=user_id)
     message = get_object(Message, id=message_id)
 
@@ -70,9 +70,10 @@ def delete_message(*, user_id: int, message_id: int):
     message.save()
 
 
-def upload_message_files(*, user_id: int, channel_id: int, files: list) -> MessageFileCollection:
+def message_files_upload(*, user_id: int, channel_id: int, files: list) -> MessageFileCollection:
     user = get_object(User, user=user_id)
     channel = get_object(MessageChannel, id=channel_id)
+    get_object(MessageChannelParticipant, user=user, channel=channel)
     upload_to = f"{MessageFileCollection.attachments_upload_to}/{channel.origin_name}"
 
     file_collection = upload_collection(user_id=user_id, file=files,
@@ -85,7 +86,7 @@ def upload_message_files(*, user_id: int, channel_id: int, files: list) -> Messa
     return message_collection
 
 
-def update_message_channel_userdata(*, user_id: int, channel_id: int, **data):
+def message_channel_userdata_update(*, user_id: int, channel_id: int, **data):
     user = get_object(User, user=user_id)
     channel = get_object(MessageChannel, id=channel_id)
 
@@ -97,7 +98,7 @@ def update_message_channel_userdata(*, user_id: int, channel_id: int, **data):
     return response[1]
 
 
-def create_message_channel(*, origin_name: str, title: str = None):
+def message_channel_create(*, origin_name: str, title: str = None):
     channel = MessageChannel(origin_name=origin_name, title=title)
     channel.full_clean()
     channel.save()
@@ -105,12 +106,12 @@ def create_message_channel(*, origin_name: str, title: str = None):
     return channel
 
 
-def delete_message_channel(*, channel_id: int):
+def message_channel_delete(*, channel_id: int):
     channel = get_object(MessageChannel, id=channel_id)
     channel.delete()
 
 
-def join_message_channel(*, user_id: int, channel_id: int):
+def message_channel_join(*, user_id: int, channel_id: int):
     user = get_object(User, user=user_id)
     channel = get_object(MessageChannel, id=channel_id)
 

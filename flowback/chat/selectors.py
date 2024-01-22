@@ -37,12 +37,13 @@ class BaseMessageChannelPreviewFilter(django_filters.FilterSet):
     class Meta:
         model = Message
         fields = dict(id=['exact'],
+                      origin_name=['exact'],
                       user_id=['exact'],
                       created_at=['gte', 'lte'],
                       channel_id=['exact'])
 
 
-def message_channel_preview_list(*, user: User, origin_name: str, filters):
+def message_channel_preview_list(*, user: User, filters):
     filters = filters or {}
 
     timestamp = MessageChannelParticipant.objects.filter(user=user, channel=OuterRef('channel')).values('timestamp')

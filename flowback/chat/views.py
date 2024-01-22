@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 
 from .selectors import message_list, message_channel_preview_list
 from .serializers import MessageSerializer, BasicMessageSerializer
-from .services import update_message_channel_userdata, leave_message_channel, upload_message_files
+from .services import message_channel_userdata_update, leave_message_channel, message_files_upload
 from flowback.common.pagination import get_paginated_response, LimitOffsetPagination
 
 
@@ -44,6 +44,7 @@ class MessageChannelPreviewAPI(APIView):
 
     class FilterSerializer(serializers.Serializer):
         order_by = serializers.ChoiceField(required=False, choices=['timestamp_asc', 'timestamp_desc'])
+        origin_name = serializers.CharField(required=False)
         username__icontains = serializers.CharField(required=False)
         id = serializers.IntegerField(required=False)
         user_id = serializers.IntegerField(required=False)
@@ -58,8 +59,7 @@ class MessageChannelPreviewAPI(APIView):
         serializer = self.FilterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        messages = message_channel_preview_list(user=request.user, origin_name='messages',
-                                                filters=serializer.validated_data)
+        messages = message_channel_preview_list(user=request.user, filters=serializer.validated_data)
 
         return get_paginated_response(pagination_class=self.Pagination,
                                       serializer_class=self.OutputSerializer,
@@ -80,7 +80,7 @@ class MessageFileCollectionUploadAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        file_collection = upload_message_files(user_id=request.user.id, **serializer.validated_data)
+        file_collection = message_files_upload(user_id=request.user.id, **serializer.validated_data)
         return Response(status=status.HTTP_201_CREATED, data=self.OutputSerializer(file_collection).data)
 
 
@@ -94,7 +94,7 @@ class MessageChannelUserDataUpdateAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        update_message_channel_userdata(user_id=request.user.id, **serializer.validated_data)
+        message_channel_userdata_update(user_id=request.user.id, **serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
 

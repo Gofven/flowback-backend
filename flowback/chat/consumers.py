@@ -9,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from flowback.chat.models import MessageChannelParticipant
-from flowback.chat.services import create_message
+from flowback.chat.services import message_create
 from flowback.common.services import get_object
 from flowback.user.models import User
 from flowback.group.models import Group
@@ -75,11 +75,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def create_message(self, *, user_id: int, channel_id: int, message: str, attachments_id: int, parent_id: int):
         try:
-            message = create_message(user_id=user_id,
-                                     channel_id=channel_id,
-                                     message=message,
-                                     attachments_id=attachments_id,
-                                     parent_id=parent_id)
+            message = message_create(user_id=user_id, channel_id=channel_id, message=message,
+                                     attachments_id=attachments_id, parent_id=parent_id)
 
         except ValidationError as e:
             return e.detail
