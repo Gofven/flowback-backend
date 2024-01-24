@@ -70,17 +70,17 @@ class MessageChannelPreviewAPI(APIView):
 
 class MessageFileCollectionUploadAPI(APIView):
     class InputSerializer(serializers.Serializer):
-        channel_id = serializers.IntegerField()
         files = serializers.ListField(child=serializers.FileField())
 
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
 
-    def post(self, request):
+    def post(self, request, channel_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        file_collection = message_files_upload(user_id=request.user.id, **serializer.validated_data)
+        file_collection = message_files_upload(user_id=request.user.id, channel_id=channel_id,
+                                               **serializer.validated_data)
         return Response(status=status.HTTP_201_CREATED, data=self.OutputSerializer(file_collection).data)
 
 
@@ -99,7 +99,7 @@ class MessageChannelUserDataUpdateAPI(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class MessageChannelLeave(APIView):
+class MessageChannelLeaveAPI(APIView):
     class InputSerializer(serializers.Serializer):
         channel_id = serializers.IntegerField()
 

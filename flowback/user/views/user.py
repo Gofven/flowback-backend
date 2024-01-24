@@ -143,7 +143,7 @@ class UserDeleteAPI(APIView):
 
 
 class UserGetChatChannelAPI(APIView):
-    class OutputSerializer(serializers.ModelSerializer):
+    class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
 
     def get(self, request, target_user_id: int):
