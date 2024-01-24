@@ -1,11 +1,8 @@
 from django.db import models
-from django.core.exceptions import ValidationError
-import pgtrigger
 
 from flowback.common.models import BaseModel
 from flowback.files.models import FileCollection
 from flowback.user.models import User
-from flowback.group.models import GroupUser
 
 
 class MessageChannel(BaseModel):
@@ -38,5 +35,5 @@ class Message(BaseModel):
     channel = models.ForeignKey(MessageChannel, on_delete=models.CASCADE)
     message = models.TextField(max_length=2000)
     attachments = models.ForeignKey(MessageFileCollection, on_delete=models.SET_NULL, null=True, blank=True)
-    parent = models.ForeignKey('self', on_delete=models.SET_NULL)
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='message_parent')
     active = models.BooleanField(default=True)
