@@ -196,7 +196,7 @@ def user_kanban_entry_delete(*, user_id: int, entry_id: int):
                                            entry_id=entry_id)
 
 
-def user_get_message_channel(user_id: int, target_user_id: int):
+def user_get_chat_channel(user_id: int, target_user_id: int):
     user = get_object(User, id=user_id)
     target_user = get_object(User, id=target_user_id)
 
