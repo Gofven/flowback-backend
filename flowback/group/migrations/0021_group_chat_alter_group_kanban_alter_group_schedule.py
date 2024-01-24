@@ -25,10 +25,14 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='group',
             name='chat',
-            field=models.ForeignKey(default=1, on_delete=django.db.models.deletion.PROTECT, to='chat.messagechannel'),
-            preserve_default=False,
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='chat.messagechannel')
         ),
         migrations.RunPython(create_group_chat),
+        migrations.AlterField(
+            model_name='group',
+            name='chat',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='chat.messagechannel')
+        ),
         migrations.AlterField(
             model_name='group',
             name='kanban',
