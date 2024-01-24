@@ -33,11 +33,11 @@ class BaseMessageChannelPreviewFilter(django_filters.FilterSet):
                                                      ('-timestamp', 'timestamp_desc')))
 
     username__icontains = django_filters.CharFilter(field_name='target__username', lookup_expr='icontains')
+    origin_name = django_filters.CharFilter(field_name='channel__origin_name', lookup_expr='exact')
 
     class Meta:
         model = Message
         fields = dict(id=['exact'],
-                      origin_name=['exact'],
                       user_id=['exact'],
                       created_at=['gte', 'lte'],
                       channel_id=['exact'])
