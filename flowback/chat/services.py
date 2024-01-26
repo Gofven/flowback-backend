@@ -132,9 +132,7 @@ def leave_message_channel(*, user_id: int, channel_id: int):
     participant.delete()
 
 
-def message_channel_topic_create(*, channel_id: int, topic_name: str):
-    channel = get_object(MessageChannel, id=channel_id)
-
+def message_channel_topic_create(*, topic_name: str):
     topic = MessageChannelTopic(name=topic_name)
     topic.full_clean()
     topic.save()
