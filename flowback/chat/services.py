@@ -140,5 +140,5 @@ def message_channel_topic_create(*, channel_id: int, topic_name: str):
 
 
 def message_channel_topic_delete(*, channel_id: int, topic_id: int):
-    topic = get_object(channel_id=channel_id, id=topic_id)
+    topic = get_object(MessageChannel, channel_id=channel_id, id=topic_id)
     topic.delete()
