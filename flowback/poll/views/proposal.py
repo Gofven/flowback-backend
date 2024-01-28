@@ -11,6 +11,8 @@ from flowback.poll.models import Poll, PollProposal
 from ..selectors.proposal import poll_proposal_list
 from ..services.poll import poll_refresh_cheap
 from ..services.proposal import poll_proposal_create, poll_proposal_delete
+from ...files.serializers import FileSerializer
+from ...group.serializers import GroupUserSerializer
 
 
 # TODO check alternative solution for schedule
@@ -29,32 +31,22 @@ class PollProposalListAPI(APIView):
         start_date = serializers.DateTimeField(required=False)
         end_date = serializers.DateTimeField(required=False)
 
-    class OutputSerializer(serializers.ModelSerializer):
-        class Meta:
-            model = PollProposal
-            fields = ('id',
-                      'created_by',
-                      'poll',
-                      'title',
-                      'description',
-                      'score')
+    class OutputSerializer(serializers.Serializer):
+        id = serializers.IntegerField()
+        created_by = GroupUserSerializer()
+        poll = serializers.IntegerField(source='poll_id')
+        title = serializers.CharField()
+        description = serializers.CharField()
+        attachments = FileSerializer(many=True, source="attachments.filesegment_set", allow_null=True)
+        score = serializers.IntegerField()
 
     class OutputSerializerTypeSchedule(OutputSerializer):
-        start_date = serializers.DateTimeField(source='pollproposaltypeschedule.start_date')
-        end_date = serializers.DateTimeField(source='pollproposaltypeschedule.end_date')
-
-        class Meta:
-            model = PollProposal
-            fields = ('id',
-                      'created_by',
-                      'poll',
-                      'score',
-                      'start_date',
-                      'end_date')
+        start_date = serializers.DateTimeField(source='pollproposaltypeschedule.event.start_date')
+        end_date = serializers.DateTimeField(source='pollproposaltypeschedule.event.end_date')
 
     def get(self, request, poll: int = None):
         poll = get_object(Poll, id=poll)
-        if poll.poll_type == Poll.PollType.RANKING:
+        if poll.poll_type != Poll.PollType.SCHEDULE:
             filter_serializer = self.FilterSerializer(data=request.query_params)
             output_serializer = self.OutputSerializer
 
@@ -79,13 +71,16 @@ class PollProposalListAPI(APIView):
 @extend_schema(tags=['poll'])
 class PollProposalCreateAPI(APIView):
     class InputSerializerDefault(serializers.ModelSerializer):
+        attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
+
         class Meta:
             model = PollProposal
-            fields = ('title', 'description')
+            fields = ('title', 'description', 'attachments')
 
     class InputSerializerSchedule(serializers.ModelSerializer):
         start_date = serializers.DateTimeField()
         end_date = serializers.DateTimeField()
+        attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
         def validate(self, data):
             if data.get('start_date') >= data.get('end_date'):
@@ -95,7 +90,7 @@ class PollProposalCreateAPI(APIView):
 
         class Meta:
             model = PollProposal
-            fields = ('title', 'description', 'start_date', 'end_date')
+            fields = ('title', 'description', 'attachments', 'start_date', 'end_date')
 
     def post(self, request, poll: int):
         poll = get_object(Poll, id=poll)

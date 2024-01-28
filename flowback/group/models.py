@@ -1,9 +1,13 @@
 import uuid
 
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
+from django.forms import model_to_dict
+from rest_framework.exceptions import ValidationError
 
 from backend.settings import FLOWBACK_DEFAULT_GROUP_JOIN
+from flowback.chat.models import MessageChannel
+from flowback.chat.services import message_channel_create
 from flowback.comment.models import CommentSection
 from flowback.comment.services import comment_section_create
 from flowback.common.models import BaseModel
@@ -17,6 +21,13 @@ from django.db import models
 
 
 # Create your models here.
+class GroupFolder(BaseModel):
+    name = models.CharField(max_length=255)
+
+    def __str__(self) -> str:
+        return f'{self.id} - {self.name}'
+
+
 class Group(BaseModel):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
@@ -40,10 +51,16 @@ class Group(BaseModel):
     cover_image = models.ImageField(upload_to='group/cover_image', null=True, blank=True)
     hide_poll_users = models.BooleanField(default=False)  # Hides users in polls, TODO remove bool from views
     default_quorum = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
-    schedule = models.ForeignKey(Schedule, null=True, blank=True, on_delete=models.SET_NULL)
-    kanban = models.ForeignKey(Kanban, null=True, blank=True, on_delete=models.SET_NULL)
+    schedule = models.ForeignKey(Schedule, null=True, blank=True, on_delete=models.PROTECT)
+    kanban = models.ForeignKey(Kanban, null=True, blank=True, on_delete=models.PROTECT)
+    chat = models.ForeignKey(MessageChannel, on_delete=models.PROTECT)
+    group_folder = models.ForeignKey(GroupFolder, null=True, blank=True, on_delete=models.SET_NULL)
 
     jitsi_room = models.UUIDField(unique=True, default=uuid.uuid4)
+
+    @classmethod
+    def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):
+        instance.chat = message_channel_create(origin_name='group')
 
     @classmethod
     def post_save(cls, instance, created, update_fields, *args, **kwargs):
@@ -51,7 +68,6 @@ class Group(BaseModel):
             instance.schedule = create_schedule(name=instance.name, origin_name='group', origin_id=instance.id)
             instance.kanban = kanban_create(name=instance.name, origin_type='group', origin_id=instance.id)
             instance.save()
-            return
 
         if update_fields:
             if not all(isinstance(field, str) for field in update_fields):
@@ -76,8 +92,10 @@ class Group(BaseModel):
     def post_delete(cls, instance, *args, **kwargs):
         instance.schedule.delete()
         instance.kanban.delete()
+        instance.chat.delete()
 
 
+pre_save.connect(Group.pre_save, sender=Group)
 post_save.connect(Group.post_save, sender=Group)
 post_save.connect(Group.user_post_save, sender=User)
 post_delete.connect(Group.post_delete, sender=Group)
@@ -99,6 +117,13 @@ class GroupPermissions(BaseModel):
     force_delete_poll = models.BooleanField(default=False)
     force_delete_proposal = models.BooleanField(default=False)
     force_delete_comment = models.BooleanField(default=False)
+    create_kanban_task = models.BooleanField(default=True)
+    update_kanban_task = models.BooleanField(default=True)
+    delete_kanban_task = models.BooleanField(default=True)
+
+    @staticmethod
+    def negate_field_perms():
+        return ['id', 'created_at', 'updated_at', 'role_name', 'author']
 
 
 # Permission Tags for each group, and for user to put on delegators
@@ -117,6 +142,33 @@ class GroupUser(BaseModel):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     is_admin = models.BooleanField(default=False)
     permission = models.ForeignKey(GroupPermissions, null=True, blank=True, on_delete=models.SET_NULL)
+    active = models.BooleanField(default=True)
+
+    def check_permission(self, raise_exception: bool = False, **permissions):
+        if self.permission:
+            user_permissions = model_to_dict(self.permission)
+        else:
+            if self.group.default_permission:
+                user_permissions = model_to_dict(self.group.default_permission)
+            else:
+                fields = [field for field in GroupPermissions._meta.get_fields() if not (field.auto_created
+                          or field.name in GroupPermissions.negate_field_perms())]
+                user_permissions = {field.name: field.default for field in fields}
+
+        def validate_perms():
+            for perm, val in permissions.items():
+                if user_permissions.get(perm) != val:
+                    yield f"{perm} must be {val}"
+
+        failed_permissions = list(validate_perms())
+        if failed_permissions:
+            if not raise_exception:
+                return False
+
+            raise ValidationError("Unmatched permissions: ", ", ".join(failed_permissions))
+
+        return True
+
 
     @classmethod
     # Updates Schedule name
@@ -143,6 +195,7 @@ post_delete.connect(GroupUser.post_delete, sender=GroupUser)
 class GroupThread(BaseModel):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
+    pinned = models.BooleanField(default=False)
     comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.DO_NOTHING)
     active = models.BooleanField(default=True)
 
@@ -162,7 +215,7 @@ class GroupUserDelegatePool(BaseModel):
 
 
 class GroupUserDelegate(BaseModel):
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)  # TODO no need for two-way group references
     group_user = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     pool = models.ForeignKey(GroupUserDelegatePool, on_delete=models.CASCADE)
 

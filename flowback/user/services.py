@@ -1,3 +1,5 @@
+import uuid
+
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -7,6 +9,8 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from backend.settings import DEFAULT_FROM_EMAIL, FLOWBACK_URL
+from flowback.chat.models import MessageChannel
+from flowback.chat.services import message_channel_create, message_channel_join
 from flowback.common.services import model_update, get_object
 from flowback.kanban.services import KanbanManager
 from flowback.schedule.models import ScheduleEvent
@@ -107,6 +111,26 @@ def user_update(*, user: User, data) -> User:
     return user
 
 
+def user_delete(*, user_id: int) -> None:
+    user = get_object(User, id=user_id)
+
+    if user.is_active:
+        user.is_active = False
+        user.username = 'deleted_user_' + uuid.uuid4().hex
+        user.email = user.username + '@example.com'
+        user.profile_image = None
+        user.banner_image = None
+        user.email_notifications = False
+        user.bio = None
+        user.website = None
+
+        user.full_clean()
+        user.save()
+
+        user.schedule.delete()
+        user.kanban.delete()
+
+
 def user_schedule_event_create(*,
                                user_id: int,
                                title: str,
@@ -170,3 +194,20 @@ def user_kanban_entry_update(*, user_id: int, entry_id: int, data):
 def user_kanban_entry_delete(*, user_id: int, entry_id: int):
     return user_kanban.kanban_entry_delete(origin_id=user_id,
                                            entry_id=entry_id)
+
+
+def user_get_chat_channel(user_id: int, target_user_id: int):
+    user = get_object(User, id=user_id)
+    target_user = get_object(User, id=target_user_id)
+
+    try:
+        channel = MessageChannel.objects.filter(Q(messagechannelparticipant__user=user)
+                                                & Q(messagechannelparticipant__user=target_user),
+                                                origin_name=User.message_channel_origin)
+
+    except MessageChannel.DoesNotExist:
+        channel = message_channel_create(origin_name=user.message_channel_origin)
+        message_channel_join(user_id=user_id, channel_id=channel.id)
+        message_channel_join(user_id=target_user_id, channel_id=channel.id)
+
+    return channel

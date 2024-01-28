@@ -147,11 +147,19 @@ def group_join(*, user: int, group: int) -> Union[GroupUser, GroupUserInvite]:
         group_notification.create(sender_id=group.id, action=group_notification.Action.update,
                                   category='invite', message=f'User {user.username} requested to join {group.name}')
 
-    else:
-        user_status = GroupUser(user=user, group=group)
+        user_status.full_clean()
+        user_status.save()
 
-    user_status.full_clean()
-    user_status.save()
+    else:
+        try:
+            user_status = GroupUser.objects.get(user=user, group=group)
+            user_status.active = True
+            user_status.save()
+        except GroupUser.DoesNotExist:
+            user_status = GroupUser(user=user, group=group)
+            user_status.full_clean()
+            user_status.save()
+
     group_notification.create(sender_id=group.id, action=group_notification.Action.create,
                               category='members', message=f'User {user.username} joined the group {group.name}')
 
@@ -178,9 +186,10 @@ def group_leave(*, user: int, group: int) -> None:
     user = group_user_permissions(group=group, user=user)
 
     if user.user.id == user.group.created_by:
-        raise ValidationError("Creators aren't allowed to leave, deleting the group is an option")
+        raise ValidationError("Group owner isn't allowed to leave, deleting the group is an option")
 
-    user.delete()
+    user.active = False
+    user.save()
 
     group_notification.create(sender_id=group, action=group_notification.Action.create,
                               category='members', message=f'User {user.user.username} left the group {user.group.name}')
@@ -412,7 +421,7 @@ def group_kanban_entry_create(*,
                               tag: int,
                               end_date: timezone.datetime = None
                               ) -> KanbanEntry:
-    group_user_permissions(group=group_id, user=fetched_by_id)
+    group_user_permissions(group=group_id, user=fetched_by_id, permissions=['admin', 'create_kanban_task'])
     return group_kanban.kanban_entry_create(origin_id=group_id,
                                             created_by_id=fetched_by_id,
                                             assignee_id=assignee_id,
@@ -428,7 +437,7 @@ def group_kanban_entry_update(*,
                               group_id: int,
                               entry_id: int,
                               data) -> KanbanEntry:
-    group_user_permissions(group=group_id, user=fetched_by_id)
+    group_user_permissions(group=group_id, user=fetched_by_id, permissions=['admin', 'update_kanban_task'])
     return group_kanban.kanban_entry_update(origin_id=group_id,
                                             entry_id=entry_id,
                                             data=data)
@@ -438,13 +447,20 @@ def group_kanban_entry_delete(*,
                               fetched_by_id: int,
                               group_id: int,
                               entry_id: int):
-    group_user_permissions(group=group_id, user=fetched_by_id)
+    group_user_permissions(group=group_id, user=fetched_by_id, permissions=['admin', 'delete_kanban_task'])
     return group_kanban.kanban_entry_delete(origin_id=group_id, entry_id=entry_id)
 
 
-def group_thread_create(user_id: int, group_id: int, title: str):
+def group_thread_create(user_id: int, group_id: int, pinned: bool, title: str):
     group_user = group_user_permissions(user=user_id, group=group_id)
-    thread = GroupThread(created_by=group_user, title=title)
+
+    if pinned:
+        group_user_permissions(user=user_id, group=group_user.group, permissions=['admin'])
+
+    else:
+        group_user_permissions(user=user_id, group=group_user.group)
+
+    thread = GroupThread(created_by=group_user, title=title, pinned=pinned)
     thread.full_clean()
     thread.save()
 
@@ -453,8 +469,13 @@ def group_thread_create(user_id: int, group_id: int, title: str):
 
 def group_thread_update(user_id: int, thread_id: int, data):
     thread = get_object(GroupThread, id=thread_id)
-    group_user_permissions(user=user_id, group=thread.created_by.group)
     non_side_effect_fields = ['title']
+
+    if 'pinned' in data.keys():
+        group_user_permissions(user=user_id, group=thread.created_by.group, permissions=['admin'])
+
+    else:
+        group_user_permissions(user=user_id, group=thread.created_by.group)
 
     thread, has_updated = model_update(instance=thread,
                                        fields=non_side_effect_fields,
@@ -470,7 +491,11 @@ def group_thread_delete(user_id: int, thread_id: int):
     thread.delete()
 
 
-def group_thread_comment_create(user_id: int, thread_id: int, message: str, attachments: list, parent_id: int = None):
+def group_thread_comment_create(user_id: int,
+                                thread_id: int,
+                                message: str,
+                                attachments: list = None,
+                                parent_id: int = None):
     thread = get_object(GroupThread, id=thread_id)
     group_user = group_user_permissions(user=user_id, group=thread.created_by.group)
 

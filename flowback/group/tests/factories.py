@@ -29,7 +29,8 @@ class GroupUserFactory(factory.django.DjangoModelFactory):
         model = GroupUser
 
     user = factory.SubFactory(UserFactory)
-    group = factory.SubFactory(Group)
+    group = factory.SubFactory(GroupFactory, created_by=user)
+    is_admin = factory.LazyAttribute(lambda o: o.group.created_by == o.user)
 
 
 class GroupTagsFactory(factory.django.DjangoModelFactory):
@@ -78,8 +79,8 @@ class GroupUserDelegateFactory(factory.django.DjangoModelFactory):
         model = GroupUserDelegate
 
     group = factory.SubFactory(GroupFactory)
-    group_user = factory.SubFactory(GroupUser)
-    pool = factory.SubFactory(GroupUserDelegatePoolFactory)
+    group_user = factory.SubFactory(GroupUserFactory, group=factory.SelfAttribute('..group'))
+    pool = factory.SubFactory(GroupUserDelegatePoolFactory, group=factory.SelfAttribute('..group'))
 
 
 class GroupUserDelegatorFactory(factory.django.DjangoModelFactory):

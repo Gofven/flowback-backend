@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views.group import GroupListApi, GroupDetailApi, GroupCreateApi, GroupUpdateApi, GroupDeleteApi, GroupMailApi, \
+from .views.group import GroupFolderListApi, GroupListApi, GroupDetailApi, GroupCreateApi, GroupUpdateApi, GroupDeleteApi, GroupMailApi, \
     GroupNotificationSubscribeApi
 from .views.user import (GroupUserListApi,
                          GroupUserUpdateApi,
@@ -42,6 +42,7 @@ from .views.thread import (GroupThreadListAPI,
                            GroupThreadCommentDeleteAPI)
 
 group_patterns = [
+    path('folders', GroupFolderListApi.as_view(), name='group_folder_list'),
     path('list', GroupListApi.as_view(), name='groups'),
     path('<int:group>/detail', GroupDetailApi.as_view(), name='group'),
     path('create', GroupCreateApi.as_view(), name='group_create'),
@@ -103,10 +104,10 @@ group_patterns = [
     path('thread/<int:thread_id>/comment/create',
          GroupThreadCommentCreateAPI.as_view(),
          name='group_thread_comment_create'),
-    path('thread/<int:thread_id>/comment/<int:comment_id>',
+    path('thread/<int:thread_id>/comment/<int:comment_id>/update',
          GroupThreadCommentUpdateAPI.as_view(),
          name='group_thread_comment_update'),
-    path('thread/<int:thread_id>/comment/<int:comment_id>',
+    path('thread/<int:thread_id>/comment/<int:comment_id>/delete',
          GroupThreadCommentDeleteAPI.as_view(),
          name='group_thread_comment_delete'),
 ]

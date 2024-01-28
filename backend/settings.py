@@ -21,6 +21,7 @@ env = environ.Env(DEBUG=(bool, False),
                   FLOWBACK_URL=(str, None),
                   INSTANCE_NAME=(str, 'Flowback'),
                   PG_SERVICE=(str, 'flowback'),
+                  PG_PASS=(str, '.flowback_pgpass'),
                   REDIS_IP=(str, 'localhost'),
                   REDIS_PORT=(str, '6379'),
                   RABBITMQ_BROKER_URL=str,
@@ -64,6 +65,7 @@ DEBUG = env('DEBUG')
 FLOWBACK_URL = env('FLOWBACK_URL')
 INSTANCE_NAME = env('INSTANCE_NAME')
 PG_SERVICE = env('PG_SERVICE')
+PG_PASS = env('PG_PASS')
 
 ALLOWED_HOSTS = [FLOWBACK_URL or "*"]
 
@@ -151,7 +153,8 @@ ROOT_URLCONF = 'backend.urls'
 
 MEDIA_ROOT = str(BASE_DIR) + '/media'
 MEDIA_URL = '/media/'
-STATIC_URL = 'static/'
+STATIC_ROOT = str(BASE_DIR) + '/static'
+STATIC_URL = '/static/'
 
 
 # Optional AWS Storage Manager
@@ -232,7 +235,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'OPTIONS': {
             'service': PG_SERVICE,
-            'passfile': '.flowback_pgpass',
+            'passfile': PG_PASS,
         },
     }
 }

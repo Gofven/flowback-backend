@@ -36,7 +36,7 @@ class PollListApi(APIView):
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
         id_list = serializers.ListField(child=serializers.IntegerField(), required=False)
-        order_by = serializers.CharField(default='created_at_desc')
+        order_by = serializers.CharField(default='start_date_desc')
         pinned = serializers.BooleanField(required=False, default=None, allow_null=True)
 
         title = serializers.CharField(required=False)
@@ -48,18 +48,27 @@ class PollListApi(APIView):
         status = serializers.IntegerField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
-        class FileSerializer(serializers.Serializer):  # TODO why is it updated_at?
-            file = serializers.CharField(source='updated_at')
+        class FileSerializer(serializers.Serializer):
+            file = serializers.CharField()
+            file_name = serializers.CharField()
 
         created_by = GroupUserSerializer()
         group_joined = serializers.BooleanField(required=False)
         group_id = serializers.IntegerField(source='created_by.group_id')
         group_name = serializers.CharField(source='created_by.group.name')
         group_image = serializers.ImageField(source='created_by.group.image')
-        tag_name = serializers.CharField(source='tag.name')
-        attachments = FileSerializer(many=True, source='attachments.filesegment_set', allow_null=True)
+        tag_name = serializers.CharField(source='tag.name', allow_null=True)
+        attachments = FileSerializer(many=True, source="attachments.filesegment_set", allow_null=True)
         hide_poll_users = serializers.BooleanField(source='created_by.group.hide_poll_users')
         total_comments = serializers.IntegerField()
+
+        proposal_end_date = serializers.DateTimeField(required=False)
+        prediction_statement_end_date = serializers.DateTimeField(required=False)
+        area_vote_end_date = serializers.DateTimeField(required=False)
+        prediction_bet_end_date = serializers.DateTimeField(required=False)
+        delegate_vote_end_date = serializers.DateTimeField(required=False)
+        vote_end_date = serializers.DateTimeField(required=False)
+        end_date = serializers.DateTimeField(required=False)
 
         class Meta:
             model = Poll
@@ -128,6 +137,14 @@ class PollCreateAPI(APIView):
         public = serializers.BooleanField(default=False)
         attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
+        proposal_end_date = serializers.DateTimeField(required=False)
+        prediction_statement_end_date = serializers.DateTimeField(required=False)
+        area_vote_end_date = serializers.DateTimeField(required=False)
+        prediction_bet_end_date = serializers.DateTimeField(required=False)
+        delegate_vote_end_date = serializers.DateTimeField(required=False)
+        vote_end_date = serializers.DateTimeField(required=False)
+        end_date = serializers.DateTimeField(required=False)
+
         class Meta:
             model = Poll
             fields = ('title', 'description', 'start_date', 'proposal_end_date', 'prediction_statement_end_date',
@@ -164,7 +181,6 @@ class PollDeleteAPI(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-# TODO Redundant API, request removal
 @extend_schema(tags=['poll'], deprecated=True)
 class PollUserScheduleListAPI(APIView):
     class Pagination(LimitOffsetPagination):
@@ -173,24 +189,25 @@ class PollUserScheduleListAPI(APIView):
 
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
+        order_by = serializers.CharField(required=False)
         poll_title = serializers.CharField(required=False)
         poll_title__icontains = serializers.CharField(required=False)
-        start_date = serializers.DateTimeField(required=False)
-        end_date = serializers.DateTimeField(required=False)
+        start_date__lt = serializers.DateTimeField(required=False)
+        start_date__gte = serializers.DateTimeField(required=False)
+        end_date__lt = serializers.DateTimeField(required=False)
+        end_date__gte = serializers.DateTimeField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
         created_by = GroupUserSerializer()
         hide_poll_users = serializers.BooleanField(source='created_by.group.hide_poll_users')
-        group_id = serializers.IntegerField(source='created_by.group_id')
         title = serializers.CharField(source='poll.title')
         description = serializers.CharField(source='poll.description')
-        start_date = serializers.DateTimeField(source='pollproposaltypeschedule.start_date')
-        end_date = serializers.DateTimeField(source='pollproposaltypeschedule.end_date')
+        start_date = serializers.DateTimeField(source='pollproposaltypeschedule.event.start_date')
+        end_date = serializers.DateTimeField(source='pollproposaltypeschedule.event.end_date')
 
         class Meta:
             model = PollProposal
-            fields = ('group_id',
-                      'id',
+            fields = ('id',
                       'created_by',
                       'hide_poll_users',
                       'title',

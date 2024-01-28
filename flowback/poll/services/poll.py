@@ -29,13 +29,13 @@ def poll_create(*, user_id: int,
                 title: str,
                 description: str,
                 start_date: datetime,
-                proposal_end_date: datetime,
-                prediction_statement_end_date: datetime,
-                area_vote_end_date: datetime,
-                prediction_bet_end_date: datetime,
-                delegate_vote_end_date: datetime,
-                vote_end_date: datetime,
-                end_date: datetime,
+                proposal_end_date: datetime = None,
+                prediction_statement_end_date: datetime = None,
+                area_vote_end_date: datetime = None,
+                prediction_bet_end_date: datetime = None,
+                delegate_vote_end_date: datetime = None,
+                vote_end_date: datetime = None,
+                end_date: datetime = None,
                 poll_type: int,
                 public: bool,
                 tag: int,
@@ -44,6 +44,7 @@ def poll_create(*, user_id: int,
                 attachments: list = None,
                 quorum: int = None
                 ) -> Poll:
+
     group_user = group_user_permissions(user=user_id, group=group_id, permissions=['create_poll', 'admin'])
 
     if not group_user.is_admin and pinned:
@@ -57,6 +58,22 @@ def poll_create(*, user_id: int,
         collection = upload_collection(user_id=user_id,
                                        file=attachments,
                                        upload_to="group/poll/attachments")
+
+    if poll_type == Poll.PollType.SCHEDULE:
+        if not end_date:
+            raise ValidationError('Missing required parameter(s) for schedule poll')
+
+        elif not dynamic:
+            raise ValidationError('Schedule poll must be dynamic')
+
+    elif not all([proposal_end_date,
+                  prediction_statement_end_date,
+                  area_vote_end_date,
+                  prediction_bet_end_date,
+                  delegate_vote_end_date,
+                  vote_end_date,
+                  end_date]):
+        raise ValidationError('Missing required parameter(s) for generic poll')
 
     poll = Poll(created_by=group_user, title=title, description=description,
                 start_date=start_date, proposal_end_date=proposal_end_date,
@@ -92,7 +109,7 @@ def poll_update(*, user_id: int, poll_id: int, data) -> Poll:
     poll = get_object(Poll, id=poll_id)
     group_user = group_user_permissions(user=user_id, group=poll.created_by.group.id)
 
-    if not poll.created_by == group_user or not group_user.is_admin:
+    if not poll.created_by == group_user and not group_user.is_admin:
         raise ValidationError('Permission denied')
 
     if not group_user.is_admin and data.get('pinned', False):
@@ -146,7 +163,9 @@ def poll_delete(*, user_id: int, poll_id: int) -> None:
         case 'result':
             delete_notifications_after(poll.end_date)
 
-    poll.attachments.delete()
+    if poll.attachments:
+        poll.attachments.delete()
+
     poll.delete()
 
 
@@ -177,16 +196,15 @@ def poll_refresh(*, poll_id: int) -> None:
 def poll_refresh_cheap(*, poll_id: int) -> None:
     poll = get_object(Poll, id=poll_id)
 
-    if not poll.status or (poll.dynamic and not poll.status):
+    if (poll.dynamic and not poll.status) or (poll.status and timezone.now() >= poll.end_date):
         poll_proposal_vote_count(poll_id=poll_id)
         poll.refresh_from_db()
-        poll.result = True
 
         # Add the event if the poll finished
         if poll.poll_type == Poll.PollType.SCHEDULE:
             event = PollProposal.objects.filter(poll=poll).order_by('score')
             if event.exists():
-                event = event.first().pollproposaltypeschedule
+                event = event.first().pollproposaltypeschedule.event
                 group_schedule.create_event(schedule_id=poll.created_by.group.schedule_id,
                                             title=poll.title,
                                             start_date=event.start_date,

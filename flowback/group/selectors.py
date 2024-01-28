@@ -2,7 +2,7 @@
 #  groupdefaultpermission, grouppermissions, grouptags, groupuserdelegates
 import django_filters
 from typing import Union
-from django.db.models import Q, Exists, OuterRef, Count
+from django.db.models import Q, Exists, OuterRef, Count, Case, When, F
 from django.forms import model_to_dict
 
 from flowback.comment.selectors import comment_list
@@ -10,7 +10,7 @@ from flowback.common.services import get_object
 from flowback.kanban.selectors import kanban_entry_list
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupPermissions, GroupTags, GroupUserDelegator, \
-    GroupUserDelegatePool, GroupThread
+    GroupUserDelegatePool, GroupThread, GroupFolder
 from flowback.schedule.selectors import schedule_event_list
 from rest_framework.exceptions import ValidationError
 
@@ -24,7 +24,7 @@ def group_default_permissions(*, group: Union[Group, int]):
 
     fields = GroupPermissions._meta.get_fields()
     fields = [field for field in fields if not field.auto_created
-              and field.name not in ['created_at', 'updated_at', 'role_name', 'author']]
+              and field.name not in GroupPermissions.negate_field_perms()]
 
     defaults = dict()
     for field in fields:
@@ -37,9 +37,8 @@ def group_user_permissions(*,
                            user: Union[User, int] = None,
                            group: Union[Group, int] = None,
                            group_user: [GroupUser, int] = None,
-                           permissions: list[str] = None,
+                           permissions: Union[list[str], str] = None,
                            raise_exception: bool = True) -> Union[GroupUser, bool]:
-
     if type(user) == int:
         user = get_object(User, id=user)
 
@@ -48,8 +47,11 @@ def group_user_permissions(*,
 
     permissions = permissions or []
 
+    if isinstance(permissions, str):
+        permissions = [permissions]
+
     if user and group:
-        group_user = get_object(GroupUser, 'User is not in group', group=group, user=user)
+        group_user = get_object(GroupUser, 'User is not in group', group=group, user=user, active=True)
 
     elif group_user:
         if type(group_user) == int:
@@ -59,7 +61,8 @@ def group_user_permissions(*,
         raise Exception('group_user_permissions is missing appropiate parameters')
 
     perobj = GroupPermissions()
-    user_permissions = model_to_dict(group_user.permission) if group_user.permission else group_default_permissions(group=group_user.group)
+    user_permissions = model_to_dict(group_user.permission) if group_user.permission else group_default_permissions(
+        group=group_user.group)
 
     # Check if admin permission is present
     if 'admin' in permissions:
@@ -74,7 +77,8 @@ def group_user_permissions(*,
     validated_permissions = any([user_permissions.get(key, False) for key in permissions]) or not permissions
     if not validated_permissions:
         if raise_exception:
-            raise ValidationError(f'Permission denied, requires one of following permissions: {", ".join(permissions)})')
+            raise ValidationError(
+                f'Permission denied, requires one of following permissions: {", ".join(permissions)})')
         else:
             return False
 
@@ -88,21 +92,30 @@ def _group_get_visible_for(user: User):
 
 class BaseGroupFilter(django_filters.FilterSet):
     joined = django_filters.BooleanFilter(lookup_expr='exact')
+    chat_ids = django_filters.NumberFilter(lookup_expr='in')
+    exclude_folders = django_filters.BooleanFilter(lookup_expr='isnull')
 
     class Meta:
         model = Group
         fields = dict(id=['exact'],
                       name=['exact', 'icontains'],
-                      direct_join=['exact'])
+                      direct_join=['exact'],
+                      group_folder_id=['exact'])
 
 
 def group_list(*, fetched_by: User, filters=None):
     filters = filters or {}
     joined_groups = Group.objects.filter(id=OuterRef('pk'), groupuser__user__in=[fetched_by])
-    qs = _group_get_visible_for(user=fetched_by).annotate(joined=Exists(joined_groups),
-                                                          member_count=Count('groupuser')).order_by('created_at').all()
+    qs = _group_get_visible_for(user=fetched_by
+                                ).annotate(joined=Exists(joined_groups),
+                                           member_count=Count('groupuser')
+                                           ).order_by('created_at').all()
     qs = BaseGroupFilter(filters, qs).qs
     return qs
+
+
+def group_folder_list():
+    return GroupFolder.objects.all()
 
 
 def group_kanban_entry_list(*, fetched_by: User, group_id: int, filters=None):
@@ -138,7 +151,7 @@ def group_user_list(*, group: int, fetched_by: User, filters=None):
     filters = filters or {}
     is_delegate = GroupUser.objects.filter(group_id=group, groupuserdelegate__group_user=OuterRef('pk'),
                                            groupuserdelegate__group=OuterRef('group'))
-    qs = GroupUser.objects.filter(group_id=group).annotate(delegate=Exists(is_delegate)).all()
+    qs = GroupUser.objects.filter(group_id=group, active=True).annotate(delegate=Exists(is_delegate)).all()
     return BaseGroupUserFilter(filters, qs).qs
 
 
@@ -232,7 +245,8 @@ def group_user_delegate_list(*, group: int, fetched_by: User, filters=None):
 class BaseGroupThreadFilter(django_filters.FilterSet):
     order_by = django_filters.OrderingFilter(
         fields=(('created_at', 'created_at_asc'),
-                ('-created_at', 'created_at_desc')))
+                ('-created_at', 'created_at_desc'),
+                ('pinned', 'pinned')))
 
     class Meta:
         model = GroupThread
