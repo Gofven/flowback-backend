@@ -124,7 +124,7 @@ def message_channel_join(*, user_id: int, channel_id: int):
     return participant
 
 
-def leave_message_channel(*, user_id: int, channel_id: int):
+def message_channel_leave(*, user_id: int, channel_id: int):
     user = get_object(User, user=user_id)
     channel = get_object(MessageChannel, id=channel_id)
     participant = get_object(MessageChannelParticipant, user=user, channel=channel)
