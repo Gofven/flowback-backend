@@ -13,7 +13,7 @@ from flowback.prediction.models import (PredictionBet,
                                         PredictionStatement,
                                         PredictionStatementSegment,
                                         PredictionStatementVote)
-from flowback.comment.services import comment_section_create
+from flowback.comment.services import comment_section_create_model_default
 from flowback.common.models import BaseModel
 from flowback.group.models import Group, GroupUser, GroupUserDelegatePool, GroupTags
 from flowback.comment.models import CommentSection
@@ -69,7 +69,7 @@ class Poll(BaseModel):
     result = models.BooleanField(default=False)
 
     # Comment section
-    comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.DO_NOTHING)
+    comment_section = models.ForeignKey(CommentSection, default=comment_section_create_model_default, on_delete=models.DO_NOTHING)
 
     # Optional dynamic counting support
     participants = models.IntegerField(default=0)
@@ -216,7 +216,9 @@ class PollDelegateVoting(BaseModel):
     created_by = models.ForeignKey(GroupUserDelegatePool, on_delete=models.CASCADE)
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
     mandate = models.IntegerField(default=0)
-    comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.CASCADE)
+    comment_section = models.ForeignKey(CommentSection,
+                                        default=comment_section_create_model_default,
+                                        on_delete=models.CASCADE)
 
     class Meta:
         unique_together = ('created_by', 'poll')

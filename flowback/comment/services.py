@@ -14,6 +14,14 @@ def comment_section_create(*, active: bool = True) -> CommentSection:
     return comments
 
 
+def comment_section_create_model_default() -> int:
+    comment_section = CommentSection()
+    comment_section.full_clean()
+    comment_section.save()
+
+    return comment_section.id
+
+
 def comment_section_delete(*, comments_id: int):
     CommentSection.objects.get(comments_id=comments_id).delete()
 
