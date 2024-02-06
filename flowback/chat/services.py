@@ -16,7 +16,7 @@ def message_create(*,
                    message: str,
                    attachments_id: int = None,
                    parent_id: int = None):
-    user = get_object(User, user=user_id)
+    user = get_object(User, id=user_id)
     channel = get_object(MessageChannel, channel=channel_id)
     parent = get_object(Message, id=parent_id, raise_exception=False)
 
@@ -46,7 +46,7 @@ def message_create(*,
 
 
 def message_update(*, user_id: int, message_id: int, **data):
-    user = get_object(User, user=user_id)
+    user = get_object(User, id=user_id)
     message = get_object(Message, id=message_id)
 
     if not user == message.user:
@@ -60,7 +60,7 @@ def message_update(*, user_id: int, message_id: int, **data):
 
 
 def message_delete(*, user_id: int, message_id: int):
-    user = get_object(User, user=user_id)
+    user = get_object(User, id=user_id)
     message = get_object(Message, id=message_id)
 
     if not user == message.user:
@@ -72,7 +72,7 @@ def message_delete(*, user_id: int, message_id: int):
 
 
 def message_files_upload(*, user_id: int, channel_id: int, files: list) -> MessageFileCollection:
-    user = get_object(User, user=user_id)
+    user = get_object(User, id=user_id)
     channel = get_object(MessageChannel, id=channel_id)
     get_object(MessageChannelParticipant, user=user, channel=channel)
     upload_to = f"{MessageFileCollection.attachments_upload_to}/{channel.origin_name}"
@@ -88,7 +88,7 @@ def message_files_upload(*, user_id: int, channel_id: int, files: list) -> Messa
 
 
 def message_channel_userdata_update(*, user_id: int, channel_id: int, **data):
-    user = get_object(User, user=user_id)
+    user = get_object(User, id=user_id)
     channel = get_object(MessageChannel, id=channel_id)
 
     participant = get_object(MessageChannelParticipant, user=user, channel=channel)
@@ -113,7 +113,7 @@ def message_channel_delete(*, channel_id: int):
 
 
 def message_channel_join(*, user_id: int, channel_id: int):
-    user = get_object(User, user=user_id)
+    user = get_object(User, id=user_id)
     channel = get_object(MessageChannel, id=channel_id)
 
     participant = MessageChannelParticipant(user=user,
@@ -125,7 +125,7 @@ def message_channel_join(*, user_id: int, channel_id: int):
 
 
 def message_channel_leave(*, user_id: int, channel_id: int):
-    user = get_object(User, user=user_id)
+    user = get_object(User, id=user_id)
     channel = get_object(MessageChannel, id=channel_id)
     participant = get_object(MessageChannelParticipant, user=user, channel=channel)
 
