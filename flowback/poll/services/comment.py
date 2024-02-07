@@ -61,15 +61,16 @@ def poll_comment_delete(*, fetched_by: int, poll_id: int, comment_id: int):
 
 
 def poll_delegate_comment_create(*,
-                                 user_id: int,
-                                 vote_id: int,
+                                 author_id: int,
+                                 poll_id: int,
+                                 delegate_pool_id: int,
                                  message: str,
                                  attachments: list = None,
                                  parent_id: int = None) -> Comment:
-    delegate_vote = get_object(PollDelegateVoting, id=vote_id)
-    group_user_permissions(group=delegate_vote.created_by.group, user=user_id)
+    delegate_vote = get_object(PollDelegateVoting, poll_id=poll_id, created_by_id=delegate_pool_id)
+    group_user_permissions(group=delegate_vote.created_by.group, user=author_id)
 
-    comment = comment_create(author_id=user_id,
+    comment = comment_create(author_id=author_id,
                              comment_section_id=delegate_vote.comment_section.id,
                              message=message,
                              parent_id=parent_id,
@@ -79,28 +80,32 @@ def poll_delegate_comment_create(*,
     return comment
 
 
-def poll_delegate_comment_update(*, user_id: int,
-                                 vote_id: int,
+def poll_delegate_comment_update(*, author_id: int,
+                                 poll_id: int,
+                                 delegate_pool_id: int,
                                  comment_id: int,
                                  data) -> Comment:
-    delegate_vote = get_object(PollDelegateVoting, id=vote_id)
-    group_user_permissions(group=delegate_vote.created_by.group, user=user_id)
+    delegate_vote = get_object(PollDelegateVoting, poll_id=poll_id, created_by_id=delegate_pool_id)
+    group_user_permissions(group=delegate_vote.created_by.group, user=author_id)
 
-    return comment_update(fetched_by=user_id,
+    return comment_update(fetched_by=author_id,
                           comment_section_id=delegate_vote.comment_section.id,
                           comment_id=comment_id,
                           data=data)
 
 
-def poll_delegate_comment_delete(*, user_id: int, vote_id: int, comment_id: int):
-    delegate_vote = get_object(PollDelegateVoting, id=vote_id)
+def poll_delegate_comment_delete(*, author_id: int,
+                                 poll_id: int,
+                                 delegate_pool_id: int,
+                                 comment_id: int):
+    delegate_vote = get_object(PollDelegateVoting, poll_id=poll_id, created_by_id=delegate_pool_id)
 
-    group_user = group_user_permissions(group=delegate_vote.created_by.group.id, user=user_id)
+    group_user = group_user_permissions(group=delegate_vote.created_by.group.id, user=author_id)
     force = bool(group_user_permissions(group_user=group_user,
                                         permissions=['admin', 'force_delete_comment'],
                                         raise_exception=False))
 
-    return comment_delete(fetched_by=user_id,
+    return comment_delete(fetched_by=author_id,
                           comment_section_id=delegate_vote.comment_section.id,
                           comment_id=comment_id,
                           force=force)

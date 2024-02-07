@@ -10,6 +10,8 @@ from flowback.files.serializers import FileSerializer
 
 
 class CommentListAPI(APIView):
+    list_function = comment_list
+
     class Pagination(LimitOffsetPagination):
         default_limit = 20
         max_limit = 100
@@ -34,12 +36,11 @@ class CommentListAPI(APIView):
         attachments = FileSerializer(source="attachments.filesegment_set", many=True, allow_null=True)
         score = serializers.IntegerField()
 
-    def get(self, request, comment_section_id: int):
+    def get(self, request, *args, **kwargs):
         serializer = self.FilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        comments = comment_list(comment_section_id=comment_section_id,
-                                filters=serializer.validated_data)
+        comments = self.list_function(filters=serializer.validated_data, *args, **kwargs)
 
         return get_paginated_response(pagination_class=self.Pagination,
                                       serializer_class=self.OutputSerializer,
@@ -49,38 +50,49 @@ class CommentListAPI(APIView):
 
 
 class CommentCreateAPI(APIView):
+    create_function = comment_create
+
     class InputSerializer(serializers.Serializer):
         parent_id = serializers.IntegerField(required=False)
         message = serializers.CharField()
         attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
-    def post(self, request, comment_section_id: int):
+    def post(self, request, *args, **kwargs):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        comment = comment_create(comment_section_id=comment_section_id, author_id=request.user.id,
-                                 **serializer.validated_data)
+        comment = self.create_function(author_id=request.user.id,
+                                       *args,
+                                       **serializer.validated_data,
+                                       **kwargs)
 
         return Response(status=status.HTTP_200_OK, data=comment.id)
 
 
 class CommentUpdateAPI(APIView):
+    update_function = comment_update
+
     class InputSerializer(serializers.Serializer):
         message = serializers.CharField()
 
-    def post(self, request, comment_section_id: int, comment_id: int):
+    def post(self, request, *args, **kwargs):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        comment_update(comment_section_id=comment_section_id, comment_id=comment_id,
-                       fetched_by=request.user.id, data=serializer.validated_data)
+        self.update_function(*args,
+                             **kwargs,
+                             fetched_by=request.user.id,
+                             data=serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
 
 
 class CommentDeleteAPI(APIView):
-    def post(self, request, comment_section_id: int, comment_id: int):
-        comment_delete(fetched_by=request.user, comment_section_id=comment_section_id,
-                       comment_id=comment_id)
+    delete_function = comment_delete
+
+    def post(self, request, *args, **kwargs):
+        self.delete_function(*args,
+                             **kwargs,
+                             fetched_by=request.user)
 
         return Response(status=status.HTTP_200_OK)

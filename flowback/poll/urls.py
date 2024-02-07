@@ -49,6 +49,10 @@ poll_patterns = [
     path('<int:poll>/comment/create', PollCommentCreateAPI.as_view(), name='poll_comment_create'),
     path('<int:poll>/comment/<int:comment_id>/update', PollCommentUpdateAPI.as_view(), name='poll_comment_update'),
     path('<int:poll>/comment/<int:comment_id>/delete', PollCommentDeleteAPI.as_view(), name='poll_comment_delete'),
+    path('<int:poll_id>/delegate/<int:delegate_pool_id>/comment/list', PollCommentListAPI.as_view(), name='poll_comments'),
+    path('<int:poll_id>/delegate/<int:delegate_pool_id>/comment/create', PollCommentCreateAPI.as_view(), name='poll_comment_create'),
+    path('<int:poll_id>/delegate/<int:delegate_pool_id>/comment/<int:comment_id>/update', PollCommentUpdateAPI.as_view(), name='poll_comment_update'),
+    path('<int:poll_id>/delegate/<int:delegate_pool_id>/comment/<int:comment_id>/delete', PollCommentDeleteAPI.as_view(), name='poll_comment_delete'),
 
     path('<int:poll_id>/prediction/statement/create', PollPredictionStatementCreateAPI.as_view(),
          name='poll_prediction_statement_create'),
