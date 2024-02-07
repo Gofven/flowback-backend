@@ -13,39 +13,39 @@ from flowback.comment.views import CommentListAPI, CommentCreateAPI, CommentUpda
 
 @extend_schema(tags=['poll'])
 class PollCommentListAPI(CommentListAPI):
-    list_function = poll_comment_list
+    lazy_action = poll_comment_list
 
 
 @extend_schema(tags=['poll'])
 class PollCommentCreateAPI(CommentCreateAPI):
-    create_function = poll_comment_create
+    lazy_action = poll_comment_create
 
 
 @extend_schema(tags=['poll'])
 class PollCommentUpdateAPI(CommentUpdateAPI):
-    update_function = poll_comment_update
+    lazy_action = poll_comment_update
 
 
 @extend_schema(tags=['poll'])
 class PollCommentDeleteAPI(CommentDeleteAPI):
-    delete_function = poll_comment_delete
+    lazy_action = poll_comment_delete
 
 
 @extend_schema(tags=['poll'])
 class PollDelegateCommentListAPI(CommentListAPI):
-    list_function = poll_delegate_comment_list
+    lazy_action = poll_delegate_comment_list
 
 
 @extend_schema(tags=['poll'])
 class PollDelegateCommentCreateAPI(CommentCreateAPI):
-    create_function = poll_delegate_comment_create
+    lazy_action = poll_delegate_comment_create
 
 
 @extend_schema(tags=['poll'])
 class PollDelegateCommentUpdateAPI(CommentUpdateAPI):
-    update_function = poll_delegate_comment_update
+    lazy_action = poll_delegate_comment_update
 
 
 @extend_schema(tags=['poll'])
 class PollDelegateCommentDeleteAPI(CommentDeleteAPI):
-    delete_function = poll_delegate_comment_delete
+    lazy_action = poll_delegate_comment_delete

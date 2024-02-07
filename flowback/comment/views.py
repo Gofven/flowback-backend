@@ -10,7 +10,7 @@ from flowback.files.serializers import FileSerializer
 
 
 class CommentListAPI(APIView):
-    list_function = comment_list
+    lazy_action = comment_list
 
     class Pagination(LimitOffsetPagination):
         default_limit = 20
@@ -40,7 +40,10 @@ class CommentListAPI(APIView):
         serializer = self.FilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        comments = self.list_function(filters=serializer.validated_data, *args, **kwargs)
+        comments = self.lazy_action.__func__(fetched_by=request.user,
+                                             filters=serializer.validated_data,
+                                             *args,
+                                             **kwargs)
 
         return get_paginated_response(pagination_class=self.Pagination,
                                       serializer_class=self.OutputSerializer,
@@ -50,7 +53,7 @@ class CommentListAPI(APIView):
 
 
 class CommentCreateAPI(APIView):
-    create_function = comment_create
+    lazy_action = comment_create
 
     class InputSerializer(serializers.Serializer):
         parent_id = serializers.IntegerField(required=False)
@@ -60,17 +63,16 @@ class CommentCreateAPI(APIView):
     def post(self, request, *args, **kwargs):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        comment = self.create_function(author_id=request.user.id,
-                                       *args,
-                                       **serializer.validated_data,
-                                       **kwargs)
+        comment = self.lazy_action.__func__(*args,
+                                            author_id=request.user.id,
+                                            **kwargs,
+                                            **serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK, data=comment.id)
 
 
 class CommentUpdateAPI(APIView):
-    update_function = comment_update
+    lazy_action = comment_update
 
     class InputSerializer(serializers.Serializer):
         message = serializers.CharField()
@@ -79,20 +81,20 @@ class CommentUpdateAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        self.update_function(*args,
-                             **kwargs,
-                             fetched_by=request.user.id,
-                             data=serializer.validated_data)
+        self.lazy_action.__func__(*args,
+                                  **kwargs,
+                                  fetched_by=request.user.id,
+                                  data=serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
 
 
 class CommentDeleteAPI(APIView):
-    delete_function = comment_delete
+    lazy_action = comment_delete
 
     def post(self, request, *args, **kwargs):
-        self.delete_function(*args,
-                             **kwargs,
-                             fetched_by=request.user)
+        self.lazy_action.__func__(*args,
+                                  **kwargs,
+                                  fetched_by=request.user)
 
         return Response(status=status.HTTP_200_OK)
