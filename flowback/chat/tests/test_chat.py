@@ -6,7 +6,6 @@ from ..models import (MessageChannel,
                       MessageChannelTopic,
                       MessageFileCollection)
 
-
 from ..services import (message_create,
                         message_update,
                         message_delete,
@@ -62,4 +61,27 @@ class ChatTest(TransactionTestCase):
         self.assertFalse(MessageChannelParticipant.objects.filter(id=participant_id).exists())
 
     def test_message_create(self):
-        message = message_create()
+        message_one = message_create(user_id=self.message_channel_participant_one.user.id,
+                                     channel_id=self.message_channel.id,
+                                     message="test message",
+                                     attachments_id=self.message_channel_file_collection.id)
+
+        self.assertTrue(message_one.id)
+        self.assertEqual(message_one.message, "test message")
+        self.assertEqual(message_one.user.id, self.message_channel_participant_one.user.id)
+        self.assertEqual(message_one.attachments_id, self.message_channel_file_collection.id)
+
+    def test_message_update(self):
+        message = MessageFactory()
+
+        message_update(user_id=message.user_id, message_id=message.id, message="testify message")
+
+        message.refresh_from_db()
+        self.assertEqual(message.message, "testify message")
+
+    def test_message_delete(self):
+        message = MessageFactory()
+        message_delete(user_id=message.user_id, message_id=message.id)
+        message.refresh_from_db()
+
+        self.assertFalse(message.active)

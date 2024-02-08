@@ -17,7 +17,7 @@ def message_create(*,
                    attachments_id: int = None,
                    parent_id: int = None):
     user = get_object(User, id=user_id)
-    channel = get_object(MessageChannel, channel=channel_id)
+    channel = get_object(MessageChannel, id=channel_id)
     parent = get_object(Message, id=parent_id, raise_exception=False)
 
     # Check whether user is a participant or not
@@ -30,7 +30,7 @@ def message_create(*,
     if attachments_id:
         attachments = get_object(MessageFileCollection, id=attachments_id)
 
-        if attachments.created_by != user and attachments.channel_id != channel_id:
+        if attachments.user != user and attachments.channel_id != channel_id:
             raise ValidationError("Unauthorized usage of Attachments")
 
     message = Message(user=user,
