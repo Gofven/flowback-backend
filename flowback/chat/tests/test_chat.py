@@ -1,4 +1,7 @@
+from pprint import pprint
+
 from django.test import TransactionTestCase
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from ..models import (MessageChannel,
                       Message,
@@ -19,6 +22,7 @@ from .factories import (MessageChannelFactory,
                         MessageChannelParticipantFactory,
                         MessageChannelTopicFactory,
                         MessageFileCollectionFactory)
+from ..views import MessageListAPI, MessageChannelPreviewAPI
 from ...user.tests.factories import UserFactory
 
 
@@ -85,3 +89,48 @@ class ChatTest(TransactionTestCase):
         message.refresh_from_db()
 
         self.assertFalse(message.active)
+
+    def test_message_list(self):
+        [MessageFactory(user=self.message_channel_participant_one.user,
+                        channel=self.message_channel) for x in range(10)]
+        [MessageFactory(user=self.message_channel_participant_one.user) for x in range(10)]  # User left channel
+
+        factory = APIRequestFactory()
+        view = MessageListAPI.as_view()
+        request = factory.get('')
+
+        user = self.message_channel_participant_one.user
+        force_authenticate(request, user=user)
+        response = view(request, channel_id=self.message_channel.id)
+
+        self.assertEqual(response.data.get('count'), 10)
+
+    def test_message_channel_preview(self):
+        # Direct message channel
+        channel = self.message_channel
+        channel_participant_one = self.message_channel_participant_one
+        channel_participant_two = self.message_channel_participant_two
+        [MessageFactory(user=channel_participant_one.user, channel=channel) for x in range(10)]
+        [MessageFactory(user=channel_participant_two.user, channel=channel) for x in range(10)]
+
+        # User left this channel
+        [MessageFactory(user=channel_participant_one.user) for x in range(10)]
+
+        # Direct message channel two
+        channel_two = MessageChannelFactory()
+        channel_two_participant_one = MessageChannelParticipantFactory(channel=channel_two,
+                                                                       user=channel_participant_one.user)
+        channel_two_participant_two = MessageChannelParticipantFactory(channel=channel_two,
+                                                                       user=channel_participant_two.user)
+        [MessageFactory(user=channel_two_participant_two.user,
+                        channel=channel_two) for x in range(10)]
+        [MessageFactory(user=channel_two_participant_one.user,
+                        channel=channel_two) for x in range(10)]
+
+        factory = APIRequestFactory()
+        request = factory.get('')
+        view = MessageChannelPreviewAPI.as_view()
+        force_authenticate(request, user=channel_participant_one.user)
+        response = view(request)
+
+        self.assertEqual(response.data.get('count'), 2)
