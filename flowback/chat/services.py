@@ -54,9 +54,9 @@ def message_update(*, user_id: int, message_id: int, **data):
 
     fields = ['message']
 
-    model_update(instance=message,
-                 fields=fields,
-                 data=data)
+    return model_update(instance=message,
+                        fields=fields,
+                        data=data)
 
 
 def message_delete(*, user_id: int, message_id: int):
