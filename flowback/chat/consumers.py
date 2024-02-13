@@ -21,23 +21,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
         if self.scope['user'].is_anonymous:
-            await self.close()
+            return await self.close()
 
         self.user_channel = f"user_{self.user.id}"
         self.participating_channels = await self.get_participating_channels()
         self.participating_channels.append(self.user_channel)
         for channel in self.participating_channels:
             await self.channel_layer.group_add(
-                channel,
+                f"{channel}",
                 self.channel_name
             )
 
         await self.accept()
 
     async def disconnect(self, close_code):
-        for group in self.participating_channels:
+        if self.scope['user'].is_anonymous:
+            return await self.close()
+
+        for channel in self.participating_channels:
             await self.channel_layer.group_discard(
-                group,
+                f"{channel}",
                 self.channel_name)
 
     # Receive message from WebSocket
@@ -61,7 +64,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_participating_channels(self):
-        return MessageChannelParticipant.objects.filter(user=self.user).values_list('channel_id', flat=True)
+        return list(MessageChannelParticipant.objects.filter(user=self.user).values_list('channel_id', flat=True))
 
     @database_sync_to_async
     def create_message(self, *, user_id: int, channel_id: int, message: str, attachments_id: int, parent_id: int):
