@@ -61,7 +61,7 @@ def message_update(*, user_id: int, message_id: int, **data):
 
 def message_delete(*, user_id: int, message_id: int):
     user = get_object(User, id=user_id)
-    message = get_object(Message, id=message_id)
+    message = get_object(Message, id=message_id, active=True)
 
     if not user == message.user:
         raise ValidationError('User is not author of message')
@@ -69,6 +69,8 @@ def message_delete(*, user_id: int, message_id: int):
     message.message = ""
     message.active = False
     message.save()
+
+    return message
 
 
 def message_files_upload(*, user_id: int, channel_id: int, files: list) -> MessageFileCollection:
