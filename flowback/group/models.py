@@ -60,10 +60,12 @@ class Group(BaseModel):
 
     @classmethod
     def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):
-        instance.chat = message_channel_create(origin_name='group')
+        if instance.pk is None:
+            instance.chat = message_channel_create(origin_name='group')
 
     @classmethod
     def post_save(cls, instance, created, update_fields, *args, **kwargs):
+        print(instance.chat)
         if created:
             instance.schedule = create_schedule(name=instance.name, origin_name='group', origin_id=instance.id)
             instance.kanban = kanban_create(name=instance.name, origin_type='group', origin_id=instance.id)
