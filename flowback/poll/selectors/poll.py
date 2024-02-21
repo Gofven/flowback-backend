@@ -23,7 +23,7 @@ class BasePollFilter(django_filters.FilterSet):
     tag_name = django_filters.CharFilter(lookup_expr=['exact', 'icontains'], field_name='tag__name')
 
     def has_attachments(self, queryset, name, value):
-        return queryset.filter(has_attachments__isnull=not value)
+        return queryset.filter(attachments__isnull=not value)
 
     class Meta:
         model = Poll
