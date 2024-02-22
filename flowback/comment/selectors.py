@@ -23,7 +23,7 @@ class BaseCommentFilter(django_filters.FilterSet):
         model = Comment
         fields = dict(id=['exact'],
                       message=['icontains'],
-                      author_id=['exact'],
+                      author_id=['exact', 'in'],
                       parent_id=['exact'],
                       score=['gt', 'lt'])
 
