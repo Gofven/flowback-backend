@@ -8,10 +8,19 @@ from .models import NotificationChannel, NotificationObject, Notification, Notif
 from flowback.common.services import get_object
 
 
-def notification_load_channel(*, category: str, sender_type: str, sender_id: int) -> NotificationChannel:
-    channel, created = NotificationChannel.objects.get_or_create(category=category,
-                                                                 sender_type=sender_type,
-                                                                 sender_id=sender_id)
+def notification_load_channel(*,
+                              category: str,
+                              sender_type: str,
+                              sender_id: int,
+                              create_if_not_exist: bool = True) -> NotificationChannel:
+    if create_if_not_exist:
+        channel, created = NotificationChannel.objects.get_or_create(category=category,
+                                                                     sender_type=sender_type,
+                                                                     sender_id=sender_id)
+
+    else:
+        channel = get_object(NotificationChannel, category=category, sender_type=sender_type, sender_id=sender_id)
+
     return channel
 
 
@@ -87,7 +96,10 @@ def notification_channel_subscribe(*,
 
 def notification_channel_unsubscribe(*, user_id: int, category: str,
                                      sender_type: str, sender_id: int) -> None:
-    channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
+    channel = notification_load_channel(category=category,
+                                        sender_type=sender_type,
+                                        sender_id=sender_id,
+                                        create_if_not_exist=False)
     subscription = get_object(NotificationSubscription, user_id=user_id, channel=channel)
     subscription.delete()
     Notification.objects.filter(user_id=user_id,
