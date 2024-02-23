@@ -62,7 +62,10 @@ def notification_create(*, action: str, category: str, sender_type: str, sender_
 def notification_delete(*, category: str, sender_type: str, sender_id: int,
                         related_id: int = None, timestamp: datetime = None,
                         timestamp__lt: datetime = None, timestamp__gt: datetime = None, action: str = None):
-    channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
+    channel = notification_load_channel(category=category,
+                                        sender_type=sender_type,
+                                        sender_id=sender_id,
+                                        create_if_not_exist=False)
     filters = {a: b for a, b in dict(channel=channel, action=action, related_id=related_id, timestamp=timestamp,
                                      timestamp__lt=timestamp__lt, timestamp__gt=timestamp__gt).items() if b is not None}
     notifications = NotificationObject.objects.filter(**filters)
@@ -80,7 +83,10 @@ def notification_channel_subscribe(*,
                                    category: str,
                                    sender_type: str,
                                    sender_id: int) -> NotificationSubscription:
-    channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
+    channel = notification_load_channel(category=category,
+                                        sender_type=sender_type,
+                                        sender_id=sender_id,
+                                        create_if_not_exist=False)
     get_object(NotificationSubscription, user_id=user_id, channel=channel,
                error_message='User is already subscribed', reverse=True)
     subscription = NotificationSubscription(user_id=user_id, channel=channel)
