@@ -65,7 +65,6 @@ class Group(BaseModel):
 
     @classmethod
     def post_save(cls, instance, created, update_fields, *args, **kwargs):
-        print(instance.chat)
         if created:
             instance.schedule = create_schedule(name=instance.name, origin_name='group', origin_id=instance.id)
             instance.kanban = kanban_create(name=instance.name, origin_type='group', origin_id=instance.id)
