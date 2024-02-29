@@ -39,7 +39,8 @@ class PollProposalVoteListAPI(APIView):
             fields = ('author',
                       'author_delegate',
                       'proposal',
-                      'score')
+                      'score',
+                      'raw_score')
 
     class OutputSerializerTypeForAgainst(serializers.ModelSerializer):
         class Meta:
@@ -109,7 +110,8 @@ class DelegatePollVoteListAPI(APIView):
             proposal_title = serializers.CharField(source='proposal.title')
             proposal_created_by_id = serializers.IntegerField(source='proposal.created_by.user_id')
             proposal_created_by_name = serializers.CharField(source='proposal.created_by.user.username')
-            score = serializers.IntegerField()
+            score = serializers.IntegerField(allow_null=True)
+            raw_score = serializers.IntegerField()
 
             class Meta:
                 ordering = ['priority']
