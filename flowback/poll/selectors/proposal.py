@@ -11,6 +11,10 @@ from flowback.group.selectors import group_user_permissions
 class BasePollProposalFilter(django_filters.FilterSet):
     group = django_filters.NumberFilter(field_name='created_by__group_id', lookup_expr='exact')
     created_by_user_id_list = NumberInFilter(field_name='created_by__user_id')
+    order_by = django_filters.OrderingFilter(fields=(('created_at', 'created_at_asc'),
+                                                     ('-created_at', 'created_at_desc'),
+                                                     ('score', 'score_asc'),
+                                                     ('-score', 'score_desc')))
     has_attachments = ExistsFilter(field_name='attachments')
 
     class Meta:

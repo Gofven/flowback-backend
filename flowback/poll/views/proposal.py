@@ -22,6 +22,8 @@ class PollProposalListAPI(APIView):
         default_limit = 10
 
     class FilterSerializer(serializers.Serializer):
+        order_by = serializers.ChoiceField(choices=['created_at_asc', 'created_at_desc',
+                                                    'score_asc', 'score_desc'])
         id = serializers.IntegerField(required=False)
         created_by_user_id_list = serializers.CharField(required=False)
         title = serializers.CharField(required=False)
