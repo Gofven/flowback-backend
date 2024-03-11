@@ -13,9 +13,6 @@ class BasePollProposalFilter(django_filters.FilterSet):
     created_by_user_id_list = NumberInFilter(field_name='created_by__user_id')
     has_attachments = ExistsFilter(field_name='attachments')
 
-    def has_attachments_filter(self, queryset, name, value):
-        return queryset.filter(attachments__isnull=not value)
-
     class Meta:
         model = PollProposal
         fields = dict(id=['exact'],
