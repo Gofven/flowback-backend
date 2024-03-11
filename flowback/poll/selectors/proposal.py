@@ -1,5 +1,7 @@
 import django_filters
 from django.db.models import F
+
+from flowback.common.filters import NumberInFilter, ExistsFilter
 from flowback.common.services import get_object
 from flowback.poll.models import Poll, PollProposal
 from flowback.user.models import User
@@ -8,6 +10,11 @@ from flowback.group.selectors import group_user_permissions
 
 class BasePollProposalFilter(django_filters.FilterSet):
     group = django_filters.NumberFilter(field_name='created_by__group_id', lookup_expr='exact')
+    created_by_user_id_list = NumberInFilter(field_name='created_by__user_id')
+    has_attachments = ExistsFilter(field_name='attachments')
+
+    def has_attachments_filter(self, queryset, name, value):
+        return queryset.filter(attachments__isnull=not value)
 
     class Meta:
         model = PollProposal

@@ -23,9 +23,11 @@ class PollProposalListAPI(APIView):
 
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
-        created_by = serializers.IntegerField(required=False)
+        created_by_user_id_list = serializers.CharField(required=False)
         title = serializers.CharField(required=False)
         title__icontains = serializers.CharField(required=False)
+        has_attachments = serializers.BooleanField(required=False, allow_null=True, default=None)
+
 
     class FilterSerializerTypeSchedule(FilterSerializer):
         start_date = serializers.DateTimeField(required=False)
