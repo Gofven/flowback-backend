@@ -49,22 +49,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data or '{}')
 
         # Message endpoint
-        if data.get('type') == 'message_create':
+        if data.get('method') == 'message_create':
             await self.message_create(data=data)
 
-        if data.get('type') == 'message_update':
+        if data.get('method') == 'message_update':
             await self.message_update(data=data)
 
-        if data.get('type') == 'message_delete':
+        if data.get('method') == 'message_delete':
             await self.message_delete(data=data)
 
-        if data.get('type') == 'message_notify':
+        if data.get('method') == 'message_notify':
             await self.message_notify(data=data)
 
-        elif data.get('type') == 'connect_channel':
+        elif data.get('method') == 'connect_channel':
             await self.connect_channel(data=data)
 
-        elif data.get('type') == 'disconnect_channel':
+        elif data.get('method') == 'disconnect_channel':
             await self.connect_channel(data=data, disconnect=True)
 
         return True
@@ -72,8 +72,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # Send message to WebSocket
     # TODO Check if redundant
     async def message(self, content: dict):
-        if content.get('type_override'):
-            content['type'] = content.pop('type_override')
         await self.send(text_data=json.dumps(content))
 
     @database_sync_to_async
@@ -81,9 +79,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return list(MessageChannelParticipant.objects.filter(user=self.user).values_list('channel_id', flat=True))
 
     @staticmethod
-    def generate_status_message(message: str, type: str = None, **kwargs):
+    def generate_status_message(message: str, method: str = None, **kwargs):
         return dict(type="message",
-                    type_override=type,
+                    method=method,
                     message=message,
                     **kwargs)
 
@@ -130,8 +128,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         except ValidationError as e:
             message = self.generate_status_message(channel_id=data.get('channel_id'),
+                                                   method="message_create",
                                                    message=f"{', '.join([x for x in e.detail])}",
-                                                   type="error")
+                                                   status="error")
 
             await self.channel_layer.group_send(self.user_channel, message)
             return False
@@ -147,7 +146,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         update = message_update(user_id=user_id, message_id=message_id, **data)
 
-        return dict(**MessageSerializer(update[0]).data, type_override="message_update")
+        return dict(**MessageSerializer(update[0]).data, method="message_update")
 
     async def message_update(self, data: dict):
         class InputSerializer(serializers.Serializer):
@@ -163,8 +162,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message = await self._update_message(user_id=self.user.id, **data)
 
         except ValidationError as e:
-            message = self.generate_status_message(message=f"{', '.join([x for x in e.detail])}",
-                                                   type="message_update",
+            message = self.generate_status_message(message_id=data.get('message_id'),
+                                                   message=f"{', '.join([x for x in e.detail])}",
+                                                   method="message_update",
                                                    status="error")
 
             await self.send_message(channel_id=self.user_channel, message=message)
@@ -178,7 +178,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         user_id: int,
                         message_id: int):
         message = message_delete(user_id=user_id, message_id=message_id)
-        return dict(**MessageSerializer(message).data, type_override="message_delete")
+        return dict(**MessageSerializer(message).data, method="message_delete")
 
     async def message_delete(self, data: dict):
         class InputSerializer(serializers.Serializer):
@@ -195,7 +195,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except ValidationError as e:
             message = self.generate_status_message(message_id=data.get('message_id'),
                                                    message=f"{', '.join([x for x in e.detail])}",
-                                                   type="message_delete",
+                                                   method="message_delete",
                                                    status="error")
 
             await self.send_message(channel_id=self.user_channel, message=message)
@@ -203,12 +203,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.send_message(channel_id=message['channel_id'], message=message)
         return True
-
-    @database_sync_to_async
-    def _message_notify_check(self, user_id: int, channel_id: int):
-        user = get_object(User)
-        channel = get_object(MessageChannel)
-        return user_message_channel_permission(user=user, channel=channel)
 
     async def message_notify(self, data: dict):
         class InputSerializer(serializers.Serializer):
@@ -227,13 +221,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except MessageChannelParticipant.DoesNotExist:
             return await self.channel_layer.group_send(self.user_channel,
                                                        dict(channel_id=str(data['channel_id']),
-                                                            type="error",
+                                                            status="error",
                                                             message="User is not participating in this channel"))
 
         message = self.generate_status_message(channel_id=data['channel_id'],
                                                user_id=self.user.id,
                                                message=data['action'],
-                                               type='action')
+                                               method='message_notify')
 
         await self.send_message(channel_id=str(data['channel_id']), message=message)
 
