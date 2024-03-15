@@ -39,29 +39,25 @@ def poll_prediction_bet_count(poll_id: int):
     # Get every predictor participating in poll
     timestamp = timezone.now()  # Avoid new bets causing list to be offset
     poll = get_object(Poll, id=poll_id)
-    predictors = GroupUser.objects.filter(pollpredictionbet__poll=poll).all()
+    predictors = GroupUser.objects.filter(pollpredictionbet__prediction_statement__poll=poll).all()
 
-    # Get outcomes
-    outcome_subquery = PollPredictionStatementVote.objects.filter(prediction_statement_id=OuterRef('id'),
-                                                                  created_at__lte=timestamp
-                                                                  ).aggregate(
-        outcome_sum=Sum(Case(When(vote=True, then=1),
-                             When(vote=False, then=-1),
+    # Get list of previous outcomes in a given area (poll)
+    statements = PollPredictionStatement.objects.filter(
+        Q(poll__tag=poll.tag,
+          poll__end_date__lte=timestamp,
+          created_at__lte=timestamp) | Q(poll=poll)
+    ).annotate(
+        outcome_sum=Sum(Case(When(pollpredictionstatementvote__vote=True, then=1),
+                             When(pollpredictionstatementvote__vote=False, then=-1),
                              default=0,
                              output_field=models.IntegerField())),
         outcome=Case(When(outcome_sum__gt=0, then=1),
                      When(outcome_sum__lt=0, then=0),
                      default=0.5,
-                     output_field=models.FloatField())).values('outcome')
+                     output_field=models.FloatField())
+    ).order_by('-created_at').all()
 
-    # Get list of previous outcomes in a given area (poll)
-    statements = PollPredictionStatement.objects.filter(Q(poll__tag=poll.tag,
-                                                          poll__end_date__lte=timestamp,
-                                                          created_at__lte=timestamp) | Q(poll=poll)
-                                                        ).annotate(outcome=Subquery(outcome_subquery)
-                                                                   ).order_by('-created_at').all()
-
-    previous_outcomes = statements.filter(~Q(poll=poll)).values_list('outcome', flat=True)
+    previous_outcomes = list(statements.filter(~Q(poll=poll)).values_list('outcome', flat=True))
     # statement_history = statements.filter(~Q(poll=poll)).all()
     poll_statements = statements.filter(poll=poll).all()
 
@@ -70,11 +66,12 @@ def poll_prediction_bet_count(poll_id: int):
     for predictor in predictors:
         # get each bet predictor does, order by outcome
         bet_subquery = PollPredictionBet.objects.filter(prediction_statement=OuterRef('id'),
-                                                        created_by=predictor).values('score')
+                                                        created_by=predictor
+                                                        ).annotate(real_score=F('score') / 5).values('real_score')
         bets = statements.annotate(user_bets=Subquery(bet_subquery)).all()
 
-        current_bets.append(bets.filter(poll=poll).values_list('user_bets', flat=True))
-        previous_bets.append(bets.filter(~Q(poll=poll)).values_list('user_bets', flat=True))
+        current_bets.append(list(bets.filter(poll=poll).values_list('user_bets', flat=True)))
+        previous_bets.append(list(bets.filter(~Q(poll=poll)).values_list('user_bets', flat=True)))
 
     #
     #     # TODO get all current_bets for every statement in poll, bets needs to be counted once
@@ -100,6 +97,9 @@ def poll_prediction_bet_count(poll_id: int):
     # If the determinant of a predictor bets list is zero then set the first value to the smallest non zero value
     # TODO future test combinations of values
     # previous_bets = [[0, 1, 0.7, 0, 1], [0, 0.2, 1, 0, 0.8]]
+    print(current_bets)
+    print(previous_outcomes)
+    print(previous_bets)
 
     # Calculation below
     for i, statement in enumerate(poll_statements):
