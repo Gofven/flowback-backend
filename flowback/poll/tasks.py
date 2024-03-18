@@ -101,6 +101,10 @@ def poll_prediction_bet_count(poll_id: int):
     print(previous_outcomes)
     print(previous_bets)
 
+    # If there's no previous bets then do nothing
+    if len(previous_bets) == 0 or len(previous_bets[0]) == 0:
+        return
+
     # Calculation below
     for i, statement in enumerate(poll_statements):
         predictor_errors = []

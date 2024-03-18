@@ -248,7 +248,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
         (self.prediction_one,
          self.prediction_two,
          self.prediction_three) = [PollPredictionBetFactory(prediction_statement=self.prediction_statement,
-                                                            created_by=group_user
+                                                            created_by=group_user,
                                                             ) for group_user in [self.user_prediction_caster_one,
                                                                                  self.user_prediction_caster_two,
                                                                                  self.user_prediction_caster_three]]
