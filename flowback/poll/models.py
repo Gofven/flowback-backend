@@ -216,9 +216,6 @@ class PollDelegateVoting(BaseModel):
     created_by = models.ForeignKey(GroupUserDelegatePool, on_delete=models.CASCADE)
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
     mandate = models.IntegerField(default=0)
-    comment_section = models.ForeignKey(CommentSection,
-                                        default=comment_section_create_model_default,
-                                        on_delete=models.CASCADE)
 
     class Meta:
         unique_together = ('created_by', 'poll')

@@ -9,7 +9,7 @@ from backend.settings import FLOWBACK_DEFAULT_GROUP_JOIN
 from flowback.chat.models import MessageChannel, MessageChannelParticipant
 from flowback.chat.services import message_channel_create, message_channel_join
 from flowback.comment.models import CommentSection
-from flowback.comment.services import comment_section_create
+from flowback.comment.services import comment_section_create, comment_section_create_model_default
 from flowback.common.models import BaseModel
 from flowback.common.services import get_object
 from flowback.kanban.models import Kanban
@@ -220,6 +220,9 @@ class GroupUserInvite(BaseModel):
 
 class GroupUserDelegatePool(BaseModel):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    comment_section = models.ForeignKey(CommentSection,
+                                        default=comment_section_create_model_default,
+                                        on_delete=models.CASCADE)
 
 
 class GroupUserDelegate(BaseModel):
