@@ -92,7 +92,7 @@ def poll_create(*, user_id: int,
                               timestamp=start_date, related_id=poll.id)
 
     poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
-    poll_prediction_bet_count.apply_async(kwarsg=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
+    poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
 
     # Poll notification
     for date, name, phase in poll.labels:
