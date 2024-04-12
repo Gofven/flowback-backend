@@ -58,7 +58,7 @@ def poll_prediction_bet_count(poll_id: int):
     ).order_by('-created_at').all()
 
     previous_outcomes = list(statements.filter(~Q(poll=poll)).values_list('outcome', flat=True))
-    previous_outcome_avg = 0 if len(previous_outcomes) is 0 else sum(previous_outcomes) / len(previous_outcomes)
+    previous_outcome_avg = 0 if len(previous_outcomes) == 0 else sum(previous_outcomes) / len(previous_outcomes)
     # statement_history = statements.filter(~Q(poll=poll)).all()
     poll_statements = statements.filter(poll=poll).all()
 
@@ -105,13 +105,13 @@ def poll_prediction_bet_count(poll_id: int):
 
     # If there's no previous bets then do nothing
     if len(previous_bets) == 0 or len(previous_bets[0]) == 0:
-        return 0 if len(current_bets) is 0 else sum(current_bets) / len(current_bets)
+        return 0 if len(current_bets) == 0 else sum(current_bets) / len(current_bets)
 
     # Calculation below
     for i, statement in enumerate(poll_statements):
         predictor_errors = []
         for bets in previous_bets:
-            bias_adjustments.append(0 if len(bets) is 0 else previous_outcome_avg - (sum(bets) / len(bets)))
+            bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (sum(bets) / len(bets)))
 
             predictor_errors.append(np.array([previous_outcomes[i] - bets[i]
                                               if bets[i] is not None
