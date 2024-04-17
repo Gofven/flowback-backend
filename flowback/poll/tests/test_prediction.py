@@ -244,7 +244,57 @@ class PollPredictionStatementTest(APITransactionTestCase):
         self.assertEqual(len(json.loads(response.rendered_content)['results']), 1,
                          'Incorrect amount of predictions returned')
 
+    class BetUser:
+        def __init__(self, group_user: GroupUser, score: int, vote: bool):
+            self.group_user = group_user
+            self.score = score
+            self.vote = vote
+
+        group_user: GroupUser
+        score: int  # between 0 and 5
+        vote: bool
+
+    @staticmethod
+    def generate_previous_bet(poll: Poll, bet_users: list[BetUser]):
+        statement = PollPredictionStatementFactory(poll=poll)
+
+        for bet_user in bet_users:
+            PollPredictionBetFactory(prediction_statement=statement,
+                                     created_by=bet_user.group_user,
+                                     score=bet_user.score)
+            PollPredictionStatementVoteFactory(prediction_statement=statement,
+                                               created_by=bet_user.group_user,
+                                               vote=bet_user.vote)
+
     def test_poll_prediction_combined_bet(self):
+        # Make random previous bets
+        poll_one_bets = [self.BetUser(group_user=self.user_prediction_caster_one,
+                                      score=4,
+                                      vote=True),
+                         self.BetUser(group_user=self.user_prediction_caster_two,
+                                      score=3,
+                                      vote=False),
+                         self.BetUser(group_user=self.user_prediction_caster_three,
+                                      score=0,
+                                      vote=False)]
+
+        poll = PollFactory(created_by=self.user_group_creator, **generate_poll_phase_kwargs('prediction_vote'))
+        self.generate_previous_bet(poll=poll, bet_users=poll_one_bets)
+
+        poll_two_bets = [self.BetUser(group_user=self.user_prediction_caster_one,
+                                      score=2,
+                                      vote=True),
+                         self.BetUser(group_user=self.user_prediction_caster_two,
+                                      score=2,
+                                      vote=False),
+                         self.BetUser(group_user=self.user_prediction_caster_three,
+                                      score=5,
+                                      vote=True)]
+
+        poll = PollFactory(created_by=self.user_group_creator, **generate_poll_phase_kwargs('prediction_vote'))
+        self.generate_previous_bet(poll=poll, bet_users=poll_two_bets)
+
+        # Calculate combined_bet
         (self.prediction_one,
          self.prediction_two,
          self.prediction_three) = [PollPredictionBetFactory(prediction_statement=self.prediction_statement,
@@ -252,4 +302,5 @@ class PollPredictionStatementTest(APITransactionTestCase):
                                                             ) for group_user in [self.user_prediction_caster_one,
                                                                                  self.user_prediction_caster_two,
                                                                                  self.user_prediction_caster_three]]
+
         poll_prediction_bet_count(poll_id=self.poll.id)

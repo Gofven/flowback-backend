@@ -3,6 +3,7 @@ from celery import shared_task
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import models
 from django.db.models import Count, Q, Sum, OuterRef, Case, When, F, Subquery
+from django.db.models.functions import Cast
 from django.utils import timezone
 
 from flowback.common.services import get_object
@@ -65,10 +66,11 @@ def poll_prediction_bet_count(poll_id: int):
     current_bets = []
     previous_bets = []
     for predictor in predictors:
-        # get each bet predictor does, order by outcome
+        # get each bet predictor does, order by previous_outcomes
         bet_subquery = PollPredictionBet.objects.filter(prediction_statement=OuterRef('id'),
                                                         created_by=predictor
-                                                        ).annotate(real_score=F('score') / 5).values('real_score')
+                                                        ).annotate(
+            real_score=Cast(F('score'), models.FloatField()) / 5).values('real_score')
         bets = statements.annotate(user_bets=Subquery(bet_subquery)).all()
 
         current_bets.append(list(bets.filter(poll=poll).values_list('user_bets', flat=True)))
@@ -111,7 +113,8 @@ def poll_prediction_bet_count(poll_id: int):
     for i, statement in enumerate(poll_statements):
         predictor_errors = []
         for bets in previous_bets:
-            bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (sum(bets) / len(bets)))
+            bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (sum(i for i in bets
+                                                                                         if i is not None) / len(bets)))
 
             predictor_errors.append(np.array([previous_outcomes[i] - bets[i]
                                               if bets[i] is not None
@@ -135,11 +138,11 @@ def poll_prediction_bet_count(poll_id: int):
             return (1 / len(arr_1)) * sum(covariance_array)
 
         covariance_matrix = []
-        for i in range(len(predictor_errors)):
+        for k in range(len(predictor_errors)):
             row = []
 
             for j in range(len(predictor_errors)):
-                comparable_errors = drop_incomparable_values(predictor_errors[i], predictor_errors[j])
+                comparable_errors = drop_incomparable_values(predictor_errors[k], predictor_errors[j])
                 row.append(covariance(comparable_errors[0], comparable_errors[1]))
 
             covariance_matrix.append(row)
@@ -152,9 +155,9 @@ def poll_prediction_bet_count(poll_id: int):
             print("Zero determinant")
 
             while determinant_is_zero:
-                for i in range(np_covariance_matrix.shape[0]):
+                for m in range(np_covariance_matrix.shape[0]):
                     for j in range(np_covariance_matrix.shape[0]):
-                        np_covariance_matrix[i][j] += small_decimal * [-1, 1][random.randint(0, 1)]
+                        np_covariance_matrix[m][j] += small_decimal * [-1, 1][random.randint(0, 1)]
 
                 det = np.linalg.det(np_covariance_matrix)
                 if det != 0:
@@ -174,12 +177,14 @@ def poll_prediction_bet_count(poll_id: int):
         transposed_bet_weights = np.transpose(bet_weights)
 
         combined_bet = float(np.matmul(transposed_bet_weights,
-                                       [bet[i] + bias_adjustments[i] for bet in current_bets])[0][0])
+                                       [bet[i] + bias_adjustments[i] for bet in current_bets])[0])
 
         # Sanity check
         check = np.matmul(transposed_bet_weights, row_one_vector)
         if (check[0] > 1 + small_decimal) or (0.99 + small_decimal > check[0]):
             print(f"Error with weights: {check[0]:.4f}")
+
+        print(combined_bet)
 
         statement.combined_bet = combined_bet
         statement.save()
