@@ -45,7 +45,7 @@ class PollListApi(APIView):
         pinned = serializers.BooleanField(required=False, default=None, allow_null=True)
 
         title = serializers.CharField(required=False)
-        title__icontains = serializers.CharField(required=False)
+        title__icontains = serializers.ListField(child=serializers.CharField(), required=False)
         description = serializers.CharField(required=False)
         description__icontains = serializers.ListField(child=serializers.CharField(), required=False)
         poll_type = serializers.ChoiceField((0, 1, 2), required=False)
