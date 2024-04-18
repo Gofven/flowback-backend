@@ -54,7 +54,7 @@ def group_user_permissions(*,
         group_user = get_object(GroupUser, 'User is not in group', group=group, user=user, active=True)
 
     elif group_user:
-        if type(group_user) == int:
+        if isinstance(group_user, int):
             group_user = get_object(GroupUser, id=group_user)
 
     else:

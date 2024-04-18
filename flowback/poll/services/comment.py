@@ -50,7 +50,8 @@ def poll_comment_update(*, fetched_by: int, poll_id: int, comment_id: int, data)
 def poll_comment_delete(*, fetched_by: int, poll_id: int, comment_id: int):
     poll = get_object(Poll, id=poll_id)
 
-    force = bool(group_user_permissions(group_user=fetched_by,
+    force = bool(group_user_permissions(user=fetched_by,
+                                        group=poll.created_by.group,
                                         permissions=['admin', 'force_delete_comment'],
                                         raise_exception=False))
 
