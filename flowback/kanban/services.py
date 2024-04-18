@@ -110,7 +110,7 @@ class KanbanManager:
                             created_by_id: int,
                             assignee_id: int = None,
                             title: str,
-                            description: str,
+                            description: str = None,
                             priority: int,
                             tag: int,
                             end_date: timezone.datetime = None) -> KanbanEntry:
