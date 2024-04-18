@@ -39,10 +39,10 @@ def group_user_permissions(*,
                            group_user: [GroupUser, int] = None,
                            permissions: Union[list[str], str] = None,
                            raise_exception: bool = True) -> Union[GroupUser, bool]:
-    if type(user) == int:
+    if isinstance(user, int):
         user = get_object(User, id=user)
 
-    if type(group) == int:
+    if isinstance(group, int):
         group = get_object(Group, id=group)
 
     permissions = permissions or []
