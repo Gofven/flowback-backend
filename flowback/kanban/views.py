@@ -60,7 +60,7 @@ class KanbanEntryCreateAPI(APIView):
 
         class Meta:
             model = KanbanEntry
-            fields = ('assignee', 'title', 'tag', 'priority', 'end_date')
+            fields = ('assignee', 'title', 'description', 'tag', 'priority', 'end_date')
 
 
 class KanbanEntryUpdateAPI(APIView):
