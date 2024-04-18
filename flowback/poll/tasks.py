@@ -113,8 +113,9 @@ def poll_prediction_bet_count(poll_id: int):
     for i, statement in enumerate(poll_statements):
         predictor_errors = []
         for bets in previous_bets:
-            bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (sum(i for i in bets
-                                                                                         if i is not None) / len(bets)))
+            bets_trimmed = [i for i in bets if i is not None]
+            bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (sum(bets_trimmed) /
+                                                                                     len(bets_trimmed)))
 
             predictor_errors.append(np.array([previous_outcomes[i] - bets[i]
                                               if bets[i] is not None
