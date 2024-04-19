@@ -45,8 +45,13 @@ def poll_proposal_create(*, user_id: int, poll_id: int,
                               end_date=data['end_date'],
                               origin_name=PollProposal.schedule_origin,
                               origin_id=proposal.id)
+        try:
+            event.full_clean()
 
-        event.full_clean()
+        except ValidationError as e:
+            proposal.delete()
+            raise e
+
         event.save()
 
         schedule_proposal = PollProposalTypeSchedule(proposal=proposal,
