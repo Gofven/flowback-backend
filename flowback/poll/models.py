@@ -197,7 +197,8 @@ class PollProposalTypeSchedule(BaseModel):
     event = models.OneToOneField(ScheduleEvent, on_delete=models.CASCADE)
 
     def clean(self):
-        if self.objects.filter(event__start_date=self.event.start_date, event__end_date=self.event.end_date).exists():
+        if PollProposalTypeSchedule.objects.filter(event__start_date=self.event.start_date,
+                                                   event__end_date=self.event.end_date).exists():
             raise ValidationError('Proposal event with same start_date and end_date already exists')
 
     class Meta:
