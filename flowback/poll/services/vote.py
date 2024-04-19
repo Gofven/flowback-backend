@@ -285,8 +285,8 @@ def poll_proposal_vote_count(*, poll_id: int) -> None:
 
     if poll.finished and not poll.result:
         if poll.poll_type == Poll.PollType.SCHEDULE:
-            winning_proposal = PollProposal.objects.filter(poll_id=poll_id
-                                                           ).order_by('-score', '-event__start_date').first()
+            winning_proposal = PollProposal.objects.filter(
+                poll_id=poll_id).order_by('-score', '-pollproposaltypeschedule__event__start_date').first()
             if winning_proposal:
                 event = winning_proposal.pollproposaltypeschedule.event
                 create_event(schedule_id=group.schedule_id,
