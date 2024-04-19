@@ -196,6 +196,13 @@ class PollProposalTypeSchedule(BaseModel):
     proposal = models.OneToOneField(PollProposal, on_delete=models.CASCADE)
     event = models.OneToOneField(ScheduleEvent, on_delete=models.CASCADE)
 
+    def clean(self):
+        if self.objects.filter(event__start_date=self.event.start_date, event__end_date=self.event.end_date).exists():
+            raise ValidationError('Proposal event with same start_date and end_date already exists')
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['proposal', 'event'], name='unique_proposaltypeschedule')]
+
     @classmethod
     def post_delete(cls, instance, **kwargs):
         instance.event.delete()
