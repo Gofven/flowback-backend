@@ -90,6 +90,7 @@ class PollListApi(APIView):
                       'title',
                       'description',
                       'poll_type',
+                      'allow_fast_forward',
                       'public',
                       'tag',
                       'tag_name',
