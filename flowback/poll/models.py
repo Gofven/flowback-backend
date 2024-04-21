@@ -48,6 +48,7 @@ class Poll(BaseModel):
 
     # Determines if poll is visible outside of group
     public = models.BooleanField(default=False)
+    allow_fast_forward = models.BooleanField(default=False)
 
     # Poll Phases
     start_date = models.DateTimeField()  # Poll Start
@@ -145,7 +146,21 @@ class Poll(BaseModel):
 
         return 'waiting'
 
+    def phase_exist(self, phase: str, raise_exception=True):
+        phases = [label[2] for label in self.labels]
+
+        if phase in phases:
+            return True
+
+        if raise_exception:
+            raise ValidationError(f'Poll phase "{phase}" does not exist')
+
+        return False
+
     def check_phase(self, *phases: str):
+        for phase in phases:
+            self.phase_exist(phase)
+
         current_phase = self.current_phase
         if current_phase not in phases:
             raise ValidationError(f'Poll is not in {" or ".join(phases)}, currently in {current_phase}')

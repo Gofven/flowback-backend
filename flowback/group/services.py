@@ -26,7 +26,7 @@ group_schedule = ScheduleManager(schedule_origin_name='group', possible_origins=
 group_kanban = KanbanManager(origin_type='group')
 group_notification = NotificationManager(sender_type='group', possible_categories=['group', 'members', 'invite',
                                                                                    'delegate', 'poll', 'kanban',
-                                                                                   'schedule'])
+                                                                                   'schedule', 'poll_schedule'])
 
 
 def group_notification_subscribe(*, user_id: int, group: int, categories: list[str]):
@@ -99,7 +99,8 @@ def group_permission_update(*, user: int, group: int, permission_id: int, data) 
     non_side_effect_fields = ['role_name',
                               'invite_user',
                               'create_poll',
-                              'poll_quorum'
+                              'poll_fast_forward',
+                              'poll_quorum',
                               'allow_vote',
                               'kick_members',
                               'ban_members',
