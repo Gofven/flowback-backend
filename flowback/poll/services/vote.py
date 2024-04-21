@@ -41,10 +41,10 @@ def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None
 
     elif poll.poll_type == Poll.PollType.CARDINAL:
 
-        if SCORE_VOTE_CEILING is not None and any([score >= SCORE_VOTE_CEILING for score in data['score']]):
+        if SCORE_VOTE_CEILING is not None and any([score >= SCORE_VOTE_CEILING for score in data['scores']]):
             raise ValidationError(f'Voting scores exceeds ceiling bounds (currently set at {SCORE_VOTE_CEILING})')
 
-        if SCORE_VOTE_FLOOR is not None and any([score <= SCORE_VOTE_FLOOR for score in data['score']]):
+        if SCORE_VOTE_FLOOR is not None and any([score <= SCORE_VOTE_FLOOR for score in data['scores']]):
             raise ValidationError(f'Voting scores exceeds floor bounds (currently set at {SCORE_VOTE_FLOOR})')
 
         # Delete votes if no polls are registered
