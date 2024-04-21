@@ -198,7 +198,7 @@ def group_leave(*, user: int, group: int) -> None:
 
 def group_invite(*, user: int, group: int, to: int) -> GroupUserInvite:
     group = group_user_permissions(group=group, user=user, permissions=['admin', 'invite_user']).group
-    get_object(GroupUser, error_message='User is already in the group', reverse=True, group=group, user=to)
+    get_object(GroupUser, error_message='User is already in the group', reverse=True, group=group, user=to, active=True)
     invite = GroupUserInvite(user_id=to, group_id=group.id, external=False)
 
     invite.full_clean()
@@ -216,14 +216,22 @@ def group_invite_remove(*, user: int, group: int, to: int) -> None:
 def group_invite_accept(*, fetched_by: int, group: int, to: int = None) -> None:
     if to:
         group_user_permissions(group=group, user=fetched_by, permissions=['invite_user', 'admin'])
-        get_object(GroupUser, 'User already joined', reverse=True, user_id=to, group=group)
+        get_object(GroupUser, 'User already joined', reverse=True, user_id=to, group=group, active=True)
         invite = get_object(GroupUserInvite, 'User has not requested invite', user_id=to, group_id=group, external=True)
-        group_user = GroupUser(user_id=to, group_id=group)
+
+        if group_user := get_object(GroupUser, raise_exception=False, user_id=to, group_id=group, active=False):
+            group_user.active = True
+        else:
+            group_user = GroupUser(user_id=to, group_id=group)
 
     else:
         invite = get_object(GroupUserInvite, 'User has not been invited', user_id=fetched_by, group_id=group,
                             external=False)
-        group_user = GroupUser(user_id=fetched_by, group_id=group)
+
+        if group_user := get_object(GroupUser, raise_exception=False, user_id=fetched_by, group_id=group, active=False):
+            group_user.active = True
+        else:
+            group_user = GroupUser(user_id=fetched_by, group_id=group)
 
     # TODO fix group_user.full_clean()
     group_user.save()
@@ -237,7 +245,12 @@ def group_invite_reject(*, fetched_by: id, group: int, to: int = None) -> None:
         invite = get_object(GroupUserInvite, 'User has not been invited', user_id=to, group_id=group)
 
     else:
-        get_object(GroupUser, 'User already joined', reverse=True, user_id=fetched_by, group_id=group)
+        get_object(GroupUser,
+                   'User already joined',
+                   reverse=True,
+                   user_id=fetched_by,
+                   group_id=group,
+                   active=True)
         invite = get_object(GroupUserInvite, 'User has not requested invite', user_id=fetched_by, group_id=group)
 
     invite.delete()
