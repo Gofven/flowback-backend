@@ -55,7 +55,10 @@ def group_user_permissions(*,
 
     elif group_user:
         if isinstance(group_user, int):
-            group_user = get_object(GroupUser, id=group_user)
+            group_user = get_object(GroupUser, id=group_user, active=True)
+
+        elif isinstance(group_user, GroupUser):
+            group_user = get_object(GroupUser, id=group_user.id, active=True)
 
     else:
         raise Exception('group_user_permissions is missing appropiate parameters')

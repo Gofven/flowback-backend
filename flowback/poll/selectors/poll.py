@@ -48,8 +48,10 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
     else:
         joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
         qs = Poll.objects.filter(
-            (Q(created_by__group__groupuser__user__in=[fetched_by]) |
-             Q(public=True) & ~Q(created_by__group__groupuser__user__in=[fetched_by])
+            (Q(created_by__group__groupuser__user__in=[fetched_by]) & Q(created_by__group__groupuser__active=True)
+             | Q(public=True) & ~Q(created_by__group__groupuser__user__in=[fetched_by])
+             | Q(public=True) & Q(created_by__group__groupuser__user__in=[fetched_by]
+                                  ) & Q(created_by__group__groupuser__active=False)
              ) & Q(start_date__lte=timezone.now())
         ).annotate(group_joined=Exists(joined_groups), total_comments=Count('comment_section__comment',
                                                                             filters=dict(active=True))).all()
