@@ -184,8 +184,9 @@ class NotificationManager:
               timestamp__lt: datetime = None, timestamp__gt: datetime = None, action: str = None,
               delta: timezone.timedelta):
         self.category_is_possible(category)
-        notification_shift(category=category, sender_id=sender_id, related_id=related_id, timestamp=timestamp,
-                           timestamp__lt=timestamp__lt, timestamp__gt=timestamp__gt, action=action, delta=delta)
+        notification_shift(category=category, sender_type=self.sender_type, sender_id=sender_id, related_id=related_id,
+                           timestamp=timestamp, timestamp__lt=timestamp__lt, timestamp__gt=timestamp__gt,
+                           action=action, delta=delta)
 
     def delete(self, *, category: str, sender_id: int, related_id: int = None, action: str = None,
                timestamp: datetime = None, timestamp__lt: datetime = None, timestamp__gt: datetime = None):

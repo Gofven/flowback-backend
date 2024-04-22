@@ -200,23 +200,23 @@ def poll_fast_forward(*, user_id: int, poll_id: int, phase: str):
     if not poll.allow_fast_forward:
         raise ValidationError("This poll can't be fast forwarded")
 
-    if not (poll.created_by == group_user and group_user.permission.poll_fast_forward or group_user.is_admin):
+    if not (poll.created_by == group_user
+            and group_user_permissions(group_user=group_user, permissions=['poll_fast_forward', 'admin'])):
         raise ValidationError('User is not allowed to fast forward polls')
 
-    poll.phase_exists(phase)
+    poll.phase_exist(phase)
 
     phases = [label[2] for label in poll.labels]
 
     if phases.index(phase) <= phases.index(poll.current_phase):
         raise ValidationError('Unable to fast forward poll to the same/previous phase')
 
-    time_difference = getattr(poll, poll.current_phase) - getattr(poll, phase)
+    time_difference = poll.get_phase_start_date(phase) - poll.get_phase_start_date(poll.current_phase)
 
     # Save new times to dict
-    updated_phases = dict()
     for phase in phases:
-        phase_time = getattr(poll, phase) - time_difference
-        updated_phases[phase] = phase_time
+        phase_time = poll.get_phase_start_date(phase) - time_difference
+        setattr(poll, poll.get_phase_start_date(phase, field_name=True), phase_time)
 
     poll.full_clean()
     poll.save()

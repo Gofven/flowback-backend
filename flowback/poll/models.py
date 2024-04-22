@@ -1,3 +1,5 @@
+from typing import Union
+
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import Q, F, Count
@@ -90,14 +92,14 @@ class Poll(BaseModel):
             return ((self.start_date, 'start date', 'schedule'),
                     (self.end_date, 'end date', 'result'))
 
-        return ((self.start_date, 'start date', 'area_vote'),
-                (self.area_vote_end_date, 'area vote end date', 'proposal'),
-                (self.proposal_end_date, 'proposal end date', 'prediction_statement'),
-                (self.prediction_statement_end_date, 'prediction statement end date', 'prediction_bet'),
-                (self.prediction_bet_end_date, 'prediction bet end date', 'delegate_vote'),
-                (self.delegate_vote_end_date, 'delegate vote end date', 'vote'),
-                (self.vote_end_date, 'vote end date', 'result'),
-                (self.end_date, 'end date', 'prediction_vote'))
+        return ((self.start_date, 'start_date', 'area_vote'),
+                (self.area_vote_end_date, 'area_vote_end_date', 'proposal'),
+                (self.proposal_end_date, 'proposal_end_date', 'prediction_statement'),
+                (self.prediction_statement_end_date, 'prediction_statement_end_date', 'prediction_bet'),
+                (self.prediction_bet_end_date, 'prediction_bet_end_date', 'delegate_vote'),
+                (self.delegate_vote_end_date, 'delegate_vote_end_date', 'vote'),
+                (self.vote_end_date, 'vote_end_date', 'result'),
+                (self.end_date, 'end_date', 'prediction_vote'))
 
     def clean(self):
         labels = self.labels
@@ -145,6 +147,19 @@ class Poll(BaseModel):
                 return labels[x][2]
 
         return 'waiting'
+
+    def get_phase_start_date(self, phase: str, field_name=False) -> str:
+        labels = self.labels
+
+        for x in reversed(range(len(labels))):
+            if phase == labels[x][2]:
+                if field_name:
+                    return labels[x][1]
+
+                else:
+                    return labels[x][0]
+
+        raise Exception('Phase not found')
 
     def phase_exist(self, phase: str, raise_exception=True):
         phases = [label[2] for label in self.labels]
