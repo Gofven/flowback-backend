@@ -72,7 +72,8 @@ class Poll(BaseModel):
     result = models.BooleanField(default=False)
 
     # Comment section
-    comment_section = models.ForeignKey(CommentSection, default=comment_section_create_model_default, on_delete=models.DO_NOTHING)
+    comment_section = models.ForeignKey(CommentSection, default=comment_section_create_model_default,
+                                        on_delete=models.DO_NOTHING)
 
     # Optional dynamic counting support
     participants = models.IntegerField(default=0)
@@ -85,12 +86,13 @@ class Poll(BaseModel):
     @property
     def labels(self) -> tuple:
         if self.dynamic:
-            return ((self.start_date, 'start date', 'dynamic'),
-                    (self.end_date, 'end date', 'result'))
+            if self.poll_type == self.PollType.SCHEDULE:
+                return ((self.start_date, 'start_date', 'schedule'),
+                        (self.end_date, 'end_date', 'result'))
 
-        if self.poll_type == self.PollType.SCHEDULE:
-            return ((self.start_date, 'start date', 'schedule'),
-                    (self.end_date, 'end date', 'result'))
+            else:
+                return ((self.start_date, 'start_date', 'dynamic'),
+                        (self.end_date, 'end_date', 'result'))
 
         return ((self.start_date, 'start_date', 'area_vote'),
                 (self.area_vote_end_date, 'area_vote_end_date', 'proposal'),
@@ -101,11 +103,35 @@ class Poll(BaseModel):
                 (self.vote_end_date, 'vote_end_date', 'result'),
                 (self.end_date, 'end_date', 'prediction_vote'))
 
+    @property
+    def time_table(self) -> list:
+        labels = [[self.start_date, 'start_date', 'area_vote'],
+                  [self.area_vote_end_date, 'area_vote_end_date', 'proposal'],
+                  [self.proposal_end_date, 'proposal_end_date', 'prediction_statement'],
+                  [self.prediction_statement_end_date, 'prediction_statement_end_date', 'prediction_bet'],
+                  [self.prediction_bet_end_date, 'prediction_bet_end_date', 'delegate_vote'],
+                  [self.delegate_vote_end_date, 'delegate_vote_end_date', 'vote'],
+                  [self.vote_end_date, 'vote_end_date', 'result'],
+                  [self.end_date, 'end_date', 'prediction_vote']]
+
+        if self.dynamic:
+            if self.poll_type == self.PollType.SCHEDULE:
+                labels[0][2] = 'schedule'
+                labels[6][2] = 'result_default'
+                labels[7][2] = 'result'
+
+            else:
+                labels[0][2] = 'dynamic'
+                labels[6][2] = 'result_default'
+                labels[7][2] = 'result'
+
+        return labels
+
     def clean(self):
         labels = self.labels
         for x in range(len(labels) - 1):
-            if labels[x][0] > labels[x+1][0]:
-                raise ValidationError(f'{labels[x][1].title()} is greater than {labels[x+1][1]}')
+            if labels[x][0] > labels[x + 1][0]:
+                raise ValidationError(f'{labels[x][1].title()} is greater than {labels[x + 1][1]}')
 
     class Meta:
         constraints = [models.CheckConstraint(check=Q(Q(area_vote_end_date__isnull=True)
@@ -118,7 +144,8 @@ class Poll(BaseModel):
                                                       | Q(prediction_statement_end_date__gte=F('proposal_end_date'))),
                                               name='predictionstatementenddategreaterthanproposalenddate_check'),
                        models.CheckConstraint(check=Q(Q(prediction_bet_end_date__isnull=True)
-                                                      | Q(prediction_bet_end_date__gte=F('prediction_statement_end_date'))),
+                                                      | Q(
+                           prediction_bet_end_date__gte=F('prediction_statement_end_date'))),
                                               name='predictionbetenddategreaterthanpredictionstatementeneddate_check'),
                        models.CheckConstraint(check=Q(Q(delegate_vote_end_date__isnull=True)
                                                       | Q(delegate_vote_end_date__gte=F('prediction_bet_end_date'))),
@@ -149,15 +176,15 @@ class Poll(BaseModel):
         return 'waiting'
 
     def get_phase_start_date(self, phase: str, field_name=False) -> str:
-        labels = self.labels
+        time_table = self.time_table
 
-        for x in reversed(range(len(labels))):
-            if phase == labels[x][2]:
+        for x in reversed(range(len(time_table))):
+            if phase == time_table[x][2]:
                 if field_name:
-                    return labels[x][1]
+                    return time_table[x][1]
 
                 else:
-                    return labels[x][0]
+                    return time_table[x][0]
 
         raise Exception('Phase not found')
 
@@ -365,10 +392,10 @@ class PollPredictionStatement(PredictionStatement):
 
     @receiver(post_delete, sender=PollProposal)
     def clean_prediction_statement(sender, instance: PollProposal, **kwargs):
-        PollPredictionStatement.objects.filter(poll=instance.poll)\
-                                        .annotate(segment_count=Count('pollpredictionstatementsegment'))\
-                                        .filter(segment_count__lt=1)\
-                                        .delete()
+        PollPredictionStatement.objects.filter(poll=instance.poll) \
+            .annotate(segment_count=Count('pollpredictionstatementsegment')) \
+            .filter(segment_count__lt=1) \
+            .delete()
 
 
 class PollPredictionStatementSegment(PredictionStatementSegment):
@@ -397,4 +424,5 @@ class PollPredictionBet(PredictionBet):
 
     @receiver(post_save, sender=PollProposal)
     def reset_prediction_proposal(sender, instance: PollProposal, **kwargs):
-        PollPredictionBet.objects.filter(prediction_statement__pollpredictionstatementsegment__proposal=instance).delete()
+        PollPredictionBet.objects.filter(
+            prediction_statement__pollpredictionstatementsegment__proposal=instance).delete()
