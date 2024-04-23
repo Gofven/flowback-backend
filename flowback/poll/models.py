@@ -360,7 +360,7 @@ class PollPredictionStatement(PredictionStatement):
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
 
     def clean(self):
-        if self.poll.end_date < self.end_date:
+        if self.poll.end_date > self.end_date:
             raise ValidationError('Poll ends later than prediction statement deadline')
 
     @receiver(post_delete, sender=PollProposal)
