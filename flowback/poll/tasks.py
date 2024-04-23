@@ -107,7 +107,8 @@ def poll_prediction_bet_count(poll_id: int):
 
     # If there's no previous bets then do nothing
     if len(previous_bets) == 0 or len(previous_bets[0]) == 0:
-        return 0 if len(current_bets) == 0 else sum(current_bets) / len(current_bets)
+        print("No previous bets found, returning", sum(sum(bets) for bets in current_bets) / len(current_bets))
+        return 0 if len(current_bets) == 0 else sum(sum(bets) for bets in current_bets) / len(current_bets)
 
     # Calculation below
     for i, statement in enumerate(poll_statements):
