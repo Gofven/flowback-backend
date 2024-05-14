@@ -25,7 +25,9 @@ def poll_area_statement_create(user_id: int, poll_id: int, tags: list[int]):
     poll_area_statement_segments = [PollAreaStatementSegment(poll_area_statement=poll_area_statement,
                                                              tag_id=i) for i in tags]
 
-    PollAreaStatementSegment.objects.bulk_create(poll_area_statement_segments)
+    for segment in poll_area_statement_segments:
+        segment.full_clean()
+        segment.save()
 
     return poll_area_statement
 

@@ -372,6 +372,10 @@ class PollAreaStatementSegment(BaseModel):
     poll_area_statement = models.ForeignKey(PollAreaStatement, on_delete=models.CASCADE)
     tag = models.ForeignKey(GroupTags, on_delete=models.CASCADE)
 
+    def clean(self):
+        if self.tag.active is False:
+            raise ValidationError("Tag must be active")
+
 
 class PollAreaStatementVote(BaseModel):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
