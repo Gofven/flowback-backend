@@ -41,10 +41,10 @@ def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None
 
     elif poll.poll_type == Poll.PollType.CARDINAL:
 
-        if SCORE_VOTE_CEILING is not None and any([score >= SCORE_VOTE_CEILING for score in data['scores']]):
+        if SCORE_VOTE_CEILING is not None and any([score > SCORE_VOTE_CEILING for score in data['scores']]):
             raise ValidationError(f'Voting scores exceeds ceiling bounds (currently set at {SCORE_VOTE_CEILING})')
 
-        if SCORE_VOTE_FLOOR is not None and any([score <= SCORE_VOTE_FLOOR for score in data['scores']]):
+        if SCORE_VOTE_FLOOR is not None and any([score < SCORE_VOTE_FLOOR for score in data['scores']]):
             raise ValidationError(f'Voting scores exceeds floor bounds (currently set at {SCORE_VOTE_FLOOR})')
 
         # Delete votes if no polls are registered
@@ -132,6 +132,12 @@ def poll_proposal_delegate_vote_update(*, user_id: int, poll_id: int, data) -> N
         proposals = poll.pollproposal_set.filter(id__in=data['proposals']).all()
         if len(proposals) != len(data['proposals']):
             raise ValidationError('Not all proposals are available to vote for')
+
+        if SCORE_VOTE_CEILING is not None and any([score > SCORE_VOTE_CEILING for score in data['scores']]):
+            raise ValidationError(f'Voting scores exceeds ceiling bounds (currently set at {SCORE_VOTE_CEILING})')
+
+        if SCORE_VOTE_FLOOR is not None and any([score < SCORE_VOTE_FLOOR for score in data['scores']]):
+            raise ValidationError(f'Voting scores exceeds floor bounds (currently set at {SCORE_VOTE_FLOOR})')
 
         pool_vote, created = PollDelegateVoting.objects.get_or_create(created_by=delegate_pool, poll=poll)
         poll_vote_cardinal = [PollVotingTypeCardinal(author_delegate=pool_vote,
