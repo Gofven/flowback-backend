@@ -269,7 +269,7 @@ def group_thread_comment_list(*, fetched_by: User, thread_id: int, filters=None)
     thread = get_object(GroupThread, id=thread_id)
     group_user_permissions(user=fetched_by, group=thread.created_by.group)
 
-    return comment_list(comment_section_id=thread.comment_section_id, filters=filters)
+    return comment_list(fetched_by=fetched_by, comment_section_id=thread.comment_section_id, filters=filters)
 
 
 def group_delegate_pool_comment_list(*, fetched_by: User, delegate_pool_id: int, filters=None):
