@@ -169,9 +169,9 @@ def user_schedule_unsubscribe(*,
 
 def user_kanban_entry_create(*,
                              user_id: int,
-                             assignee_id: int,
+                             assignee_id: int = None,
                              title: str,
-                             description: str,
+                             description: str = None,
                              priority: int,
                              tag: int,
                              end_date: timezone.datetime = None):
