@@ -99,7 +99,7 @@ def notification_channel_subscribe(*,
     channel = notification_load_channel(category=category,
                                         sender_type=sender_type,
                                         sender_id=sender_id,
-                                        create_if_not_exist=False)
+                                        create_if_not_exist=True)
     get_object(NotificationSubscription, user_id=user_id, channel=channel,
                error_message='User is already subscribed', reverse=True)
     subscription = NotificationSubscription(user_id=user_id, channel=channel)
