@@ -39,7 +39,7 @@ from .views.thread import (GroupThreadListAPI,
                            GroupThreadCommentListAPI,
                            GroupThreadCommentCreateAPI,
                            GroupThreadCommentUpdateAPI,
-                           GroupThreadCommentDeleteAPI)
+                           GroupThreadCommentDeleteAPI, GroupThreadNotificationSubscribeAPI)
 from .views.comment import (GroupDelegatePoolCommentListAPI,
                             GroupDelegatePoolCommentCreateAPI,
                             GroupDelegatePoolCommentUpdateAPI,
@@ -115,6 +115,9 @@ group_patterns = [
     path('<int:group_id>/thread/create', GroupThreadCreateAPI.as_view(), name='group_thread_create'),
     path('thread/<int:thread_id>/update', GroupThreadUpdateAPI.as_view(), name='group_thread_update'),
     path('thread/<int:thread_id>/delete', GroupThreadDeleteAPI.as_view(), name='group_thread_delete'),
+    path('thread/<int:thread_id>/subscribe',
+         GroupThreadNotificationSubscribeAPI.as_view(),
+         name='group_thread_subscribe'),
     path('thread/<int:thread_id>/comment/list',
          GroupThreadCommentListAPI.as_view(),
          name='group_thread_comment'),

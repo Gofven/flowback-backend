@@ -10,7 +10,8 @@ from flowback.group.services import (group_thread_create,
                                      group_thread_delete,
                                      group_thread_comment_create,
                                      group_thread_comment_update,
-                                     group_thread_comment_delete)
+                                     group_thread_comment_delete, group_thread_notification_subscribe,
+                                     group_thread_notification)
 from flowback.user.serializers import BasicUserSerializer
 
 
@@ -72,6 +73,17 @@ class GroupThreadDeleteAPI(APIView):
     def post(self, request, thread_id: int):
         group_thread_delete(user_id=request.user, thread_id=thread_id)
 
+        return Response(status=status.HTTP_200_OK)
+
+
+class GroupThreadNotificationSubscribeAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        categories = serializers.MultipleChoiceField(choices=group_thread_notification.possible_categories)
+
+    def post(self, request, thread_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        group_thread_notification_subscribe(user_id=request.user.id, thread_id=thread_id, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 

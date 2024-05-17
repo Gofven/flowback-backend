@@ -27,6 +27,7 @@ group_kanban = KanbanManager(origin_type='group')
 group_notification = NotificationManager(sender_type='group', possible_categories=['group', 'members', 'invite',
                                                                                    'delegate', 'poll', 'kanban',
                                                                                    'schedule', 'poll_schedule'])
+group_thread_notification = NotificationManager(sender_type='group_thread', possible_categories=['comment'])
 
 
 def group_notification_subscribe(*, user_id: int, group: int, categories: list[str]):
@@ -530,7 +531,24 @@ def group_thread_comment_create(author_id: int,
                              attachments=attachments,
                              attachment_upload_to="group/thread/attachments")
 
+    group_thread_notification.create(sender_id=thread.id,
+                                     related_id=comment.id,
+                                     action=group_thread_notification.Action.create,
+                                     category='comment',
+                                     message=f'User "{group_user.user.username}" commented on thread "{thread.title}"')
+
     return comment
+
+
+def group_thread_notification_subscribe(user_id: int, thread_id: int, categories: list[str]):
+    thread = get_object(GroupThread, id=thread_id)
+    group_user_permissions(user=user_id, group=thread.created_by.group)
+
+    group_notification.channel_subscribe(user_id=user_id,
+                                         sender_id=thread.id,
+                                         category=categories)
+
+    return True
 
 
 def group_thread_comment_update(author_id: int, thread_id: int, comment_id: int, data):
