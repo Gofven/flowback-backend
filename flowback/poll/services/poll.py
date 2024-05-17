@@ -218,16 +218,23 @@ def poll_fast_forward(*, user_id: int, poll_id: int, phase: str):
     # Save new times to dict
     for phase in time_table:
         phase_time = poll.get_phase_start_date(phase) - time_difference
-        print(phase, phase_time)
-        print(poll.get_phase_start_date(phase, field_name=True))
         setattr(poll, poll.get_phase_start_date(phase, field_name=True), phase_time)
 
     poll.full_clean()
     poll.save()
 
     # TODO update/remove previous celery tasks
-    poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
-    poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
+    if poll.area_vote_end_date > timezone.now():
+        poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
+
+    else:
+        poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id))
+
+    if poll.prediction_bet_end_date > timezone.now():
+        poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
+
+    else:
+        poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id))
 
     poll_notification.shift(sender_id=poll_id,
                             category='timeline',
