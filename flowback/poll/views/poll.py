@@ -69,6 +69,8 @@ class PollListApi(APIView):
         attachments = FileSerializer(many=True, source="attachments.filesegment_set", allow_null=True)
         hide_poll_users = serializers.BooleanField(source='created_by.group.hide_poll_users')
         total_comments = serializers.IntegerField()
+        total_proposals = serializers.IntegerField()
+        total_predictions = serializers.IntegerField()
 
         proposal_end_date = serializers.DateTimeField(required=False)
         prediction_statement_end_date = serializers.DateTimeField(required=False)
@@ -107,6 +109,8 @@ class PollListApi(APIView):
                       'pinned',
                       'dynamic',
                       'total_comments',
+                      'total_proposals',
+                      'total_predictions',
                       'quorum',
                       'status',
                       'attachments')
