@@ -517,7 +517,7 @@ def group_thread_delete(user_id: int, thread_id: int):
 
 def group_thread_comment_create(author_id: int,
                                 thread_id: int,
-                                message: str,
+                                message: str = None,
                                 attachments: list = None,
                                 parent_id: int = None):
     thread = get_object(GroupThread, id=thread_id)
