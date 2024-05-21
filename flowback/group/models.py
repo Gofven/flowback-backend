@@ -118,15 +118,26 @@ class GroupPermissions(BaseModel):
     allow_vote = models.BooleanField(default=True)
     kick_members = models.BooleanField(default=False)
     ban_members = models.BooleanField(default=False)
+
     create_proposal = models.BooleanField(default=True)
     update_proposal = models.BooleanField(default=True)
     delete_proposal = models.BooleanField(default=True)
-    force_delete_poll = models.BooleanField(default=False)
-    force_delete_proposal = models.BooleanField(default=False)
-    force_delete_comment = models.BooleanField(default=False)
+
+    prediction_statement_create = models.BooleanField(default=True)
+    prediction_statement_update = models.BooleanField(default=True)
+    prediction_statement_delete = models.BooleanField(default=True)
+
+    prediction_bet_create = models.BooleanField(default=True)
+    prediction_bet_update = models.BooleanField(default=True)
+    prediction_bet_delete = models.BooleanField(default=True)
+
     create_kanban_task = models.BooleanField(default=True)
     update_kanban_task = models.BooleanField(default=True)
     delete_kanban_task = models.BooleanField(default=True)
+
+    force_delete_poll = models.BooleanField(default=False)
+    force_delete_proposal = models.BooleanField(default=False)
+    force_delete_comment = models.BooleanField(default=False)
 
     @staticmethod
     def negate_field_perms():
