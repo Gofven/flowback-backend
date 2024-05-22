@@ -201,7 +201,7 @@ class Poll(BaseModel):
 
     def check_phase(self, *phases: str):
         if not any(self.phase_exist(phase, raise_exception=False) for phase in phases):
-            raise ValidationError(f'Action is unavailable during this poll phase')
+            raise ValidationError(f'Action is unavailable for this poll')
 
         current_phase = self.current_phase
         if current_phase not in phases:
