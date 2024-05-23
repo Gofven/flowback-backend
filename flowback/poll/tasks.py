@@ -19,7 +19,8 @@ def poll_area_vote_count(poll_id: int):
     poll = get_object(Poll, id=poll_id)
     statement = PollAreaStatement.objects.filter(poll=poll).annotate(
         result=Count('pollareastatementvote', filter=Q(pollareastatementvote__vote=True)) -
-               Count('pollareastatementvote', filter=Q(pollareastatementvote__vote=False))).order_by('-result').first()
+               Count('pollareastatementvote', filter=Q(pollareastatementvote__vote=False))
+    ).order_by('-result').first()
 
     if statement:
         tag = GroupTags.objects.filter(pollareastatementsegment__poll_area_statement_id=statement).first()
