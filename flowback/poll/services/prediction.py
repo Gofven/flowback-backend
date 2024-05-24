@@ -134,7 +134,7 @@ def poll_prediction_statement_vote_create(user: Union[int, User], prediction_sta
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.created_by.group, user=user)
 
-    prediction_statement.poll.check_phase('result')
+    prediction_statement.poll.check_phase('prediction_vote', 'result')
 
     prediction_vote = PollPredictionStatementVote(created_by=group_user,
                                                   prediction_statement=prediction_statement,
@@ -152,7 +152,7 @@ def poll_prediction_statement_vote_update(user: Union[int, User],
     group_user = group_user_permissions(group=prediction_statement_vote.prediction_statement.poll.created_by.group,
                                         user=user)
 
-    prediction_statement_vote.prediction_statement.poll.check_phase('result')
+    prediction_statement_vote.prediction_statement.poll.check_phase('prediction_vote', 'result')
 
     if prediction_statement_vote.created_by != group_user:
         raise ValidationError('Prediction statement vote not created by user')
@@ -172,7 +172,7 @@ def poll_prediction_statement_vote_delete(user: Union[int, User], prediction_sta
     group_user = group_user_permissions(group=prediction_statement_vote.prediction_statement.poll.created_by.group,
                                         user=user)
 
-    prediction_statement_vote.prediction_statement.poll.check_phase('result')
+    prediction_statement_vote.prediction_statement.poll.check_phase('prediction_vote', 'result')
 
     if prediction_statement_vote.created_by != group_user:
         raise ValidationError('Prediction statement vote not created by user')
