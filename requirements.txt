@@ -24,3 +24,4 @@ setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerabil
 sqlparse>=0.5.0 # not directly required, pinned by Snyk to avoid a vulnerability
 pytest-django==4.8.0
 numpy==1.26.4
+django-tree-queries==0.19.0
