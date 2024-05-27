@@ -197,13 +197,15 @@ def user_kanban_entry_delete(*, user_id: int, entry_id: int):
 
 
 def user_get_chat_channel(user_id: int, target_user_id: int):
+    if user_id == target_user_id:
+        raise ValidationError("You can't message yourself")
+
     user = get_object(User, id=user_id)
     target_user = get_object(User, id=target_user_id)
 
     try:
-        channel = MessageChannel.objects.get(Q(messagechannelparticipant__user=user)
-                                             & Q(messagechannelparticipant__user=target_user),
-                                             origin_name=User.message_channel_origin)
+        channel = MessageChannel.objects.filter(messagechannelparticipant__user=user
+                                                ).get(messagechannelparticipant__user=target_user)
 
     except MessageChannel.DoesNotExist:
         channel = message_channel_create(origin_name=user.message_channel_origin)

@@ -164,7 +164,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except ValidationError as e:
             return await self.send_error_message(detail=e.detail,
                                                  method="message_create",
-                                                 channel_id=data.get('channel_id'))
+                                                 channel_id=self.user_channel)
 
         await self.send_message(channel_id=data.get('channel_id'), message=message)
 
@@ -191,7 +191,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except ValidationError as e:
             return await self.send_error_message(detail=e.detail,
                                                  method="message_update",
-                                                 channel_id=data.get('channel_id'))
+                                                 channel_id=self.user_channel)
 
         await self.send_message(channel_id=message['channel_id'], message=message)
 
@@ -215,7 +215,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except ValidationError as e:
             return await self.send_error_message(detail=e.detail,
                                                  method="message_delete",
-                                                 channel_id=data.get('channel_id'))
+                                                 channel_id=self.user_channel)
 
         await self.send_message(channel_id=message['channel_id'], message=message)
 
@@ -234,12 +234,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except ValidationError as e:
             return await self.send_error_message(detail=e.detail,
                                                  method="message_notify",
-                                                 channel_id=data.get('channel_id'))
+                                                 channel_id=self.user_channel)
 
         except MessageChannelParticipant.DoesNotExist:
             return await self.send_error_message(detail="User is not participating in this channel",
                                                  method="message_notify",
-                                                 channel_id=data.get('channel_id'))
+                                                 channel_id=self.user_channel)
 
         data = serializer.validated_data
         message = self.generate_status_message(channel_id=data['channel_id'],
