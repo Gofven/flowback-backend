@@ -34,10 +34,10 @@ class Group(BaseModel):
     active = models.BooleanField(default=True)
 
     # Direct join determines if join requests requires moderation or not.
-    direct_join = models.BooleanField(default=True)
+    direct_join = models.BooleanField(default=False)
 
     # Public determines if the group is open to public or not
-    public = models.BooleanField(default=False)
+    public = models.BooleanField(default=True)
 
     # Determines the default permission for every user get when they join
     # TODO return basic permissions by default if field is NULL
