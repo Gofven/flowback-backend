@@ -204,7 +204,8 @@ def user_get_chat_channel(user_id: int, target_user_id: int):
     target_user = get_object(User, id=target_user_id)
 
     try:
-        channel = MessageChannel.objects.filter(messagechannelparticipant__user=user
+        channel = MessageChannel.objects.filter(origin_name=user.message_channel_origin,
+                                                messagechannelparticipant__user=user
                                                 ).get(messagechannelparticipant__user=target_user)
 
     except MessageChannel.DoesNotExist:
