@@ -60,8 +60,8 @@ class Group(BaseModel):
     jitsi_room = models.UUIDField(unique=True, default=uuid.uuid4)
 
     class Meta:
-        constraints = [models.CheckConstraint(check=Q(public=True) | Q(direct_join=True),
-                                              name='group_not_private_and_direct_join_check')]
+        constraints = [models.CheckConstraint(check=~Q(Q(public=False) & Q(direct_join=True)),
+                                              name='group_not_public_and_direct_join_check')]
 
     @classmethod
     def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):
