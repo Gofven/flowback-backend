@@ -1,3 +1,5 @@
+from math import sqrt
+
 from rest_framework.exceptions import ValidationError
 
 from flowback.comment.models import CommentSection, Comment
@@ -91,3 +93,22 @@ def comment_delete(*, fetched_by: int, comment_section_id: int, comment_id: int,
     comment.active = False
     comment.message = '[Deleted]'
     comment.save()
+
+
+def comment_vote(*, user_id: int, comment_section_id: int, comment_id: int, vote: bool = None):
+    up_votes = 1
+    down_votes = 1
+
+    n = up_votes + down_votes
+
+    if n == 0:
+        return 0
+
+    z = 1.281551565545
+    p = float(up_votes) / n
+
+    left = p + 1 / (2 * n) * z * z
+    right = z * sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    under = 1 + 1 / n * z * z
+
+    return (left - right) / under
