@@ -1,8 +1,9 @@
 from math import sqrt
 
+from django.db.models import Sum, Count, Q
 from rest_framework.exceptions import ValidationError
 
-from flowback.comment.models import CommentSection, Comment
+from flowback.comment.models import CommentSection, Comment, CommentVote
 from flowback.common.services import model_update, get_object
 from flowback.files.services import upload_collection
 from flowback.user.models import User
@@ -36,7 +37,6 @@ def comment_create(*,
                    attachments: list = None,
                    attachment_upload_to="",
                    attachment_upload_to_include_timestamp=True) -> Comment:
-
     if attachments:
         collection = upload_collection(user_id=author_id,
                                        file=attachments,
@@ -61,7 +61,7 @@ def comment_create(*,
     return comment
 
 
-def comment_update(*, fetched_by: int, comment_section_id: int,  comment_id: int, data) -> Comment:
+def comment_update(*, fetched_by: int, comment_section_id: int, comment_id: int, data) -> Comment:
     comment = get_object(Comment, comment_section_id=comment_section_id, id=comment_id)
 
     if not comment.active:
@@ -95,20 +95,14 @@ def comment_delete(*, fetched_by: int, comment_section_id: int, comment_id: int,
     comment.save()
 
 
-def comment_vote(*, user_id: int, comment_section_id: int, comment_id: int, vote: bool = None):
-    up_votes = 1
-    down_votes = 1
+def comment_vote(*, fetched_by: int, comment_section_id: int, comment_id: int, vote: bool = None):
+    comment = Comment.objects.get(comment_section_id=comment_section_id, id=comment_id)
+    user = User.objects.get(id=fetched_by)
 
-    n = up_votes + down_votes
+    if comment.author == user:
+        raise ValidationError("Can't vote on a comment that belongs to yourself")
 
-    if n == 0:
-        return 0
+    if vote is None:
+        return CommentVote.objects.get(created_by=user, comment=comment).delete()
 
-    z = 1.281551565545
-    p = float(up_votes) / n
-
-    left = p + 1 / (2 * n) * z * z
-    right = z * sqrt(p * (1 - p) / n + z * z / (4 * n * n))
-    under = 1 + 1 / n * z * z
-
-    return (left - right) / under
+    CommentVote.objects.update_or_create(defaults=dict(vote=vote), created_by=user, comment=comment)

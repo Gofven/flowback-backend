@@ -1,7 +1,7 @@
 import factory
 from flowback.common.tests import fake
 
-from ..models import CommentSection, Comment, TempComment
+from ..models import CommentSection, Comment, CommentVote
 from ...user.tests.factories import UserFactory
 
 
@@ -19,10 +19,10 @@ class CommentFactory(factory.django.DjangoModelFactory):
     message = factory.LazyAttribute(lambda _: fake.paragraph())
 
 
-class TempCommentFactory(factory.django.DjangoModelFactory):
+class CommentVoteFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = TempComment
+        model = CommentVote
 
-    comment_section = factory.SubFactory(CommentSectionFactory)
-    author = factory.SubFactory(UserFactory)
-    message = factory.LazyAttribute(lambda _: fake.paragraph())
+    comment = factory.SubFactory(CommentFactory)
+    created_by = factory.SubFactory(UserFactory)
+    vote = factory.LazyAttribute(lambda _: fake.boolean())

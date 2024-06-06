@@ -1,6 +1,7 @@
 import django_filters
+from django.db.models import OuterRef, Subquery
 
-from flowback.comment.models import Comment
+from flowback.comment.models import Comment, CommentVote
 from flowback.user.models import User
 
 
@@ -8,13 +9,16 @@ class BaseCommentFilter(django_filters.FilterSet):
     order_by = django_filters.OrderingFilter(
         fields=(('created_at', 'created_at_asc'),
                 ('-created_at', 'created_at_desc'),
-                ('total_replies', 'total_replies_asc'),
-                ('-total_replies', 'total_replies_desc'),
                 ('score', 'score_asc'),
-                ('-score', 'score_desc'))
-    )
+                ('-score', 'score_desc')),
+        method='order_siblings')
 
     has_attachments = django_filters.BooleanFilter(method='has_attachments_filter')
+
+    # Orders the tree correctly
+    def order_siblings(self, queryset, name, value):
+        order_by = [self.filters['order_by'].param_map[x] for x in value]
+        return queryset.order_siblings_by(*order_by)
 
     class Meta:
         model = Comment
@@ -29,5 +33,9 @@ class BaseCommentFilter(django_filters.FilterSet):
 def comment_list(*, fetched_by: User, comment_section_id: int, filters=None):
     filters = filters or {}
 
-    qs = Comment.objects.filter(comment_section_id=comment_section_id).all()
+    user_vote = CommentVote.objects.filter(comment_id=OuterRef('id'), created_by=fetched_by).values('vote')
+
+    qs = (Comment.objects.filter(comment_section_id=comment_section_id).
+          annotate(user_vote=Subquery(user_vote)).
+          all())
     return BaseCommentFilter(filters, qs).qs
