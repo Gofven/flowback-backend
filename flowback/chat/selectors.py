@@ -64,7 +64,7 @@ class BaseMessageChannelPreviewFilter(django_filters.FilterSet):
                       topic_id=['exact'])
 
 
-def message_channel_preview_list(*, user: User, **filters):
+def message_channel_preview_list(*, user: User, filters=None):
     filters = filters or {}
 
     timestamp = MessageChannelParticipant.objects.filter(user=user, channel=OuterRef('channel_id')).values('timestamp')
