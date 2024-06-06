@@ -9,7 +9,7 @@ from backend.settings import env, DEFAULT_FROM_EMAIL
 from rest_framework.exceptions import ValidationError
 
 from flowback.comment.models import Comment
-from flowback.comment.services import comment_create, comment_update, comment_delete
+from flowback.comment.services import comment_create, comment_update, comment_delete, comment_vote
 from flowback.kanban.models import KanbanEntry
 from flowback.notification.services import NotificationManager
 from flowback.schedule.models import ScheduleEvent
@@ -580,6 +580,16 @@ def group_thread_comment_delete(author_id: int, thread_id: int, comment_id: int)
                           comment_id=comment_id)
 
 
+def group_thread_comment_vote(*, user: int, thread_id: int, comment_id: int, vote: bool):
+    group_thread = GroupThread.objects.get(id=thread_id)
+    group_user_permissions(user=user, group=group_thread.created_by.group)
+
+    return comment_vote(fetched_by=user,
+                        comment_section_id=group_thread.comment_section.id,
+                        comment_id=comment_id,
+                        vote=vote)
+
+
 def group_delegate_pool_comment_create(*,
                                        author_id: int,
                                        delegate_pool_id: int,
@@ -628,3 +638,13 @@ def group_delegate_pool_comment_delete(*,
                           comment_section_id=delegate_pool.comment_section.id,
                           comment_id=comment_id,
                           force=force)
+
+
+def group_delegate_pool_comment_vote(*, user: int, delegate_pool_id: int, comment_id: int, vote: bool):
+    delegate_pool = GroupUserDelegatePool.objects.get(id=delegate_pool_id)
+    group_user_permissions(user=user, group=delegate_pool.group)
+
+    return comment_vote(fetched_by=user,
+                        comment_section_id=delegate_pool.comment_section.id,
+                        comment_id=comment_id,
+                        vote=vote)
