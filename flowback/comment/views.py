@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from flowback.comment.selectors import comment_list
-from flowback.comment.services import comment_create, comment_update, comment_delete
+from flowback.comment.services import comment_create, comment_update, comment_delete, comment_vote
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.files.serializers import FileSerializer
 
@@ -22,7 +22,7 @@ class CommentListAPI(APIView):
                                                     'total_replies_asc',
                                                     'total_replies_desc',
                                                     'score_asc',
-                                                    'score_desc'], default='created_at_desc')
+                                                    'score_desc'], default='score_desc')
         id = serializers.IntegerField(required=False)
         message__icontains = serializers.ListField(child=serializers.CharField(), required=False)
         author_id = serializers.IntegerField(required=False)
@@ -42,6 +42,7 @@ class CommentListAPI(APIView):
         edited = serializers.BooleanField()
         active = serializers.BooleanField()
         message = serializers.CharField(allow_null=True)
+        user_vote = serializers.BooleanField(allow_null=True)
         attachments = FileSerializer(source="attachments.filesegment_set", many=True, allow_null=True)
         score = serializers.IntegerField()
 
@@ -105,5 +106,23 @@ class CommentDeleteAPI(APIView):
         self.lazy_action.__func__(*args,
                                   **kwargs,
                                   fetched_by=request.user)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class CommentVoteAPI(APIView):
+    lazy_action = comment_vote
+
+    class InputSerializer(serializers.Serializer):
+        vote = serializers.BooleanField(required=False, allow_null=True)
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        self.lazy_action.__func__(*args,
+                                  **kwargs,
+                                  **serializer.validated_data,
+                                  fetched_by=request.user.id)
 
         return Response(status=status.HTTP_200_OK)

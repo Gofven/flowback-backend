@@ -39,11 +39,11 @@ from .views.thread import (GroupThreadListAPI,
                            GroupThreadCommentListAPI,
                            GroupThreadCommentCreateAPI,
                            GroupThreadCommentUpdateAPI,
-                           GroupThreadCommentDeleteAPI, GroupThreadNotificationSubscribeAPI)
+                           GroupThreadCommentDeleteAPI, GroupThreadNotificationSubscribeAPI, GroupThreadCommentVoteAPI)
 from .views.comment import (GroupDelegatePoolCommentListAPI,
                             GroupDelegatePoolCommentCreateAPI,
                             GroupDelegatePoolCommentUpdateAPI,
-                            GroupDelegatePoolCommentDeleteAPI)
+                            GroupDelegatePoolCommentDeleteAPI, GroupDelegatePoolCommentVoteAPI)
 
 group_patterns = [
     path('folders', GroupFolderListApi.as_view(), name='group_folder_list'),
@@ -93,12 +93,15 @@ group_patterns = [
     path('delegate/pool/<int:delegate_pool_id>/comment/create',
          GroupDelegatePoolCommentCreateAPI.as_view(),
          name='group_user_delegate_pool_create'),
-    path('delegate/pool/<int:delegate_pool_id>/comment/update',
+    path('delegate/pool/<int:delegate_pool_id>/comment/<int:comment_id>/update',
          GroupDelegatePoolCommentUpdateAPI.as_view(),
          name='group_user_delegate_pool_update'),
-    path('delegate/pool/<int:delegate_pool_id>/comment/delete',
+    path('delegate/pool/<int:delegate_pool_id>/comment/<int:comment_id>/delete',
          GroupDelegatePoolCommentDeleteAPI.as_view(),
          name='group_user_delegate_pool_delete'),
+    path('delegate/pool/<int:delegate_pool_id>/comment/<int:comment_id>/vote',
+         GroupDelegatePoolCommentVoteAPI.as_view(),
+         name='group_user_delegate_pool_vote'),
 
     path('<int:group_id>/schedule', GroupScheduleEventListAPI.as_view(), name='group_schedule'),
     path('<int:group_id>/schedule/create', GroupScheduleEventCreateAPI.as_view(), name='group_schedule_create'),
@@ -130,4 +133,7 @@ group_patterns = [
     path('thread/<int:thread_id>/comment/<int:comment_id>/delete',
          GroupThreadCommentDeleteAPI.as_view(),
          name='group_thread_comment_delete'),
+    path('thread/<int:thread_id>/comment/<int:comment_id>/vote',
+         GroupThreadCommentVoteAPI.as_view(),
+         name='group_thread_comment_vote'),
 ]

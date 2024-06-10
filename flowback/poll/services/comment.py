@@ -2,7 +2,7 @@ from flowback.comment.models import Comment
 from flowback.common.services import get_object
 from flowback.group.selectors import group_user_permissions
 from flowback.poll.models import Poll, PollDelegateVoting
-from flowback.comment.services import comment_create, comment_update, comment_delete
+from flowback.comment.services import comment_create, comment_update, comment_delete, comment_vote
 from flowback.poll.services.poll import poll_notification
 
 
@@ -59,3 +59,13 @@ def poll_comment_delete(*, fetched_by: int, poll_id: int, comment_id: int):
                           comment_section_id=poll.comment_section.id,
                           comment_id=comment_id,
                           force=force)
+
+
+def poll_comment_vote(*, fetched_by: int, poll_id: int, comment_id: int, vote: bool):
+    poll = Poll.objects.get(id=poll_id)
+    group_user_permissions(user=fetched_by, group=poll.created_by.group)
+
+    return comment_vote(fetched_by=fetched_by,
+                        comment_section_id=poll.comment_section_id,
+                        comment_id=comment_id,
+                        vote=vote)

@@ -12,7 +12,8 @@ from .views.vote import (PollProposalVoteListAPI,
                          PollProposalVoteUpdateAPI,
                          PollProposalDelegateVoteUpdateAPI,
                          DelegatePollVoteListAPI)
-from .views.comment import PollCommentListAPI, PollCommentCreateAPI, PollCommentUpdateAPI, PollCommentDeleteAPI
+from .views.comment import PollCommentListAPI, PollCommentCreateAPI, PollCommentUpdateAPI, PollCommentDeleteAPI, \
+    PollCommentVoteAPI
 from .views.prediction import (PollPredictionStatementListAPI,
                                PollPredictionBetListAPI,
                                PollPredictionStatementCreateAPI,
@@ -51,6 +52,7 @@ poll_patterns = [
     path('<int:poll_id>/comment/create', PollCommentCreateAPI.as_view(), name='poll_comment_create'),
     path('<int:poll_id>/comment/<int:comment_id>/update', PollCommentUpdateAPI.as_view(), name='poll_comment_update'),
     path('<int:poll_id>/comment/<int:comment_id>/delete', PollCommentDeleteAPI.as_view(), name='poll_comment_delete'),
+    path('<int:poll_id>/comment/<int:comment_id>/vote', PollCommentVoteAPI.as_view(), name='poll_comment_vote'),
     path('<int:poll_id>/prediction/statement/create', PollPredictionStatementCreateAPI.as_view(),
          name='poll_prediction_statement_create'),
     path('prediction/<int:prediction_statement_id>/statement/delete', PollPredictionStatementDeleteAPI.as_view(),
