@@ -23,7 +23,7 @@ class BaseMessageFilter(django_filters.FilterSet):
                       created_at=['gte', 'lte'])
 
 
-def message_list(*, user: User, channel_id: int, **filters):
+def message_list(*, user: User, channel_id: int, filters=None):
     filters = filters or {}
     participant = get_object(MessageChannelParticipant, channel_id=channel_id, user=user)
 
@@ -39,7 +39,7 @@ class BaseTopicFilter(django_filters.FilterSet):
                       name=['exact', 'icontains'])
 
 
-def message_channel_topic_list(*, user: User, channel_id: int, **filters):
+def message_channel_topic_list(*, user: User, channel_id: int, filters=None):
     filters = filters or {}
     participant = get_object(MessageChannelParticipant, channel_id=channel_id, user=user)
 
