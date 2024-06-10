@@ -17,7 +17,8 @@ def poll_prediction_statement_create(poll: int,
                                      user: Union[int, User],
                                      description: str,
                                      end_date: timezone.datetime,
-                                     segments: list[dict]) -> int:
+                                     segments: list[dict],
+                                     blockchain_id: int = None) -> int:
     poll = get_object(Poll, id=poll)
     group_user = group_user_permissions(group=poll.created_by.group,
                                         user=user,
@@ -25,7 +26,8 @@ def poll_prediction_statement_create(poll: int,
     prediction_statement = PollPredictionStatement(created_by=group_user,
                                                    poll=poll,
                                                    description=description,
-                                                   end_date=end_date)
+                                                   end_date=end_date,
+                                                   blockchain_id=blockchain_id)
 
     valid_proposals = PollProposal.objects.filter(id__in=[i.get('proposal_id') for i in segments],
                                                   poll=poll).all()

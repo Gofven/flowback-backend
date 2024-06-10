@@ -246,6 +246,8 @@ class PollProposal(BaseModel):
     attachments = models.ForeignKey(FileCollection, on_delete=models.CASCADE, null=True, blank=True)
     score = models.IntegerField(null=True, blank=True)
 
+    blockchain_id = models.PositiveIntegerField(null=True, blank=True, default=None)
+
     @property
     def schedule_origin(self):
         return 'group_poll_proposal'

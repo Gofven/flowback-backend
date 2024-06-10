@@ -47,6 +47,7 @@ class PollPredictionStatementListAPI(APIView):
         user_prediction_bet = serializers.IntegerField(required=False)
         user_prediction_statement_vote = serializers.BooleanField(required=False)
         combined_bet = serializers.FloatField()
+        blockchain_id = serializers.IntegerField(allow_null=True)
 
         segments = StatementSegment(source='pollpredictionstatementsegment_set', many=True)
 
@@ -115,6 +116,7 @@ class PollPredictionStatementCreateAPI(APIView):
         description = serializers.CharField()
         end_date = serializers.DateTimeField()
         segments = SegmentSerializer(many=True)
+        blockchain_id = serializers.IntegerField(required=False, allow_null=True)
 
     def post(self, request, poll_id: int):
         serializer = self.InputSerializer(data=request.data)

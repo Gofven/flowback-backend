@@ -11,8 +11,13 @@ from flowback.poll.services.poll import poll_refresh_cheap
 from flowback.schedule.models import ScheduleEvent
 
 
-def poll_proposal_create(*, user_id: int, poll_id: int,
-                         title: str = None, description: str = None, attachments=None, **data) -> PollProposal:
+def poll_proposal_create(*, user_id: int,
+                         poll_id: int,
+                         title: str = None,
+                         description: str = None,
+                         attachments=None,
+                         blockchain_id: int = None,
+                         **data) -> PollProposal:
     poll = get_object(Poll, id=poll_id)
     group_user = group_user_permissions(user=user_id, group=poll.created_by.group.id,
                                         permissions=['create_proposal', 'admin'])
@@ -25,7 +30,11 @@ def poll_proposal_create(*, user_id: int, poll_id: int,
     if poll.poll_type == Poll.PollType.SCHEDULE and group_user.user.id != poll.created_by.user.id:
         raise ValidationError('Only poll author can create proposals for schedule polls')
 
-    proposal = PollProposal(created_by=group_user, poll=poll, title=title, description=description)
+    proposal = PollProposal(created_by=group_user,
+                            poll=poll,
+                            title=title,
+                            description=description,
+                            blockchain_id=blockchain_id)
     proposal.full_clean()
 
     collection = None

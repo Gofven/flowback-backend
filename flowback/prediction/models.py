@@ -11,6 +11,8 @@ class PredictionStatement(BaseModel):
     # fk: represents relationship
     combined_bet = models.DecimalField(max_digits=8, decimal_places=7, null=True, blank=True)
 
+    blockchain_id = models.PositiveIntegerField(null=True, blank=True, default=None)
+
     class Meta:
         abstract = True
 
