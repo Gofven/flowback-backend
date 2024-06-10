@@ -62,6 +62,8 @@ class Poll(BaseModel):
     vote_end_date = models.DateTimeField(null=True, blank=True)  # Voting Phase
     end_date = models.DateTimeField()  # Result Phase, Prediction Vote afterward indefinitely
 
+    blockchain_id = models.PositiveIntegerField(null=True, blank=True, default=None)
+
     """
     Poll Status Code
     0 - Ongoing
