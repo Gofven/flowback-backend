@@ -31,9 +31,9 @@ group_thread_notification = NotificationManager(sender_type='group_thread', poss
 
 
 def group_notification_subscribe(*, user_id: int, group: int, categories: list[str]):
-    user = group_user_permissions(user=user_id, group=group)
+    group_user = group_user_permissions(user=user_id, group=group)
 
-    if 'invite' in categories and (not user.is_admin or not user.permission.invite_user):
+    if 'invite' in categories and (not group_user.is_admin or not group_user.check_permission(invite_user=True)):
         raise ValidationError('Permission denied for invite notifications')
 
     group_notification.channel_subscribe(user_id=user_id, sender_id=group, category=categories)

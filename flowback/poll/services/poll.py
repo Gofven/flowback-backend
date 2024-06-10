@@ -51,10 +51,10 @@ def poll_create(*, user_id: int,
     if pinned and not group_user.is_admin:
         raise ValidationError('Permission denied')
 
-    if allow_fast_forward and not (group_user.is_admin or group_user.permission.poll_fast_forward):
+    if allow_fast_forward and not (group_user.is_admin or group_user.check_permission(poll_fast_forward=True)):
         raise ValidationError('Permission denied')
 
-    if quorum is not None and not group_user.permission.poll_quorum and not group_user.is_admin:
+    if quorum is not None and not group_user.check_permission(poll_quorum=True) and not group_user.is_admin:
         raise ValidationError("Permission denied for custom poll quorum")
 
     collection = None
