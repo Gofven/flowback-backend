@@ -88,6 +88,7 @@ class PollPredictionBetListAPI(APIView):
         id = serializers.IntegerField()
         prediction_statement_id = serializers.IntegerField()
         created_by = GroupUserSerializer()
+        blockchain_id = serializers.IntegerField(allow_null=True)
         score = serializers.IntegerField()
 
     def get(self, request, group_id: int):
@@ -141,6 +142,7 @@ class PollPredictionStatementDeleteAPI(APIView):
 class PollPredictionBetCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         score = serializers.IntegerField()
+        blockchain_id = serializers.IntegerField(min_value=1)
 
     def post(self, request, prediction_statement_id: int):
         serializer = self.InputSerializer(data=request.data)

@@ -80,7 +80,10 @@ def poll_prediction_statement_delete(user: Union[int, User], prediction_statemen
     prediction_statement.delete()
 
 
-def poll_prediction_bet_create(user: Union[int, User], prediction_statement_id: int, score: int) -> int:
+def poll_prediction_bet_create(user: Union[int, User],
+                               prediction_statement_id: int,
+                               score: int,
+                               blockchain_id: int = None) -> int:
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
     group_user = group_user_permissions(group=prediction_statement.poll.created_by.group,
                                         user=user,
@@ -90,7 +93,8 @@ def poll_prediction_bet_create(user: Union[int, User], prediction_statement_id: 
 
     prediction = PollPredictionBet(created_by=group_user,
                                    prediction_statement=prediction_statement,
-                                   score=score)
+                                   score=score,
+                                   blockchain_id=blockchain_id)
     prediction.full_clean()
     prediction.save()
 

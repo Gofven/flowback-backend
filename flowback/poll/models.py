@@ -421,6 +421,7 @@ class PollPredictionStatementVote(PredictionStatementVote):
 
 class PollPredictionBet(PredictionBet):
     prediction_statement = models.ForeignKey(PollPredictionStatement, on_delete=models.CASCADE)
+    blockchain_id = models.IntegerField(null=True, blank=True, default=None)
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
 
     class Meta:

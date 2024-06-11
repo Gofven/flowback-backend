@@ -18,7 +18,6 @@ class BasePollPredictionStatementFilter(django_filters.FilterSet):
     user_prediction_bet__exists = django_filters.BooleanFilter(lookup_expr='isnull', exclude=True)
     user_vote__exists = django_filters.BooleanFilter(lookup_expr='isnull', exclude=True)
 
-
     class Meta:
         model = PollPredictionStatement
         fields = dict(id=['exact'],
@@ -52,7 +51,7 @@ def poll_prediction_statement_list(*, fetched_by: User, group_id: int, filters=N
 
 
 # poll_prediction_list
-class BasePollPredictionFilter(django_filters.FilterSet):
+class BasePollPredictionBetFilter(django_filters.FilterSet):
     created_by_id = django_filters.NumberFilter(field_name='created_by__user_id')
 
     class Meta:
@@ -69,4 +68,4 @@ def poll_prediction_bet_list(*, fetched_by: User, group_id: int = None, filters=
 
     qs = PollPredictionBet.objects.filter(prediction_statement__created_by__group_id=group_id,
                                           created_by__user=fetched_by).all()
-    return BasePollPredictionFilter(filters, qs).qs
+    return BasePollPredictionBetFilter(filters, qs).qs
