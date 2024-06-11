@@ -237,6 +237,7 @@ class GroupUserInvite(BaseModel):
 
 class GroupUserDelegatePool(BaseModel):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    blockchain_id = models.PositiveIntegerField(null=True, blank=True, default=None)
     comment_section = models.ForeignKey(CommentSection,
                                         default=comment_section_create_model_default,
                                         on_delete=models.CASCADE)

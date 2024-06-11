@@ -37,6 +37,7 @@ class PredictionStatementVote(BaseModel):
 
 class PredictionBet(BaseModel):
     score = models.IntegerField(validators=[MaxValueValidator(5), MinValueValidator(0)])
+    blockchain_id = models.PositiveIntegerField(null=True, blank=True, default=None)
     # prediction_statement: represents prediction statement
     # created_by: represents ownership
 

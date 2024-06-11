@@ -74,6 +74,7 @@ class GroupUserDelegateListApi(APIView):
         delegates = Delegates(many=True,
                               source='delegate_pool.groupuserdelegate_set',
                               read_only=True)
+        blockchain_id = serializers.IntegerField(source='delegate_pool.blockchain_id')
         class Meta:
             model = GroupUserDelegator
             fields = ('id', 'tags', 'delegates', 'delegate_pool_id')
@@ -96,8 +97,14 @@ class GroupUserDelegateListApi(APIView):
 
 
 class GroupUserDelegatePoolCreateApi(APIView):
+    class InputSerializer(serializers.Serializer):
+        blockchain_id = serializers.IntegerField(required=False, min_value=1)
+
     def post(self, request, group: int):
-        group_user_delegate_pool_create(user=request.user.id, group=group)
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        group_user_delegate_pool_create(user=request.user.id, group=group, **serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
 

@@ -361,7 +361,7 @@ def group_user_delegate_remove(*, user_id: int, group_id: int, delegate_pool_id:
     delegate_rel.delete()
 
 
-def group_user_delegate_pool_create(*, user: int, group: int) -> GroupUserDelegatePool:
+def group_user_delegate_pool_create(*, user: int, group: int, blockchain_id: int = None) -> GroupUserDelegatePool:
     group_user = group_user_permissions(user=user, group=group)
 
     # To avoid duplicates (for now)
@@ -370,7 +370,10 @@ def group_user_delegate_pool_create(*, user: int, group: int) -> GroupUserDelega
     delegate_pool = GroupUserDelegatePool(group_id=group)
     delegate_pool.full_clean()
     delegate_pool.save()
-    user_delegate = GroupUserDelegate(group_id=group, group_user=group_user, pool=delegate_pool)
+    user_delegate = GroupUserDelegate(group_id=group,
+                                      group_user=group_user,
+                                      pool=delegate_pool,
+                                      blockchain_id=blockchain_id)
     user_delegate.full_clean()
     user_delegate.save()
 
