@@ -12,6 +12,7 @@ from flowback.group.models import (Group,
                                    GroupUserDelegate,
                                    GroupUserDelegatePool,
                                    GroupUserDelegator)
+from flowback.kanban.models import KanbanEntry
 from flowback.user.tests.factories import UserFactory
 
 

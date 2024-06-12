@@ -24,31 +24,22 @@ class KanbanEntryListApi(APIView):
         priority = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
         tag = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
 
-    class OutputSerializer(serializers.ModelSerializer):
+    class OutputSerializer(serializers.Serializer):
         class UserSerializer(serializers.Serializer):
             id = serializers.IntegerField()
             profile_image = serializers.ImageField()
             username = serializers.CharField()
 
+        id = serializers.IntegerField()
         assignee = UserSerializer(read_only=True, required=False)
         created_by = UserSerializer(read_only=True)
         origin_type = serializers.CharField(source='kanban.origin_type')
         origin_id = serializers.IntegerField(source='kanban.origin_id')
         priority = serializers.IntegerField()
         end_date = serializers.DateTimeField(required=False)
-
-        class Meta:
-            model = KanbanEntry
-            fields = ('id',
-                      'origin_type',
-                      'origin_id',
-                      'created_by',
-                      'assignee',
-                      'title',
-                      'description',
-                      'end_date',
-                      'priority',
-                      'tag')
+        title = serializers.CharField()
+        description = serializers.CharField(allow_null=True, allow_blank=True)
+        tag = serializers.IntegerField()
 
 
 class KanbanEntryCreateAPI(APIView):
