@@ -38,7 +38,7 @@ class PollTest(APITransactionTestCase):
         force_authenticate(request, user)
         response = view(request, group_id=self.group.id)
 
-        self.assertTrue(len(json.loads(response.rendered_content)['results']) == 3)
+        self.assertEqual(len(json.loads(response.rendered_content)['results']), 3)
 
     def test_create_poll(self):
         factory = APIRequestFactory()

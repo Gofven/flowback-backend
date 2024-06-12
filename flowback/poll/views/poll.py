@@ -65,6 +65,7 @@ class PollListApi(APIView):
         group_id = serializers.IntegerField(source='created_by.group_id')
         group_name = serializers.CharField(source='created_by.group.name')
         group_image = serializers.ImageField(source='created_by.group.image')
+        tag_id = serializers.IntegerField(allow_null=True)
         tag_name = serializers.CharField(source='tag.name', allow_null=True)
         attachments = FileSerializer(many=True, source="attachments.filesegment_set", allow_null=True)
         hide_poll_users = serializers.BooleanField(source='created_by.group.hide_poll_users')
@@ -95,7 +96,7 @@ class PollListApi(APIView):
                       'allow_fast_forward',
                       'public',
                       'blockchain_id',
-                      'tag',
+                      'tag_id',
                       'tag_name',
                       'start_date',
                       'proposal_end_date',

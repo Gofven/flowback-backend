@@ -22,6 +22,7 @@ class BasePollFilter(django_filters.FilterSet):
     description = django_filters.CharFilter(field_name='description', lookup_expr='icontains')
     has_attachments = ExistsFilter(field_name='attachments')
     tag_name = django_filters.CharFilter(lookup_expr=['exact', 'icontains'], field_name='tag__name')
+    tag_id = django_filters.NumberFilter(lookup_expr='exact', field_name='tag__id')
 
     class Meta:
         model = Poll
@@ -31,7 +32,6 @@ class BasePollFilter(django_filters.FilterSet):
                       description=['exact', 'icontains'],
                       poll_type=['exact'],
                       public=['exact'],
-                      tag=['exact'],
                       status=['exact'],
                       pinned=['exact'])
 
@@ -59,4 +59,5 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
                    total_comments=Count('comment_section__comment', filters=dict(active=True)),
                    total_proposals=Count('pollproposal'),
                    total_predictions=Count('pollpredictionstatement')).all()
+
     return BasePollFilter(filters, qs).qs
