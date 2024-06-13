@@ -29,6 +29,7 @@ class GroupThreadListAPI(APIView):
         id = serializers.IntegerField()
         title = serializers.CharField()
         pinned = serializers.BooleanField()
+        total_comments = serializers.IntegerField()
 
     def get(self, request, group_id: int):
         serializer = self.FilterSerializer(data=request.query_params)
