@@ -47,7 +47,7 @@ class MessageChannelPreviewAPI(APIView):
         max_limit = 50
 
     class FilterSerializer(serializers.Serializer):
-        order_by = serializers.ChoiceField(required=False, choices=['timestamp_asc', 'timestamp_desc'])
+        order_by = serializers.ChoiceField(required=False, choices=['created_at_asc', 'created_at_desc'])
         origin_name = serializers.CharField(required=False)
         username__icontains = serializers.CharField(required=False)
         id = serializers.IntegerField(required=False)
