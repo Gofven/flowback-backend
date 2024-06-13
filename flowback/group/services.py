@@ -39,8 +39,16 @@ def group_notification_subscribe(*, user_id: int, group: int, categories: list[s
     group_notification.channel_subscribe(user_id=user_id, sender_id=group, category=categories)
 
 
-def group_create(*, user: int, name: str, description: str, hide_poll_users: bool,
-                 public: bool, direct_join: bool, image: str = None, cover_image: str = None) -> Group:
+def group_create(*,
+                 user: int,
+                 name: str,
+                 description: str,
+                 hide_poll_users: bool,
+                 public: bool,
+                 direct_join: bool,
+                 image: str = None,
+                 cover_image: str = None,
+                 blockchain_id: int = None) -> Group:
     user = get_object(User, id=user)
 
     if not (env('FLOWBACK_ALLOW_GROUP_CREATION') or (user.is_staff or user.is_superuser)):
@@ -48,7 +56,8 @@ def group_create(*, user: int, name: str, description: str, hide_poll_users: boo
 
     # Create Group
     group = Group(created_by=user, name=name, description=description, image=image,
-                  cover_image=cover_image, hide_poll_users=hide_poll_users, public=public, direct_join=direct_join)
+                  cover_image=cover_image, hide_poll_users=hide_poll_users, public=public, direct_join=direct_join,
+                  blockchain_id=blockchain_id)
     # TODO Fullclean MUST work!
     # group.full_clean()
     group.save()

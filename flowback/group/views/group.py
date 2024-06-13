@@ -93,6 +93,7 @@ class GroupDetailApi(APIView):
                       'cover_image',
                       'member_count',
                       'chat_id',
+                      'blockchain_id',
                       'jitsi_room')
 
     def get(self, request, group: int):
@@ -109,7 +110,14 @@ class GroupCreateApi(APIView):
 
         class Meta:
             model = Group
-            fields = ('name', 'description', 'hide_poll_users', 'direct_join', 'public', 'image', 'cover_image')
+            fields = ('name',
+                      'description',
+                      'hide_poll_users',
+                      'direct_join',
+                      'public',
+                      'image',
+                      'cover_image',
+                      'blockchain_id')
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)

@@ -56,6 +56,7 @@ class Group(BaseModel):
     kanban = models.ForeignKey(Kanban, null=True, blank=True, on_delete=models.PROTECT)
     chat = models.ForeignKey(MessageChannel, on_delete=models.PROTECT)
     group_folder = models.ForeignKey(GroupFolder, null=True, blank=True, on_delete=models.SET_NULL)
+    blockchain_id = models.PositiveIntegerField(null=True, blank=True)
 
     jitsi_room = models.UUIDField(unique=True, default=uuid.uuid4)
 
