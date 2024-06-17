@@ -7,7 +7,7 @@ from django.utils import timezone
 from flowback.comment.models import Comment
 from flowback.common.filters import ExistsFilter
 from flowback.group.models import Group
-from flowback.poll.models import Poll
+from flowback.poll.models import Poll, PollPhaseTemplate
 from flowback.user.models import User
 from flowback.group.selectors import group_user_permissions
 
@@ -61,3 +61,24 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
                    total_predictions=Count('pollpredictionstatement')).all()
 
     return BasePollFilter(filters, qs).qs
+
+
+class BasePollPhaseTemplateFilter(django_filters.FilterSet):
+    order_by = django_filters.OrderingFilter(fields=(('created_at', 'created_at_asc'),
+                                                     ('-created_at', 'created_at_desc')))
+
+    class Meta:
+        model = PollPhaseTemplate
+        fields = dict(created_by_group_user_id=['exact'],
+                      name=['exact', 'icontains'],
+                      poll_type=['exact'],
+                      poll_is_dynamic=['exact'])
+
+
+def poll_phase_template_list(*, fetched_by: User, group_id: int, filters=None):
+    filters = filters or {}
+
+    group_user_permissions(user=fetched_by, group=group_id)
+    qs = PollPhaseTemplate.objects.filter(group_id=group_id).all()
+
+    return BasePollPhaseTemplateFilter(filters, qs).qs

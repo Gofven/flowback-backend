@@ -3,7 +3,7 @@ from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
 from flowback.group.services import group_notification, group_schedule
 from flowback.notification.services import NotificationManager
-from flowback.poll.models import Poll, PollProposal
+from flowback.poll.models import Poll, PollProposal, PollPhaseTemplate
 from flowback.group.selectors import group_user_permissions
 from django.utils import timezone
 from datetime import datetime
@@ -245,6 +245,67 @@ def poll_fast_forward(*, user_id: int, poll_id: int, phase: str):
                              category='poll_schedule',
                              related_id=poll.id,
                              delta=time_difference)
+
+
+def poll_phase_template_create(*, user_id: int,
+                               group_id: int,
+                               name: str,
+                               poll_type: int,
+                               poll_is_dynamic: bool,
+                               area_vote_time_delta: int = None,
+                               proposal_time_delta: int = None,
+                               prediction_statement_time_delta: int = None,
+                               prediction_bet_time_delta: int = None,
+                               delegate_vote_time_delta: int = None,
+                               vote_time_delta: int = None,
+                               end_time_delta: int):
+    group_user = group_user_permissions(user=user_id, group=group_id, permissions=['admin'])
+
+    template = PollPhaseTemplate(created_by_group_user=group_user,
+                                 name=name,
+                                 poll_type=poll_type,
+                                 poll_is_dynamic=poll_is_dynamic,
+                                 area_vote_time_delta=area_vote_time_delta,
+                                 proposal_time_delta=proposal_time_delta,
+                                 prediction_statement_time_delta=prediction_statement_time_delta,
+                                 prediction_bet_time_delta=prediction_bet_time_delta,
+                                 delegate_vote_time_delta=delegate_vote_time_delta,
+                                 vote_time_delta=vote_time_delta,
+                                 end_time_delta=end_time_delta)
+
+    template.full_clean()
+    template.save()
+
+    return template
+
+
+def poll_phase_template_update(*, user_id: int, template_id: int, data: dict):
+    template = PollPhaseTemplate.objects.get(id=template_id)
+    group_user_permissions(user=user_id, group=template.created_by_group_user.group, permissions=['admin'])
+
+    non_side_effect_fields = ['name',
+                              'poll_type',
+                              'poll_is_dynamic',
+                              'area_vote_time_delta'
+                              'proposal_time_delta',
+                              'prediction_statement_time_delta',
+                              'prediction_bet_time_delta',
+                              'delegate_vote_time_delta',
+                              'vote_time_delta',
+                              'end_time_delta']
+
+    template, has_updated = model_update(instance=template,
+                                         fields=non_side_effect_fields,
+                                         data=data)
+
+    return template
+
+
+def poll_phase_template_delete(*, user_id: int, template_id: int):
+    template = PollPhaseTemplate.objects.get(id=template_id)
+    group_user_permissions(user=user_id, group=template.created_by_group_user.group, permissions=['admin'])
+
+    template.delete()
 
 
 def poll_finish(*, poll_id: int) -> None:
