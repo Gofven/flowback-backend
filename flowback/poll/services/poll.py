@@ -258,7 +258,7 @@ def poll_phase_template_create(*, user_id: int,
                                prediction_bet_time_delta: int = None,
                                delegate_vote_time_delta: int = None,
                                vote_time_delta: int = None,
-                               end_time_delta: int):
+                               end_time_delta: int) -> PollPhaseTemplate:
     group_user = group_user_permissions(user=user_id, group=group_id, permissions=['admin'])
 
     template = PollPhaseTemplate(created_by_group_user=group_user,
