@@ -377,13 +377,12 @@ def group_user_delegate_pool_create(*, user: int, group: int, blockchain_id: int
     # To avoid duplicates (for now)
     get_object(GroupUserDelegate, reverse=True, group=group, group_user=group_user)
 
-    delegate_pool = GroupUserDelegatePool(group_id=group)
+    delegate_pool = GroupUserDelegatePool(group_id=group, blockchain_id=blockchain_id)
     delegate_pool.full_clean()
     delegate_pool.save()
     user_delegate = GroupUserDelegate(group_id=group,
                                       group_user=group_user,
-                                      pool=delegate_pool,
-                                      blockchain_id=blockchain_id)
+                                      pool=delegate_pool)
     user_delegate.full_clean()
     user_delegate.save()
 
