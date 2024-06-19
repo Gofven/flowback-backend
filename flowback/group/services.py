@@ -10,6 +10,7 @@ from rest_framework.exceptions import ValidationError
 
 from flowback.comment.models import Comment
 from flowback.comment.services import comment_create, comment_update, comment_delete, comment_vote
+from flowback.files.services import upload_collection
 from flowback.kanban.models import KanbanEntry
 from flowback.notification.services import NotificationManager
 from flowback.schedule.models import ScheduleEvent
@@ -488,7 +489,7 @@ def group_kanban_entry_delete(*,
     return group_kanban.kanban_entry_delete(origin_id=group_id, entry_id=entry_id)
 
 
-def group_thread_create(user_id: int, group_id: int, pinned: bool, title: str):
+def group_thread_create(user_id: int, group_id: int, pinned: bool, title: str, attachments: list = None):
     group_user = group_user_permissions(user=user_id, group=group_id)
 
     if pinned:
@@ -497,22 +498,31 @@ def group_thread_create(user_id: int, group_id: int, pinned: bool, title: str):
     else:
         group_user_permissions(user=user_id, group=group_user.group)
 
-    thread = GroupThread(created_by=group_user, title=title, pinned=pinned)
+    attachments = upload_collection(user_id=user_id,
+                                    file=attachments,
+                                    upload_to='group/thread')
+
+    thread = GroupThread(created_by=group_user, title=title, pinned=pinned, attachments=attachments)
     thread.full_clean()
     thread.save()
 
     return thread
 
 
-def group_thread_update(user_id: int, thread_id: int, data):
+def group_thread_update(user_id: int, thread_id: int, data: dict):
     thread = get_object(GroupThread, id=thread_id)
-    non_side_effect_fields = ['title']
+    non_side_effect_fields = ['title', 'attachments']
 
     if 'pinned' in data.keys():
         group_user_permissions(user=user_id, group=thread.created_by.group, permissions=['admin'])
 
     else:
         group_user_permissions(user=user_id, group=thread.created_by.group)
+
+    if 'attachments' in data.keys():
+        data['attachments'] = upload_collection(user_id=user_id,
+                                                file=data.pop('attachments'),
+                                                upload_to='group/thread')
 
     thread, has_updated = model_update(instance=thread,
                                        fields=non_side_effect_fields,

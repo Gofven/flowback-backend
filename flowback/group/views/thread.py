@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.comment.views import CommentListAPI, CommentCreateAPI, CommentUpdateAPI, CommentDeleteAPI, CommentVoteAPI
+from flowback.files.serializers import FileSerializer
 from flowback.group.selectors import group_thread_list, group_thread_comment_list
 from flowback.group.services import (group_thread_create,
                                      group_thread_update,
@@ -30,6 +31,7 @@ class GroupThreadListAPI(APIView):
         title = serializers.CharField()
         pinned = serializers.BooleanField()
         total_comments = serializers.IntegerField()
+        attachments = FileSerializer(many=True, source='attachments.filesegment_set')
 
     def get(self, request, group_id: int):
         serializer = self.FilterSerializer(data=request.query_params)
@@ -47,6 +49,7 @@ class GroupThreadCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField()
         pinned = serializers.BooleanField(default=False)
+        attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
     def post(self, request, group_id: int):
         serializer = self.InputSerializer(data=request.data)
@@ -60,6 +63,7 @@ class GroupThreadUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField()
         pinned = serializers.BooleanField(default=False)
+        attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
     def post(self, request, thread_id: int):
         serializer = self.InputSerializer(data=request.data)

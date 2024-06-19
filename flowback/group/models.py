@@ -13,6 +13,7 @@ from flowback.comment.models import CommentSection
 from flowback.comment.services import comment_section_create, comment_section_create_model_default
 from flowback.common.models import BaseModel
 from flowback.common.services import get_object
+from flowback.files.models import FileCollection
 from flowback.kanban.models import Kanban
 from flowback.kanban.services import kanban_create, kanban_subscription_create, kanban_subscription_delete
 from flowback.schedule.models import Schedule
@@ -224,6 +225,7 @@ class GroupThread(BaseModel):
     pinned = models.BooleanField(default=False)
     comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.DO_NOTHING)
     active = models.BooleanField(default=True)
+    attachments = models.ForeignKey(FileCollection, on_delete=models.CASCADE, null=True, blank=True)
 
 
 # User invites
