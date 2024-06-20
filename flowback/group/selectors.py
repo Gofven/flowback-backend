@@ -266,7 +266,7 @@ def group_thread_list(*, group_id: int, fetched_by: User, filters=None):
     group_user_permissions(user=fetched_by, group=group_id)
 
     qs = (GroupThread.objects.filter(created_by__group_id=group_id)
-          .annotate(total_comments=Count('comment_section__comments',
+          .annotate(total_comments=Count('comment_section__comment',
                                          filter=Q(comment_section__comment__active=True))).all())
 
     return BaseGroupThreadFilter(filters, qs).qs
