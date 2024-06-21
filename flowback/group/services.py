@@ -283,7 +283,7 @@ def group_tag_update(*, user: int, group: int, tag: int, data) -> GroupTags:
     non_side_effect_fields = ['active']
 
     if (GroupTags.objects.filter(group_id=group, active=True).count() <= 1
-            and tag.is_active
+            and tag.active
             and data.get('active')):
         raise ValidationError('Group must have at least one active tag available for users')
 
