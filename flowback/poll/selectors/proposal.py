@@ -56,15 +56,21 @@ class BasePollProposalScheduleFilter(django_filters.FilterSet):
 
 
 def poll_proposal_list(*, fetched_by: User, poll_id: int, filters=None):
+    filters = filters or {}
+    fieldset = ['id', 'poll_id', 'created_by', 'title', 'description', 'attachments', 'blockchain_id', 'score']
+
     if poll_id:
         poll = get_object(Poll, id=poll_id)
 
         if not poll.public:
             group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
 
-        filters = filters or {}
+        if poll.created_by.group.hide_poll_users:
+            fieldset.remove('created_by')
+            [filters.pop(key, None) for key in ['created_by_user_id_list', 'created_by']]
+
         qs = PollProposal.objects.filter(created_by__group_id=poll.created_by.group.id, poll=poll)\
-            .order_by(F('score').desc(nulls_last=True)).all()
+            .order_by(F('score').desc(nulls_last=True)).values(*fieldset).all()
 
         if poll.poll_type == Poll.PollType.SCHEDULE:
             return BasePollProposalScheduleFilter(filters, qs).qs

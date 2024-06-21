@@ -23,7 +23,7 @@ def poll_area_vote_count(poll_id: int):
     ).order_by('-result').first()
 
     if statement:
-        tag = GroupTags.objects.filter(pollareastatementsegment__poll_area_statement_id=statement).first()
+        tag = GroupTags.objects.filter(pollareastatementsegment__poll_area_statement=statement).first()
         poll.tag = tag
         poll.save()
 

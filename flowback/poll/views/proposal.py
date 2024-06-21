@@ -38,7 +38,7 @@ class PollProposalListAPI(APIView):
 
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
-        created_by = GroupUserSerializer()
+        created_by = GroupUserSerializer(required=False)
         poll = serializers.IntegerField(source='poll_id')
         title = serializers.CharField()
         description = serializers.CharField()
