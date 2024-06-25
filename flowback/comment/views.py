@@ -1,4 +1,5 @@
-# Create your views here.
+# Collection of view templates to implement the comment system for other modules
+# Do note these views should not be used directly!
 from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView

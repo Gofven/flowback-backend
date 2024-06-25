@@ -231,6 +231,7 @@ def group_invite_accept(*, fetched_by: int, group: int, to: int = None) -> None:
         get_object(GroupUser, 'User already joined', reverse=True, user_id=to, group=group, active=True)
         invite = get_object(GroupUserInvite, 'User has not requested invite', user_id=to, group_id=group, external=True)
 
+        # Check if user is already a group user
         if group_user := get_object(GroupUser, raise_exception=False, user_id=to, group_id=group, active=False):
             group_user.active = True
         else:
@@ -240,6 +241,7 @@ def group_invite_accept(*, fetched_by: int, group: int, to: int = None) -> None:
         invite = get_object(GroupUserInvite, 'User has not been invited', user_id=fetched_by, group_id=group,
                             external=False)
 
+        # Check if user is already a group user
         if group_user := get_object(GroupUser, raise_exception=False, user_id=fetched_by, group_id=group, active=False):
             group_user.active = True
         else:
@@ -311,7 +313,7 @@ def group_user_delegate(*, user: int, group: int, delegate_pool_id: int, tags: l
 
     db_tags = GroupTags.objects.filter(id__in=tags, active=True).all()
 
-    # Check if user_tags already exists
+    # Check if user_tags already exists, user's can't have multiple delegators on a single tag
     user_tags = GroupTags.objects.filter(Q(groupuserdelegator__delegator=delegator,
                                            groupuserdelegator__group_id=group) &
                                          Q(id__in=tags))
@@ -332,6 +334,7 @@ def group_user_delegate(*, user: int, group: int, delegate_pool_id: int, tags: l
     return delegate_rel
 
 
+# TODO likely needs an update
 def group_user_delegate_update(*, user_id: int, group_id: int, data):
     group_user = group_user_permissions(user=user_id, group=group_id)
 

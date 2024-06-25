@@ -10,6 +10,7 @@ class MessageChannel(BaseModel):
     title = models.CharField(max_length=255, null=True, blank=True)
 
 
+# Allows for "channels" inside a group
 class MessageChannelTopic(BaseModel):
     channel = models.ForeignKey(MessageChannel, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
@@ -27,6 +28,7 @@ class MessageChannelParticipant(BaseModel):
         unique_together = ('user', 'channel')
 
 
+# For image attachments
 class MessageFileCollection(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     channel = models.ForeignKey(MessageChannel, on_delete=models.CASCADE)
@@ -42,6 +44,9 @@ class Message(BaseModel):
     channel = models.ForeignKey(MessageChannel, on_delete=models.CASCADE)
     topic = models.ForeignKey(MessageChannelTopic, on_delete=models.CASCADE, null=True, blank=True)
     message = models.TextField(max_length=2000)
-    attachments = models.ForeignKey(MessageFileCollection, on_delete=models.SET_NULL, null=True, blank=True)
+    attachments = models.ForeignKey(MessageFileCollection,
+                                    on_delete=models.SET_NULL,
+                                    null=True,
+                                    blank=True)  # TODO instead of MessageFileCollection, use FileCollection directly
     parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='message_parent')
     active = models.BooleanField(default=True)

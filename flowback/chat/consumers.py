@@ -20,11 +20,15 @@ from flowback.user.serializers import BasicUserSerializer
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
+
+    # The function responsible for establishing connections between the end user and the server
     async def connect(self):
         self.user = self.scope['user']
+
         if self.scope['user'].is_anonymous:
             return await self.close()
 
+        # Assign user to their channels
         self.user_channel = f"user_{self.user.id}"
         self.participating_channels = await self.get_participating_channels()
         self.participating_channels.append(self.user_channel)
@@ -40,6 +44,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if self.scope['user'].is_anonymous:
             return await self.close()
 
+        # Disconnect from channels
         for channel in self.participating_channels:
             await self.channel_layer.group_discard(
                 f"{channel}",
@@ -54,7 +59,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return await self.send_error_message(method="JSONDecodeError",
                                                  detail="Wrong Format")
 
-        # Message endpoint
+        # Message endpoints
         if data.get('method') == 'message_create':
             await self.message_create(data=data)
 
@@ -83,8 +88,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         return True
 
-    # Send message to WebSocket
-    # TODO Check if redundant
+    # Messages passes here before being sent
     async def message(self, content: dict):
         await self.send(text_data=json.dumps(content))
 
@@ -99,6 +103,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     message=message,
                     **kwargs)
 
+    # Validation for message, additionally sends an error to the user if it fails
     async def validate_serializer(self, *, serializer, method: str, data: dict) -> Union[dict, bool]:
         try:
             serializer = serializer(data=data)
@@ -219,6 +224,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.send_message(channel_id=message['channel_id'], message=message)
 
+    # Function to notify e.g. if the user is typing
     async def message_notify(self, data: dict):
         class InputSerializer(serializers.Serializer):
             channel_id = serializers.IntegerField()
@@ -249,6 +255,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.send_message(channel_id=str(data['channel_id']), message=message)
 
+    # Allows user to add/remove channels without reconnecting, for e.g. joining and leaving a group
     async def connect_channel(self, data, disconnect=False):
         class ConnectChannelInputSerializer(serializers.Serializer):
             channel_id = serializers.IntegerField()

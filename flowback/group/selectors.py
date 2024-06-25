@@ -33,6 +33,7 @@ def group_default_permissions(*, group: Union[Group, int]):
     return defaults
 
 
+# Check if user have any one of the permissions
 def group_user_permissions(*,
                            user: Union[User, int] = None,
                            group: Union[Group, int] = None,
@@ -88,6 +89,7 @@ def group_user_permissions(*,
     return group_user
 
 
+# Simple statement to return Q object for group visibility
 def _group_get_visible_for(user: User):
     query = Q(public=True) | Q(Q(public=False) & Q(groupuser__user__in=[user]))
     return Group.objects.filter(query)
@@ -117,6 +119,7 @@ def group_list(*, fetched_by: User, filters=None):
     return qs
 
 
+# TODO uncertain if this feature is used anywhere
 def group_folder_list():
     return GroupFolder.objects.all()
 

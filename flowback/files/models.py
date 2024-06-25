@@ -7,11 +7,12 @@ from flowback.common.models import BaseModel
 from flowback.user.models import User
 
 
-# Create your models here.
+# Collection of files
 class FileCollection(BaseModel):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
+# The files themselves
 class FileSegment(BaseModel):
     collection = models.ForeignKey(FileCollection, on_delete=models.CASCADE)
     file = models.FileField()

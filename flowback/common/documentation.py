@@ -2,6 +2,7 @@ from rest_framework import serializers
 from drf_spectacular.openapi import AutoSchema
 
 
+# Modified automatic schema generation for generating the API documentation
 class CustomAutoSchema(AutoSchema):
     def get_override_parameters(self):
         view = self.view

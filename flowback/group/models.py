@@ -165,6 +165,7 @@ class GroupUser(BaseModel):
     chat_participant = models.ForeignKey(MessageChannelParticipant, on_delete=models.PROTECT)
     active = models.BooleanField(default=True)
 
+    # Check if every permission in a dict is matched correctly
     def check_permission(self, raise_exception: bool = False, **permissions):
         if self.permission:
             user_permissions = model_to_dict(self.permission)
@@ -193,6 +194,7 @@ class GroupUser(BaseModel):
     @classmethod
     def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):
         if instance.pk is None:
+            # Joins the chatroom associated with the poll
             instance.chat_participant = message_channel_join(user_id=instance.user_id,
                                                              channel_id=instance.group.chat_id)
 
@@ -219,6 +221,7 @@ post_save.connect(GroupUser.post_save, sender=GroupUser)
 post_delete.connect(GroupUser.post_delete, sender=GroupUser)
 
 
+# GroupThreads are mainly used for creating comment sections for various topics
 class GroupThread(BaseModel):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
@@ -228,7 +231,6 @@ class GroupThread(BaseModel):
     attachments = models.ForeignKey(FileCollection, on_delete=models.CASCADE, null=True, blank=True)
 
 
-# User invites
 class GroupUserInvite(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
@@ -238,6 +240,8 @@ class GroupUserInvite(BaseModel):
         unique_together = ('user', 'group')
 
 
+# A pool containing multiple delegates
+# TODO in future, determine if we need the multiple delegates support or not, as we're currently not using it
 class GroupUserDelegatePool(BaseModel):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     blockchain_id = models.PositiveIntegerField(null=True, blank=True, default=None)
@@ -246,6 +250,7 @@ class GroupUserDelegatePool(BaseModel):
                                         on_delete=models.CASCADE)
 
 
+# Delegate accounts for group
 class GroupUserDelegate(BaseModel):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)  # TODO no need for two-way group references
     group_user = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
