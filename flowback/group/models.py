@@ -152,6 +152,8 @@ class GroupTags(BaseModel):
     group = models.ForeignKey('Group', on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
 
+    # interval_mean_absolute_error = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
+
     class Meta:
         unique_together = ('name', 'group')
 

@@ -19,9 +19,11 @@ class GroupTagsListApi(APIView):
         active = serializers.BooleanField(required=False, default=None, allow_null=True)
 
     class OutputSerializer(serializers.ModelSerializer):
+        interval_mean_absolute_error = serializers.FloatField()
+
         class Meta:
             model = GroupTags
-            fields = ('id', 'name', 'active')
+            fields = ('id', 'name', 'active', 'interval_mean_absolute_error')
 
     def get(self, request, group: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)

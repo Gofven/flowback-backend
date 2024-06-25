@@ -7,6 +7,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate, APITransa
 from flowback.group.models import GroupUser, Group, GroupUserInvite
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
 from flowback.group.views.group import GroupListApi, GroupCreateApi
+from flowback.group.views.tag import GroupTagsListApi
 from flowback.group.views.user import GroupInviteApi, GroupJoinApi, GroupInviteAcceptApi, GroupInviteListApi
 from flowback.user.models import User
 from flowback.user.tests.factories import UserFactory

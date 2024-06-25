@@ -36,7 +36,6 @@ def poll_area_vote_count(poll_id: int):
 @shared_task
 def poll_prediction_bet_count(poll_id: int):
     # For one prediction, assuming no bias and stationary predictors
-    history_limit = 100
 
     # Get every predictor participating in poll
     timestamp = timezone.now()  # Avoid new bets causing list to be offset
@@ -61,7 +60,6 @@ def poll_prediction_bet_count(poll_id: int):
 
     previous_outcomes = list(statements.filter(~Q(poll=poll)).values_list('outcome', flat=True))
     previous_outcome_avg = 0 if len(previous_outcomes) == 0 else sum(previous_outcomes) / len(previous_outcomes)
-    # statement_history = statements.filter(~Q(poll=poll)).all()
     poll_statements = statements.filter(poll=poll).all()
 
     current_bets = []
