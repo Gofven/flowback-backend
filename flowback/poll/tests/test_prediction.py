@@ -283,40 +283,42 @@ class PollPredictionStatementTest(APITransactionTestCase):
     def test_poll_prediction_combined_bet(self):
         # Make random previous bets
         poll_one_bets = [self.BetUser(group_user=self.user_prediction_caster_one,
-                                      score=5,
+                                      score=0,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_two,
-                                      score=5,
+                                      score=0,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_three,
-                                      score=5,
+                                      score=0,
                                       vote=True)]
 
         poll = PollFactory(created_by=self.user_group_creator,
                            tag=self.poll.tag,
                            **generate_poll_phase_kwargs('prediction_vote'))
         self.generate_previous_bet(poll=poll, bet_users=poll_one_bets)
+        poll_prediction_bet_count(poll_id=poll.id)
 
         poll_two_bets = [self.BetUser(group_user=self.user_prediction_caster_one,
-                                      score=5,
+                                      score=0,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_two,
-                                      score=5,
+                                      score=0,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_three,
-                                      score=5,
+                                      score=0,
                                       vote=True)]
 
         poll = PollFactory(created_by=self.user_group_creator,
                            tag=self.poll.tag,
                            **generate_poll_phase_kwargs('prediction_vote'))
         self.generate_previous_bet(poll=poll, bet_users=poll_two_bets)
+        poll_prediction_bet_count(poll_id=poll.id)
 
         # Calculate combined_bet
         (self.prediction_one,
          self.prediction_two,
          self.prediction_three) = [PollPredictionBetFactory(prediction_statement=self.prediction_statement,
-                                                            score=5,
+                                                            score=0,
                                                             created_by=group_user,
                                                             ) for group_user in [self.user_prediction_caster_one,
                                                                                  self.user_prediction_caster_two,
@@ -324,6 +326,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
         poll_prediction_bet_count(poll_id=self.poll.id)
         print(self.poll.tag, self.prediction_statement.combined_bet)
+        print([i.combined_bet for i in PollPredictionStatement.objects.all()])
 
         factory = APIRequestFactory()
         user = self.user_group_creator.user

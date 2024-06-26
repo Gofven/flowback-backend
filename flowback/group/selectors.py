@@ -11,7 +11,7 @@ from django.forms import model_to_dict
 from flowback.comment.selectors import comment_list
 from flowback.common.services import get_object
 from flowback.kanban.selectors import kanban_entry_list
-from flowback.poll.models import PollPredictionStatement
+from flowback.poll.models import PollPredictionStatement, Poll
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupPermissions, GroupTags, GroupUserDelegator, \
     GroupUserDelegatePool, GroupThread, GroupFolder
@@ -240,25 +240,28 @@ def group_tags_list(*, group: int, fetched_by: User, filters=None):
     # Group tag query contains an additional value:
     #   interval_mean_absolute_error: a value counted from poll_prediction_statement,
     #   a simplified version of the return is the following:
-    #       abs(sum(combined_bet) - outcome / count(prediction_statement where total_bets >= 1)
+    #       sum(abs(combined_bet - outcome)) / count(prediction_statement where total_bets >= 1)
     #   this is run for every prediction_statement associated with the specific group_tag
-    qs = GroupTags.objects.filter(query).annotate(
+    qs_poll_prediction_statement = PollPredictionStatement.objects.filter(
+        poll__tag__in=GroupTags.objects.filter(query).values('id')
+    ).annotate(
         outcome_sum=Sum(Case(When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=True, then=1),
                              When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=False, then=-1),
                              default=0,
                              output_field=models.IntegerField())),
-        outcome=Case(When(outcome_sum__gt=0, then=1),
-                     When(outcome_sum__lt=0, then=0),
-                     default=0.5,
-                     output_field=models.DecimalField(max_digits=14, decimal_places=4)),
-        p1=Sum(F('poll__pollpredictionstatement__combined_bet')),
-        p2=F('outcome_sum'),
-        interval_mean_absolute_error=
-        Abs(Sum(F('poll__pollpredictionstatement__combined_bet')) - F('outcome_sum')) / Count(
-            F('poll__pollpredictionstatement'),
-            filter=Q(poll__pollpredictionstatement__pollpredictionbet__isnull=False))).all()
 
-    print([[i.p1, i.p2] for i in qs])
+        outcome=Case(When(outcome_sum__gt=0, then=1),
+                     When(outcome_sum__lte=0, then=0),
+                     default=0.5,
+                     output_field=models.DecimalField(max_digits=14, decimal_places=4)),  # TODO check if this should be set also in tasks.py
+
+        total_bets=Count('pollpredictionbet'),
+        has_bets=Case(When(total_bets__gt=0, then=1), default=0),
+        p1_pre=Abs(F('combined_bet') - F('outcome'))).aggregate(p1=Sum("p1_pre") / Sum("has_bets"))
+
+    print(qs_poll_prediction_statement)
+
+    qs = GroupTags.objects.filter(query).annotate().all()
     return BaseGroupTagsFilter(filters, qs).qs
 
 

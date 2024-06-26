@@ -87,7 +87,7 @@ def poll_prediction_bet_count(poll_id: int):
     # Small decimal (AT LEAST a magnitude below 10^(-6))
     small_decimal = 10 ** -7
 
-    # Current bets by each predictor for one given statement, in order
+    # Current bets by each predictor for one given statement, in order # TODO Loke check this
     #   (first equal to predictor 1 bets, 2 to 2 bets etc.)
     # IMPORTANT: do not append the current bet until AFTER the combined bet has been calculated
     #   and saved and there is an outcome
@@ -104,14 +104,24 @@ def poll_prediction_bet_count(poll_id: int):
 
     bias_adjustments = []  # Assume previous_bets matches order of current_bets
 
-    # If there's no previous bets then do nothing
-    if len(previous_bets) == 0 or len(previous_bets[0]) == 0:
-        print("No previous bets found, returning", sum(sum(bets) for bets in current_bets) / len(current_bets))
-        return 0 if len(current_bets) == 0 else sum(sum(bets) for bets in current_bets) / len(current_bets)
-
     # Calculation below
     for i, statement in enumerate(poll_statements):
         predictor_errors = []
+
+        # If there's no previous bets then do nothing
+        if len(previous_bets) == 0 or len(previous_bets[0]) == 0:
+            result = None if len(current_bets) == 0 else (sum(bets[i] for bets in current_bets)) / len(current_bets)
+            print(f"No previous bets found, returning {result}")
+            statement.combined_bet = result
+            statement.save()
+
+            continue
+
+        # Skip if all current bets for a given prediction statement is equal to None
+        if all(x[i] is None for x in current_bets):
+            continue
+
+
         for bets in previous_bets:
             bets_trimmed = [i for i in bets if i is not None]
             bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (sum(bets_trimmed) /
@@ -179,6 +189,7 @@ def poll_prediction_bet_count(poll_id: int):
 
         combined_bet = float(np.matmul(transposed_bet_weights,
                                        [bet[i] + bias_adjustments[i] for bet in current_bets])[0])
+        print(np.matmul(transposed_bet_weights, [bet[i] + bias_adjustments[i] for bet in current_bets])[0])
 
         # Sanity check
         check = np.matmul(transposed_bet_weights, row_one_vector)
