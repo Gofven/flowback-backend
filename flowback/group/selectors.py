@@ -1,13 +1,15 @@
-# TODO groups, groupusers, groupinvites, groupuserinvites,
-#  groupdefaultpermission, grouppermissions, grouptags, groupuserdelegates
 import django_filters
 from typing import Union
-from django.db.models import Q, Exists, OuterRef, Count, Case, When, F, Subquery
+
+from django.db import models
+from django.db.models import Q, Exists, OuterRef, Count, Case, When, F, Subquery, Sum
+from django.db.models.functions import Abs
 from django.forms import model_to_dict
 
 from flowback.comment.selectors import comment_list
 from flowback.common.services import get_object
 from flowback.kanban.selectors import kanban_entry_list
+from flowback.poll.models import PollPredictionStatement, Poll
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupPermissions, GroupTags, GroupUserDelegator, \
     GroupUserDelegatePool, GroupThread, GroupFolder
@@ -219,6 +221,16 @@ class BaseGroupTagsFilter(django_filters.FilterSet):
                       active=['exact'])
 
 
+"""
+Create new variable "interval_mean_absolute_error" for GroupTags, display it for everyone
+
+Assign the variable with following:
+For every combined_bet & outcome in a given tag:
+abs(sum(combined_bet) – sum(outcome))/N
+- N is the number of predictions that had at least one bet
+"""
+
+
 def group_tags_list(*, group: int, fetched_by: User, filters=None):
     filters = filters or {}
     group_user_permissions(group=group, user=fetched_by)
@@ -226,7 +238,30 @@ def group_tags_list(*, group: int, fetched_by: User, filters=None):
     if group_user_permissions(group=group, user=fetched_by, permissions=['admin'], raise_exception=False):
         query = Q(group_id=group)
 
-    qs = GroupTags.objects.filter(query).all()
+    # Group tag query contains an additional value:
+    #   interval_mean_absolute_error: a value counted from poll_prediction_statement,
+    #   a simplified version of the return is the following:
+    #       sum(abs(combined_bet - outcome)) / count(prediction_statement where total_bets >= 1)
+    #   this is run for every prediction_statement associated with the specific group_tag
+
+    qs_outcome = PollPredictionStatement.objects.filter(id=OuterRef('poll__pollpredictionstatement__id')).annotate(
+        outcome_sum=Sum(Case(When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=True, then=1),
+                             When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=False, then=-1),
+                             default=0,
+                             output_field=models.IntegerField())),
+
+        outcome=Case(When(outcome_sum__gt=0, then=1),
+                     When(outcome_sum__lte=0, then=0),
+                     default=0.5,
+                     output_field=models.DecimalField(max_digits=14, decimal_places=4)),  # TODO check if this should be set also in tasks.py
+    ).values('outcome')
+
+    qs = GroupTags.objects.filter(query).annotate(
+        p1=Sum(Abs(F('poll__pollpredictionstatement__combined_bet') - Subquery(qs_outcome))),
+        interval_mean_absolute_error=(
+                F('p1') / Count("poll__pollpredictionstatement",
+                                filter=Q(poll__pollpredictionstatement__pollpredictionbet__isnull=False))))
+
     return BaseGroupTagsFilter(filters, qs).qs
 
 
