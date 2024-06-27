@@ -1,5 +1,3 @@
-# TODO groups, groupusers, groupinvites, groupuserinvites,
-#  groupdefaultpermission, grouppermissions, grouptags, groupuserdelegates
 import django_filters
 from typing import Union
 
@@ -242,9 +240,8 @@ def group_tags_list(*, group: int, fetched_by: User, filters=None):
     #   a simplified version of the return is the following:
     #       sum(abs(combined_bet - outcome)) / count(prediction_statement where total_bets >= 1)
     #   this is run for every prediction_statement associated with the specific group_tag
-    qs_poll_prediction_statement = PollPredictionStatement.objects.filter(
-        poll__tag__in=GroupTags.objects.filter(query).values('id')
-    ).annotate(
+
+    qs_outcome = PollPredictionStatement.objects.filter(id=OuterRef('poll__pollpredictionstatement__id')).annotate(
         outcome_sum=Sum(Case(When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=True, then=1),
                              When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=False, then=-1),
                              default=0,
@@ -254,14 +251,14 @@ def group_tags_list(*, group: int, fetched_by: User, filters=None):
                      When(outcome_sum__lte=0, then=0),
                      default=0.5,
                      output_field=models.DecimalField(max_digits=14, decimal_places=4)),  # TODO check if this should be set also in tasks.py
+    ).values('outcome')
 
-        total_bets=Count('pollpredictionbet'),
-        has_bets=Case(When(total_bets__gt=0, then=1), default=0),
-        p1_pre=Abs(F('combined_bet') - F('outcome'))).aggregate(p1=Sum("p1_pre") / Sum("has_bets"))
+    qs = GroupTags.objects.filter(query).annotate(
+        p1=Sum(Abs(F('poll__pollpredictionstatement__combined_bet') - Subquery(qs_outcome))),
+        interval_mean_absolute_error=(
+                F('p1') / Count("poll__pollpredictionstatement",
+                                filter=Q(poll__pollpredictionstatement__pollpredictionbet__isnull=False))))
 
-    print(qs_poll_prediction_statement)
-
-    qs = GroupTags.objects.filter(query).annotate().all()
     return BaseGroupTagsFilter(filters, qs).qs
 
 
