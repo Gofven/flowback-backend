@@ -158,6 +158,10 @@ def poll_prediction_bet_count(poll_id: int):
 
             covariance_matrix.append(row)
 
+        # TODO check the following if statement is valid
+        if not covariance_matrix:
+            continue
+
         np_covariance_matrix = np.array(covariance_matrix)
 
         # The inverse only exists when the determinant is non-zero, this can be made sure of by changing small decimals
