@@ -11,10 +11,10 @@ class BasicGroupSerializer(serializers.ModelSerializer):
 
 
 class GroupUserSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    user = BasicUserSerializer()
-    is_admin = serializers.BooleanField()
-    active = serializers.BooleanField()
+    id = serializers.IntegerField(required=False)
+    user = BasicUserSerializer(required=False)
+    is_admin = serializers.BooleanField(required=False)
+    active = serializers.BooleanField(required=False)
 
     permission_id = serializers.IntegerField(allow_null=True)
     permission_name = serializers.CharField(source='permission.role_name', default='Member')
