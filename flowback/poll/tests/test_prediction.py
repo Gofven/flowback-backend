@@ -317,6 +317,23 @@ class PollPredictionStatementTest(APITransactionTestCase):
         self.generate_previous_bet(poll=poll, bet_users=poll_two_bets)
         poll_prediction_bet_count(poll_id=poll.id)
 
+        # For irrelevant poll
+        poll_three_bets = [self.BetUser(group_user=self.user_prediction_caster_one,
+                                        score=0,
+                                        vote=True),
+                           self.BetUser(group_user=self.user_prediction_caster_two,
+                                        score=3,
+                                        vote=True),
+                           self.BetUser(group_user=self.user_prediction_caster_three,
+                                        score=3,
+                                        vote=True)]
+
+        poll = PollFactory(created_by=self.user_group_creator,
+                           tag=GroupTagsFactory(),
+                           **generate_poll_phase_kwargs('prediction_vote'))
+        self.generate_previous_bet(poll=poll, bet_users=poll_three_bets)
+        poll_prediction_bet_count(poll_id=poll.id)
+
         # Calculate combined_bet
         (self.prediction_one,
          self.prediction_two,
