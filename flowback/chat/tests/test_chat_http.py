@@ -115,15 +115,48 @@ class ChatTestHTTP(TransactionTestCase):
             channel_participant_two = MessageChannelParticipantFactory(
                 channel=channel,
                 user=self.message_channel_participant_two.user)
+
+            channel_two = MessageChannelFactory(origin_name='user')
+            channel_participant_one_one = MessageChannelParticipantFactory(
+                channel=channel_two,
+                user=self.message_channel_participant_one.user)
+            channel_participant_one_two = MessageChannelParticipantFactory(
+                channel=channel_two,
+                user=self.message_channel_participant_two.user)
+
             [MessageFactory(user=channel_participant_one.user, channel=channel) for x in range(10)]
             [MessageFactory(user=channel_participant_two.user, channel=channel) for x in range(10)]
             [MessageFactory(user=channel_participant_one.user, channel=channel) for x in range(10)]
+            [MessageFactory(user=channel_participant_one_one.user, channel=channel_two) for x in range(10)]
+            [MessageFactory(user=channel_participant_one_two.user, channel=channel_two) for x in range(10)]
+            [MessageFactory(user=channel_participant_one_one.user, channel=channel_two) for x in range(10)]
 
             factory = APIRequestFactory()
             request = factory.get('', data=dict(order_by='created_at_desc'))
+            request_two = factory.get('', data=dict(order_by='created_at_desc', origin_name='user'))
+            request_three = factory.get('', data=dict(order_by='created_at_desc', origin_name='message'))
             view = MessageChannelPreviewAPI.as_view()
+
+            # Check if all channels are shown
             force_authenticate(request, user=channel_participant_one.user)
             response = view(request)
+
+            if i > 0:
+                self.assertEqual(response.data.get('count'), (i + 1) * 2)
+                self.assertGreater(response.data['results'][i - 1]['created_at'],
+                                   response.data['results'][i]['created_at'])
+
+            # Check if one channel is shown
+            force_authenticate(request_two, user=channel_participant_one.user)
+            response = view(request_two)
+
+            if i > 0:
+                self.assertEqual(response.data.get('count'), i + 1)
+                self.assertGreater(response.data['results'][i - 1]['created_at'],
+                                   response.data['results'][i]['created_at'])
+
+            force_authenticate(request_three, user=channel_participant_one.user)
+            response = view(request_three)
 
             if i > 0:
                 self.assertEqual(response.data.get('count'), i + 1)
