@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 
 from flowback.group.models import GroupTags
-from flowback.group.selectors import group_tags_list
+from flowback.group.selectors import group_tags_list, group_tags_interval_mean_absolute_error
 from flowback.group.services import group_tag_create, group_tag_update, group_tag_delete
 
 
@@ -19,11 +19,9 @@ class GroupTagsListApi(APIView):
         active = serializers.BooleanField(required=False, default=None, allow_null=True)
 
     class OutputSerializer(serializers.ModelSerializer):
-        interval_mean_absolute_error = serializers.FloatField()
-
         class Meta:
             model = GroupTags
-            fields = ('id', 'name', 'active', 'interval_mean_absolute_error')
+            fields = ('id', 'name', 'active')
 
     def get(self, request, group: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -40,6 +38,13 @@ class GroupTagsListApi(APIView):
             request=request,
             view=self
         )
+
+
+# TODO make this a part of GroupTagsListAPI
+class GroupTagIntervalMeanAbsoluteErrorAPI(APIView):
+    def get(self, request, tag_id: int):
+        tag_id = group_tags_interval_mean_absolute_error(tag_id=tag_id, fetched_by=request.user)
+        return Response(status=status.HTTP_200_OK, data=tag_id)
 
 
 class GroupTagsCreateApi(APIView):

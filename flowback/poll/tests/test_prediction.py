@@ -10,7 +10,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate, APITransa
 
 from flowback.group.models import GroupUser
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
-from flowback.group.views.tag import GroupTagsListApi
+from flowback.group.views.tag import GroupTagsListApi, GroupTagIntervalMeanAbsoluteErrorAPI
 from flowback.poll.models import Poll, PollPredictionStatement, PollPredictionStatementSegment, PollPredictionBet, \
     PollPredictionStatementVote
 from flowback.poll.tasks import poll_prediction_bet_count
@@ -289,7 +289,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
                                       score=0,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_two,
-                                      score=1,
+                                      score=0,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_three,
                                       score=0,
@@ -349,11 +349,11 @@ class PollPredictionStatementTest(APITransactionTestCase):
         print([i.combined_bet for i in PollPredictionStatement.objects.all()])
 
         # Query Test
-        qs = PollPredictionStatement.objects.filter(poll__tag=self.poll.tag)
+        qs = PollPredictionStatement.objects.filter(poll__tag=self.poll.tag, pollpredictionstatementvote__isnull=False)
 
         qs_outcome = qs.annotate(
-            outcome_sum=Sum(Case(When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=True, then=1),
-                                 When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=False, then=-1),
+            outcome_sum=Sum(Case(When(pollpredictionstatementvote__vote=True, then=1),
+                                 When(pollpredictionstatementvote__vote=False, then=-1),
                                  default=0,
                                  output_field=models.IntegerField())),
 
@@ -370,11 +370,11 @@ class PollPredictionStatementTest(APITransactionTestCase):
         # Request Test
         factory = APIRequestFactory()
         user = self.user_group_creator.user
-        view = GroupTagsListApi.as_view()
+        view = GroupTagIntervalMeanAbsoluteErrorAPI.as_view()
 
         request = factory.get('', data=dict(limit=10))
         force_authenticate(request, user=user)
-        response = view(request, group=self.user_group_creator.group)
+        response = view(request, tag_id=self.poll.tag_id)
 
         data = json.loads(response.rendered_content)
         pprint(data)

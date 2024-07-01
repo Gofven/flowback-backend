@@ -221,16 +221,6 @@ class BaseGroupTagsFilter(django_filters.FilterSet):
                       active=['exact'])
 
 
-"""
-Create new variable "interval_mean_absolute_error" for GroupTags, display it for everyone
-
-Assign the variable with following:
-For every combined_bet & outcome in a given tag:
-abs(sum(combined_bet) – sum(outcome))/N
-- N is the number of predictions that had at least one bet
-"""
-
-
 def group_tags_list(*, group: int, fetched_by: User, filters=None):
     filters = filters or {}
     group_user_permissions(group=group, user=fetched_by)
@@ -238,31 +228,38 @@ def group_tags_list(*, group: int, fetched_by: User, filters=None):
     if group_user_permissions(group=group, user=fetched_by, permissions=['admin'], raise_exception=False):
         query = Q(group_id=group)
 
-    # Group tag query contains an additional value:
-    #   interval_mean_absolute_error: a value counted from poll_prediction_statement,
-    #   a simplified version of the return is the following:
-    #       sum(abs(combined_bet - outcome)) / count(prediction_statement where total_bets >= 1)
-    #   this is run for every prediction_statement associated with the specific group_tag
+    qs = GroupTags.objects.filter(query).all()
+    return BaseGroupTagsFilter(filters, qs).qs
 
-    qs_outcome = PollPredictionStatement.objects.filter(id=OuterRef('poll__pollpredictionstatement__id')).annotate(
-        outcome_sum=Sum(Case(When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=True, then=1),
-                             When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=False, then=-1),
+
+def group_tags_interval_mean_absolute_error(*, tag_id: int, fetched_by: User):
+    """
+    For every combined_bet & outcome in a given tag:
+        abs(sum(combined_bet) – sum(outcome))/N
+        - N is the number of predictions that had at least one bet
+
+    TODO add this value to the group_tags_list selector
+    """
+    tag = GroupTags.objects.get(id=tag_id)
+    group_user_permissions(group=tag.group, user=fetched_by)
+
+    qs_filter = PollPredictionStatement.objects.filter(poll__tag_id=tag_id, pollpredictionstatementvote__isnull=False)
+
+    qs_annotate = qs_filter.annotate(
+        outcome_sum=Sum(Case(When(pollpredictionstatementvote__vote=True, then=1),
+                             When(pollpredictionstatementvote__vote=False, then=-1),
                              default=0,
                              output_field=models.IntegerField())),
 
         outcome=Case(When(outcome_sum__gt=0, then=1),
                      When(outcome_sum__lte=0, then=0),
                      default=0.5,
-                     output_field=models.DecimalField(max_digits=14, decimal_places=4)),  # TODO check if this should be set also in tasks.py
-    ).values('outcome')
+                     output_field=models.DecimalField(max_digits=14, decimal_places=4)),
+        has_bets=Case(When(pollpredictionbet__isnull=True, then=0), default=1),
+        p1=Abs(F('combined_bet') - F('outcome')))
 
-    qs = GroupTags.objects.filter(query).annotate(
-        p1=Sum(Abs(F('poll__pollpredictionstatement__combined_bet') - Subquery(qs_outcome))),
-        interval_mean_absolute_error=(
-                F('p1') / Count("poll__pollpredictionstatement",
-                                filter=Q(poll__pollpredictionstatement__pollpredictionbet__isnull=False))))
-
-    return BaseGroupTagsFilter(filters, qs).qs
+    qs = qs_annotate.aggregate(interval_mean_absolute_error=(Sum('p1') / Sum('has_bets')))
+    return qs.get('interval_mean_absolute_error', None)
 
 
 class BaseGroupUserDelegateFilter(django_filters.FilterSet):
