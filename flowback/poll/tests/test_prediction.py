@@ -2,6 +2,9 @@ import json
 import random
 from pprint import pprint
 
+from django.db import models
+from django.db.models import Sum, Case, When, F
+from django.db.models.functions import Abs
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
 
@@ -286,7 +289,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
                                       score=0,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_two,
-                                      score=0,
+                                      score=1,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_three,
                                       score=0,
@@ -328,6 +331,26 @@ class PollPredictionStatementTest(APITransactionTestCase):
         print(self.poll.tag, self.prediction_statement.combined_bet)
         print([i.combined_bet for i in PollPredictionStatement.objects.all()])
 
+        # Query Test
+        qs = PollPredictionStatement.objects.filter(poll__tag=self.poll.tag)
+
+        qs_outcome = qs.annotate(
+            outcome_sum=Sum(Case(When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=True, then=1),
+                                 When(poll__pollpredictionstatement__pollpredictionstatementvote__vote=False, then=-1),
+                                 default=0,
+                                 output_field=models.IntegerField())),
+
+            outcome=Case(When(outcome_sum__gt=0, then=1),
+                         When(outcome_sum__lte=0, then=0),
+                         default=0.5,
+                         output_field=models.DecimalField(max_digits=14, decimal_places=4)),
+            has_bets=Case(When(pollpredictionbet__isnull=True, then=0), default=1),
+            p1=Abs(F('combined_bet') - F('outcome')))
+
+        pprint([i.__dict__ for i in qs_outcome])
+        print(qs_outcome.aggregate(interval_mean_absolute_error=(Sum('p1') / Sum('has_bets'))))
+
+        # Request Test
         factory = APIRequestFactory()
         user = self.user_group_creator.user
         view = GroupTagsListApi.as_view()
