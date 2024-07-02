@@ -65,12 +65,13 @@ def poll_proposal_list(*, fetched_by: User, poll_id: int, filters=None):
         if not poll.public:
             group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
 
+        qs = PollProposal.objects.filter(created_by__group_id=poll.created_by.group.id, poll=poll)\
+            .order_by(F('score').desc(nulls_last=True))
+
         if poll.created_by.group.hide_poll_users:
             fieldset.remove('created_by')
             [filters.pop(key, None) for key in ['created_by_user_id_list', 'created_by']]
-
-        qs = PollProposal.objects.filter(created_by__group_id=poll.created_by.group.id, poll=poll)\
-            .order_by(F('score').desc(nulls_last=True)).values(*fieldset).all()
+            qs = qs.values(*fieldset).all()
 
         if poll.poll_type == Poll.PollType.SCHEDULE:
             return BasePollProposalScheduleFilter(filters, qs).qs

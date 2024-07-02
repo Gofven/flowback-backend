@@ -16,8 +16,8 @@ class GroupUserSerializer(serializers.Serializer):
     is_admin = serializers.BooleanField(required=False)
     active = serializers.BooleanField(required=False)
 
-    permission_id = serializers.IntegerField(allow_null=True)
-    permission_name = serializers.CharField(source='permission.role_name', default='Member')
-    group_id = serializers.IntegerField()
-    group_name = serializers.CharField(source='group.name')
-    group_image = serializers.CharField(source='group.image')
+    permission_id = serializers.IntegerField(required=False, allow_null=True)
+    permission_name = serializers.CharField(required=False, source='permission.role_name', default='Member')
+    group_id = serializers.IntegerField(required=False)
+    group_name = serializers.CharField(required=False, source='group.name')
+    group_image = serializers.CharField(required=False, source='group.image')
