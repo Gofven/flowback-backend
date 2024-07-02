@@ -45,7 +45,7 @@ class CommentListAPI(APIView):
         message = serializers.CharField(allow_null=True)
         user_vote = serializers.BooleanField(allow_null=True)
         attachments = FileSerializer(source="attachments.filesegment_set", many=True, allow_null=True)
-        score = serializers.IntegerField()
+        score = serializers.IntegerField(source='raw_score')
 
     def get(self, request, *args, **kwargs):
         serializer = self.FilterSerializer(data=request.query_params)
