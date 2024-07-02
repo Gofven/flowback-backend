@@ -1,5 +1,6 @@
 import json
 
+from django.db.models import Sum, Case, When
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
 
 from flowback.group.models import GroupUser, GroupTags
@@ -29,6 +30,7 @@ class PollAreaTest(APITransactionTestCase):
          self.group_tag_three) = [GroupTagsFactory(group=self.group) for x in range(3)]
 
         self.poll = PollFactory(created_by=self.group_user_creator,
+                                poll_type=4,
                                 **generate_poll_phase_kwargs('area_vote'))
 
     def test_update_area_vote(self):
@@ -39,30 +41,30 @@ class PollAreaTest(APITransactionTestCase):
                                                    vote=vote)
 
         # Test creating area statements
-        area_statement_one = cast_vote(group_user=self.group_user_one,
-                                       poll=self.poll,
-                                       tag_id=self.group_tag_two.id,
-                                       vote=True)
+        area_vote_one = cast_vote(group_user=self.group_user_one,
+                                  poll=self.poll,
+                                  tag_id=self.group_tag_two.id,
+                                  vote=True)
 
-        area_statement_two = cast_vote(group_user=self.group_user_two,
-                                       poll=self.poll,
-                                       tag_id=self.group_tag_two.id,
-                                       vote=True)
+        area_vote_two = cast_vote(group_user=self.group_user_two,
+                                  poll=self.poll,
+                                  tag_id=self.group_tag_two.id,
+                                  vote=True)
 
-        area_statement_three = cast_vote(group_user=self.group_user_three,
-                                         poll=self.poll,
-                                         tag_id=self.group_tag_one.id,
-                                         vote=False)
+        area_vote_three = cast_vote(group_user=self.group_user_three,
+                                    poll=self.poll,
+                                    tag_id=self.group_tag_one.id,
+                                    vote=False)
 
-        self.assertEqual(area_statement_one, area_statement_two)
-        self.assertNotEqual(area_statement_one, area_statement_three)
+        self.assertEqual(area_vote_one, area_vote_two)
+        self.assertNotEqual(area_vote_one, area_vote_three)
 
         # Check if segments match properly
-        total_area_segments_one = PollAreaStatementSegment.objects.filter(poll_area_statement=area_statement_one,
+        total_area_segments_one = PollAreaStatementSegment.objects.filter(poll_area_statement=area_vote_one,
                                                                           tag_id__in=[self.group_tag_two.id,
                                                                                       self.group_tag_three.id]
                                                                           ).count()
-        total_area_segments_two = PollAreaStatementSegment.objects.filter(poll_area_statement=area_statement_one,
+        total_area_segments_two = PollAreaStatementSegment.objects.filter(poll_area_statement=area_vote_one,
                                                                           tag_id__in=[self.group_tag_one.id,
                                                                                       self.group_tag_two.id]
                                                                           ).count()
@@ -70,16 +72,22 @@ class PollAreaTest(APITransactionTestCase):
         self.assertEqual(total_area_segments_one, 1)
         self.assertEqual(total_area_segments_two, 1)
 
-        # Check if votes counted properly
-        total_votes_one = PollAreaStatementVote.objects.filter(poll_area_statement=area_statement_one,
-                                                               vote=True).count()
-        total_votes_two = PollAreaStatementVote.objects.filter(poll_area_statement=area_statement_one,
-                                                               vote=False).count()
-        total_votes_three = PollAreaStatementVote.objects.filter(poll_area_statement=area_statement_three).count()
+        sum_agg = Sum(Case(When(vote=True, then=1), default=-1))
 
-        self.assertEqual(total_votes_one, 2)
-        self.assertEqual(total_votes_two, 0)
-        self.assertEqual(total_votes_three, 1)
+        def statement_qs(area_statement):
+            return PollAreaStatementVote.objects.filter(poll_area_statement=area_statement)
+
+        # Check if votes counted properly
+        area_statement_one_votes = statement_qs(area_vote_one).aggregate(result=sum_agg).get('result')
+        area_statement_two_votes = statement_qs(area_vote_two).aggregate(result=sum_agg).get('result')
+        area_statement_three_votes = statement_qs(area_vote_three).aggregate(result=sum_agg).get('result')
+
+        for qs in [statement_qs(i) for i in [area_vote_one, area_vote_two, area_vote_three]]:
+            print([i.vote for i in qs])
+
+        self.assertEqual(area_statement_one_votes, 2)
+        self.assertEqual(area_statement_two_votes, 2)
+        self.assertEqual(area_statement_three_votes, -1)
 
         # Check if List API reads properly
         factory = APIRequestFactory()
@@ -95,7 +103,7 @@ class PollAreaTest(APITransactionTestCase):
         self.assertEqual(len(data), 2)
 
         # Check if Counting votes work
-        winning_tag = GroupTags.objects.filter(pollareastatementsegment__poll_area_statement=area_statement_one).first()
+        winning_tag = GroupTags.objects.filter(pollareastatementsegment__poll_area_statement=area_vote_one).first()
         tag = poll_area_vote_count.apply(kwargs=dict(poll_id=self.poll.id)).get().tag
 
         self.assertEqual(winning_tag.id, tag.id)
