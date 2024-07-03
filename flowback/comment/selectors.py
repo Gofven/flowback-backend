@@ -49,7 +49,7 @@ def comment_list(*, fetched_by: User, comment_section_id: int, filters=None):
 def comment_ancestor_list(*, fetched_by: User, comment_section_id: int, comment_id: int):
     user_vote = CommentVote.objects.filter(comment_id=OuterRef('id'), created_by=fetched_by).values('vote')
 
-    qs = (Comment.objects.get(comment_section_id=comment_section_id, comment_id=comment_id)
+    qs = (Comment.objects.get(comment_section_id=comment_section_id, id=comment_id)
           .ancestors(include_self=True)
           .reverse()
           .annotate(user_vote=Subquery(user_vote),
