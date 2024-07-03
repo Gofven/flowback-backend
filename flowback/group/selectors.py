@@ -6,7 +6,7 @@ from django.db.models import Q, Exists, OuterRef, Count, Case, When, F, Subquery
 from django.db.models.functions import Abs
 from django.forms import model_to_dict
 
-from flowback.comment.selectors import comment_list
+from flowback.comment.selectors import comment_list, comment_ancestor_list
 from flowback.common.services import get_object
 from flowback.kanban.selectors import kanban_entry_list
 from flowback.poll.models import PollPredictionStatement, Poll
@@ -312,6 +312,15 @@ def group_thread_comment_list(*, fetched_by: User, thread_id: int, filters=None)
     group_user_permissions(user=fetched_by, group=thread.created_by.group)
 
     return comment_list(fetched_by=fetched_by, comment_section_id=thread.comment_section_id, filters=filters)
+
+
+def group_thread_comment_ancestor_list(*, fetched_by: User, thread_id: int, comment_id: int):
+    thread = get_object(GroupThread, id=thread_id)
+    group_user_permissions(group=thread.created_by.group, user=fetched_by)
+
+    return comment_ancestor_list(fetched_by=fetched_by,
+                                 comment_section_id=thread.comment_section.id,
+                                 comment_id=comment_id)
 
 
 def group_delegate_pool_comment_list(*, fetched_by: User, delegate_pool_id: int, filters=None):

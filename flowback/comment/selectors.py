@@ -22,8 +22,7 @@ class BaseCommentFilter(django_filters.FilterSet):
 
     class Meta:
         model = Comment
-        fields = dict(id=['exact'],
-                      message=['icontains'],
+        fields = dict(message=['icontains'],
                       author_id=['exact', 'in'],
                       parent_id=['exact'],
                       score=['gt', 'lt'])
@@ -35,7 +34,25 @@ def comment_list(*, fetched_by: User, comment_section_id: int, filters=None):
 
     user_vote = CommentVote.objects.filter(comment_id=OuterRef('id'), created_by=fetched_by).values('vote')
 
-    qs = (Comment.objects.filter(comment_section_id=comment_section_id).
-          annotate(user_vote=Subquery(user_vote),
-                   raw_score=Sum(Case(When(commentvote__vote=True, then=1), default=-1))).all())
+    if comment_id := filters.get('id'):
+        filters.pop('id')
+        qs = Comment.objects.get(id=comment_id).descendants(include_self=True).all()
+
+    else:
+        qs = Comment.objects.filter(comment_section_id=comment_section_id)
+
+    qs = qs.annotate(user_vote=Subquery(user_vote),
+                     raw_score=Sum(Case(When(commentvote__vote=True, then=1), default=-1))).all()
     return BaseCommentFilter(filters, qs).qs
+
+
+def comment_ancestor_list(*, fetched_by: User, comment_section_id: int, comment_id: int):
+    user_vote = CommentVote.objects.filter(comment_id=OuterRef('id'), created_by=fetched_by).values('vote')
+
+    qs = (Comment.objects.get(comment_section_id=comment_section_id, comment_id=comment_id)
+          .ancestors(include_self=True)
+          .reverse()
+          .annotate(user_vote=Subquery(user_vote),
+                    raw_score=Sum(Case(When(commentvote__vote=True, then=1), default=-1))).all())
+
+    return qs

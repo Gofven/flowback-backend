@@ -33,6 +33,7 @@ class CommentSectionTest(APITransactionTestCase):
         factory = APIRequestFactory()
         view = CommentListAPI.as_view()
 
+        # Test all results
         request = factory.get('')
         force_authenticate(request, user=comment.author)
         response = view(request, comment_section_id=self.comment_section.id)
@@ -42,6 +43,18 @@ class CommentSectionTest(APITransactionTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data.get('results')), 9, 'Missing comments in tree')
+        self.assertTrue(all([x.get('id') == expected_order[i] for i, x in enumerate(response.data.get('results'))]),
+                        'Comments are not ordered by score')
+
+        # Test specific results
+        request = factory.get('', data=dict(id=comment_1.id))
+        force_authenticate(request, user=comment.author)
+        response = view(request, comment_section_id=self.comment_section.id)
+
+        expected_order = [comment_1.id, comment_11.id, comment_111.id, comment_112.id]
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data.get('results')), 4, 'Missing comments in tree')
         self.assertTrue(all([x.get('id') == expected_order[i] for i, x in enumerate(response.data.get('results'))]),
                         'Comments are not ordered by score')
 
