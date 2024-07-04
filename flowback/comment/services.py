@@ -103,6 +103,11 @@ def comment_vote(*, fetched_by: int, comment_section_id: int, comment_id: int, v
         raise ValidationError("Can't vote on a comment that belongs to yourself")
 
     if vote is None:
-        return CommentVote.objects.get(created_by=user, comment=comment).delete()
+        try:
+            return CommentVote.objects.get(created_by=user, comment=comment).delete()
+
+        except CommentVote.DoesNotExist:
+            raise ValidationError("User haven't voted on this comment")
+
 
     CommentVote.objects.update_or_create(defaults=dict(vote=vote), created_by=user, comment=comment)
