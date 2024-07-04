@@ -77,7 +77,7 @@ class GroupUserDelegateListApi(APIView):
         blockchain_id = serializers.IntegerField(source='delegate_pool.blockchain_id')
         class Meta:
             model = GroupUserDelegator
-            fields = ('id', 'tags', 'delegates', 'delegate_pool_id')
+            fields = ('id', 'tags', 'delegates', 'delegate_pool_id', 'blockchain_id')
 
     def get(self, request, group: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
