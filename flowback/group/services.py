@@ -300,7 +300,7 @@ def group_tag_delete(*, user: int, group: int, tag: int) -> None:
     group_user_permissions(group=group, user=user, permissions=['admin'])
     tag = get_object(GroupTags, group_id=group, id=tag)
 
-    if GroupTags.objects.filter(group_id=group, active=True).count() <= 1 and tag.is_active:
+    if GroupTags.objects.filter(group_id=group, active=True).count() <= 1 and tag.active:
         raise ValidationError('Group must have at least one active tag available for users')
 
     tag.delete()
