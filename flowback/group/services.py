@@ -500,9 +500,10 @@ def group_thread_create(user_id: int, group_id: int, pinned: bool, title: str, a
     else:
         group_user_permissions(user=user_id, group=group_user.group)
 
-    attachments = upload_collection(user_id=user_id,
-                                    file=attachments,
-                                    upload_to='group/thread')
+    if attachments:
+        attachments = upload_collection(user_id=user_id,
+                                        file=attachments,
+                                        upload_to='group/thread')
 
     thread = GroupThread(created_by=group_user, title=title, pinned=pinned, attachments=attachments)
     thread.full_clean()
