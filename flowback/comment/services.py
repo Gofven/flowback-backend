@@ -109,5 +109,4 @@ def comment_vote(*, fetched_by: int, comment_section_id: int, comment_id: int, v
         except CommentVote.DoesNotExist:
             raise ValidationError("User haven't voted on this comment")
 
-
     CommentVote.objects.update_or_create(defaults=dict(vote=vote), created_by=user, comment=comment)
