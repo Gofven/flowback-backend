@@ -32,7 +32,7 @@ class GroupThreadListAPI(APIView):
         title = serializers.CharField()
         pinned = serializers.BooleanField()
         total_comments = serializers.IntegerField()
-        attachments = FileSerializer(many=True, source='attachments.filesegment_set')
+        attachments = FileSerializer(many=True, source='attachments.filesegment_set', allow_null=True)
 
     def get(self, request, group_id: int):
         serializer = self.FilterSerializer(data=request.query_params)
