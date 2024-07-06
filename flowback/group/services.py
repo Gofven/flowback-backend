@@ -605,7 +605,7 @@ def group_thread_comment_delete(author_id: int, thread_id: int, comment_id: int)
                           comment_id=comment_id)
 
 
-def group_thread_comment_vote(*, user: int, thread_id: int, comment_id: int, vote: bool):
+def group_thread_comment_vote(*, user: int, thread_id: int, comment_id: int, vote: bool = None):
     group_thread = GroupThread.objects.get(id=thread_id)
     group_user_permissions(user=user, group=group_thread.created_by.group)
 

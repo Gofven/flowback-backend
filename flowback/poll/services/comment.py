@@ -61,7 +61,7 @@ def poll_comment_delete(*, fetched_by: int, poll_id: int, comment_id: int):
                           force=force)
 
 
-def poll_comment_vote(*, fetched_by: int, poll_id: int, comment_id: int, vote: bool):
+def poll_comment_vote(*, fetched_by: int, poll_id: int, comment_id: int, vote: bool = None):
     poll = Poll.objects.get(id=poll_id)
     group_user_permissions(user=fetched_by, group=poll.created_by.group)
 
