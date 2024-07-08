@@ -79,6 +79,6 @@ def poll_phase_template_list(*, fetched_by: User, group_id: int, filters=None):
     filters = filters or {}
 
     group_user_permissions(user=fetched_by, group=group_id)
-    qs = PollPhaseTemplate.objects.filter(created_by__group_id=group_id).all()
+    qs = PollPhaseTemplate.objects.filter(created_by_group_user__group_id=group_id).all()
 
     return BasePollPhaseTemplateFilter(filters, qs).qs
