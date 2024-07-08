@@ -367,6 +367,7 @@ class PollVotingTypeForAgainst(BaseModel):
         ]
 
 
+# TODO Area requires refactor
 class PollAreaStatement(BaseModel):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)

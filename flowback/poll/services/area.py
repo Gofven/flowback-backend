@@ -33,9 +33,12 @@ def poll_area_statement_create(user_id: int, poll_id: int, tags: list[int]):
 
 
 def poll_area_statement_vote_update(user_id: int, poll_id: int, tag: int, vote: bool):
-    tags = [tag]  # TODO check if we should have one or multiple tag votes
+    tags = [tag]
     poll = get_object(Poll, id=poll_id)
     group_user = group_user_permissions(user=user_id, group=poll.created_by.group)
+
+    if not vote:
+        raise ValidationError('Vote must be True')
 
     try:
         poll_area_statement_segments = PollAreaStatementSegment.objects.filter(
@@ -50,6 +53,8 @@ def poll_area_statement_vote_update(user_id: int, poll_id: int, tag: int, vote: 
     poll.check_phase('area_vote', 'dynamic')
 
     # Create or Update
+    PollAreaStatementVote.objects.filter(created_by=group_user, poll_area_statement__poll=poll).delete()
+
     PollAreaStatementVote.objects.update_or_create(created_by=group_user,
                                                    poll_area_statement=poll_area_statement,
                                                    defaults=dict(vote=vote))
