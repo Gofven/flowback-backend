@@ -232,7 +232,7 @@ def group_tags_list(*, group: int, fetched_by: User, filters=None):
     return BaseGroupTagsFilter(filters, qs).qs
 
 
-def group_tags_interval_mean_absolute_error(*, tag_id: int, fetched_by: User):
+def group_tags_interval_mean_absolute_correctness(*, tag_id: int, fetched_by: User):
     """
     For every combined_bet & outcome in a given tag:
         abs(sum(combined_bet) – sum(outcome))/N
@@ -258,8 +258,8 @@ def group_tags_interval_mean_absolute_error(*, tag_id: int, fetched_by: User):
         has_bets=Case(When(pollpredictionbet__isnull=True, then=0), default=1),
         p1=Abs(F('combined_bet') - F('outcome')))
 
-    qs = qs_annotate.aggregate(interval_mean_absolute_error=(Sum('p1') / Sum('has_bets')))
-    return qs.get('interval_mean_absolute_error', None)
+    qs = qs_annotate.aggregate(interval_mean_absolute_correctness=1 - (Sum('p1') / Sum('has_bets')))
+    return qs.get('interval_mean_absolute_correctness')
 
 
 class BaseGroupUserDelegateFilter(django_filters.FilterSet):
