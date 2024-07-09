@@ -49,9 +49,10 @@ def kanban_entry_create(*,
 
     kanban.full_clean()
 
-    kanban.attachments = upload_collection(user_id=created_by_id,
-                                           file=attachments,
-                                           upload_to=f'kanban/task/{kanban_id}')
+    if attachments:
+        kanban.attachments = upload_collection(user_id=created_by_id,
+                                               file=attachments,
+                                               upload_to=f'kanban/task/{kanban_id}')
 
     kanban.save()
 

@@ -60,7 +60,7 @@ class KanbanEntryUpdateAPI(APIView):
         entry_id = serializers.IntegerField()
         assignee = serializers.IntegerField(required=False, source='assignee_id')
         title = serializers.CharField(required=False)
-        description = serializers.CharField(required=False)
+        description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
         end_date = serializers.DateTimeField(required=False)
         priority = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
         tag = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
