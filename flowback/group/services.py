@@ -107,17 +107,28 @@ def group_permission_create(*,
 
 def group_permission_update(*, user: int, group: int, permission_id: int, data) -> GroupPermissions:
     group_user_permissions(group=group, user=user, permissions=['admin'])
-    non_side_effect_fields = ['role_name',
-                              'invite_user',
+    non_side_effect_fields = ['invite_user',
                               'create_poll',
                               'poll_fast_forward',
-                              'poll_quorum',
+                              'poll_~quorum',
                               'allow_vote',
                               'kick_members',
                               'ban_members',
+
                               'create_proposal',
                               'update_proposal',
                               'delete_proposal',
+
+                              'prediction_statement_create',
+                              'prediction_statement_delete',
+
+                              'prediction_bet_create',
+                              'prediction_bet_delete',
+
+                              'create_kanban_task',
+                              'update_kanban_task',
+                              'delete_kanban_task',
+
                               'force_delete_poll',
                               'force_delete_proposal',
                               'force_delete_comment']

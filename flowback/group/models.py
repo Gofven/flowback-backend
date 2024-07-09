@@ -126,7 +126,6 @@ class GroupPermissions(BaseModel):
     delete_proposal = models.BooleanField(default=True)
 
     prediction_statement_create = models.BooleanField(default=True)
-    prediction_statement_update = models.BooleanField(default=True)
     prediction_statement_delete = models.BooleanField(default=True)
 
     prediction_bet_create = models.BooleanField(default=True)
