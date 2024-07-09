@@ -459,6 +459,7 @@ def group_kanban_entry_create(*,
                               description: str = None,
                               priority: int,
                               tag: int,
+                              attachments: list = None,
                               end_date: timezone.datetime = None
                               ) -> KanbanEntry:
     group_user_permissions(group=group_id, user=fetched_by_id, permissions=['admin', 'create_kanban_task'])
@@ -467,6 +468,7 @@ def group_kanban_entry_create(*,
                                             assignee_id=assignee_id,
                                             title=title,
                                             description=description,
+                                            attachments=attachments,
                                             priority=priority,
                                             end_date=end_date,
                                             tag=tag)

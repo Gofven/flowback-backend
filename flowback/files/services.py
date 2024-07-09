@@ -1,5 +1,4 @@
 import ntpath
-import os
 import uuid
 from typing import Union
 
@@ -9,7 +8,6 @@ from django.core.files.storage import default_storage
 from django.utils import timezone
 
 from .models import FileCollection, FileSegment
-from ..user.models import User
 
 
 # A function to allow uploading a collection of files to a specified directory

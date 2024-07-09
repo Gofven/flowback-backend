@@ -4,12 +4,11 @@ from django.db import models
 from django.utils import timezone
 
 from flowback.common.models import BaseModel
-from flowback.user.models import User
 
 
 # Collection of files
 class FileCollection(BaseModel):
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_by = models.ForeignKey('user.User', on_delete=models.CASCADE)
 
 
 # The files themselves
