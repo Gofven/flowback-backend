@@ -582,7 +582,7 @@ def group_thread_notification_subscribe(user_id: int, thread_id: int, categories
     thread = get_object(GroupThread, id=thread_id)
     group_user_permissions(user=user_id, group=thread.created_by.group)
 
-    group_notification.channel_subscribe(user_id=user_id,
+    group_thread_notification.channel_subscribe(user_id=user_id,
                                          sender_id=thread.id,
                                          category=categories)
 
