@@ -1,5 +1,5 @@
 import django_filters
-from django.db.models import OuterRef, Subquery, Sum, Case, When
+from django.db.models import OuterRef, Subquery, Sum, Case, When, Q, Count
 
 from flowback.comment.models import Comment, CommentVote
 from flowback.user.models import User
@@ -42,7 +42,8 @@ def comment_list(*, fetched_by: User, comment_section_id: int, filters=None):
         qs = Comment.objects.filter(comment_section_id=comment_section_id)
 
     qs = qs.annotate(user_vote=Subquery(user_vote),
-                     raw_score=Sum(Case(When(commentvote__vote=True, then=1), default=-1))).all()
+                     raw_score=Count('commentvote', filter=Q(commentvote__vote=True)) -
+                               Count('commentvote', filter=Q(commentvote__vote=False))).all()
     return BaseCommentFilter(filters, qs).qs
 
 
@@ -53,6 +54,7 @@ def comment_ancestor_list(*, fetched_by: User, comment_section_id: int, comment_
           .ancestors(include_self=True)
           .reverse()
           .annotate(user_vote=Subquery(user_vote),
-                    raw_score=Sum(Case(When(commentvote__vote=True, then=1), default=-1))).all())
+                    raw_score=Count('commentvote', filter=Q(commentvote__vote=True)) -
+                              Count('commentvote', filter=Q(commentvote__vote=False))).all())
 
     return qs
