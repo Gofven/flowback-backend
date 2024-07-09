@@ -38,7 +38,8 @@ class GroupListApi(APIView):
                       'cover_image',
                       'joined',
                       'chat_id',
-                      'member_count')
+                      'member_count',
+                      'blockchain_id')
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
