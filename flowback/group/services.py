@@ -620,7 +620,7 @@ def group_thread_comment_vote(*, user: int, thread_id: int, comment_id: int, vot
 def group_delegate_pool_comment_create(*,
                                        author_id: int,
                                        delegate_pool_id: int,
-                                       message: str,
+                                       message: str = None,
                                        attachments: list = None,
                                        parent_id: int = None) -> Comment:
     delegate_pool = get_object(GroupUserDelegatePool, id=delegate_pool_id)
