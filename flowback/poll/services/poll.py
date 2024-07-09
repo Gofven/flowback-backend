@@ -202,8 +202,8 @@ def poll_fast_forward(*, user_id: int, poll_id: int, phase: str):
     if not poll.allow_fast_forward:
         raise ValidationError("This poll can't be fast forwarded")
 
-    if not (poll.created_by == group_user
-            and group_user_permissions(group_user=group_user, permissions=['poll_fast_forward', 'admin'])):
+    if (not poll.created_by == group_user
+            and not group_user_permissions(group_user=group_user, permissions=['poll_fast_forward', 'admin'])):
         raise ValidationError('User is not allowed to fast forward polls')
 
     poll.phase_exist(phase)
