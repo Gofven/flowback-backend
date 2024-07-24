@@ -7,8 +7,7 @@ from flowback.common.pagination import LimitOffsetPagination, get_paginated_resp
 from flowback.comment.views import CommentListAPI, CommentCreateAPI, CommentUpdateAPI, CommentDeleteAPI, CommentVoteAPI, \
     CommentAncestorListAPI
 from flowback.files.serializers import FileSerializer
-from flowback.group.selectors import group_thread_list, group_thread_comment_list, group_thread_comment_ancestor_list, \
-    group_thread_vote_list
+from flowback.group.selectors import group_thread_list, group_thread_comment_list, group_thread_comment_ancestor_list
 from flowback.group.services import (group_thread_create,
                                      group_thread_update,
                                      group_thread_delete,

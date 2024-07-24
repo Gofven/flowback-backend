@@ -289,12 +289,12 @@ class BaseGroupThreadFilter(django_filters.FilterSet):
         fields=(('created_at', 'created_at_asc'),
                 ('-created_at', 'created_at_desc'),
                 ('pinned', 'pinned')))
+    user_vote = django_filters.BooleanFilter()
 
     class Meta:
         model = GroupThread
         fields = dict(id=['exact'],
-                      title=['icontains'],
-                      user_vote=['exact'])
+                      title=['icontains'])
 
 
 def group_thread_list(*, group_id: int, fetched_by: User, filters=None):
