@@ -232,6 +232,13 @@ class GroupThread(BaseModel):
     attachments = models.ForeignKey(FileCollection, on_delete=models.CASCADE, null=True, blank=True)
 
 
+# Likes and Dislikes for Group Thread
+class GroupThreadVote(BaseModel):
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    thread = models.ForeignKey(GroupThread, on_delete=models.CASCADE)
+    vote = models.BooleanField(default=True)
+
+
 class GroupUserInvite(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)

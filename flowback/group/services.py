@@ -19,7 +19,7 @@ from flowback.kanban.services import KanbanManager
 from flowback.user.services import user_schedule
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupUserDelegator, GroupTags, GroupPermissions, \
-    GroupUserDelegate, GroupUserDelegatePool, GroupThread
+    GroupUserDelegate, GroupUserDelegatePool, GroupThread, GroupThreadVote
 from flowback.group.selectors import group_user_permissions
 from flowback.common.services import model_update, get_object
 
@@ -552,6 +552,25 @@ def group_thread_delete(user_id: int, thread_id: int):
     group_user_permissions(user=user_id, group=thread.created_by.group)
 
     thread.delete()
+
+
+def group_thread_vote_update(user_id: int, thread_id: int, vote: bool = None):
+    try:
+        thread = GroupThread.objects.get(id=thread_id)
+
+    except GroupThread.DoesNotExist:
+        raise ValidationError('Thread does not exist')
+
+    group_user = group_user_permissions(user=user_id, group=thread.created_by.group)
+
+    if not vote:
+        try:
+            GroupThreadVote.objects.get(created_by=group_user, thread=thread).delete()
+            return
+        except GroupThreadVote.DoesNotExist:
+            raise ValidationError('Vote does not exist')
+
+    GroupThreadVote.objects.update_or_create(defaults=dict(vote=vote), thread=thread, created_by=group_user)
 
 
 def group_thread_comment_create(author_id: int,

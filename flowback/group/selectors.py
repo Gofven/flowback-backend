@@ -12,7 +12,7 @@ from flowback.kanban.selectors import kanban_entry_list
 from flowback.poll.models import PollPredictionStatement, Poll
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupPermissions, GroupTags, GroupUserDelegator, \
-    GroupUserDelegatePool, GroupThread, GroupFolder
+    GroupUserDelegatePool, GroupThread, GroupFolder, GroupThreadVote
 from flowback.schedule.selectors import schedule_event_list
 from rest_framework.exceptions import ValidationError
 
@@ -293,16 +293,20 @@ class BaseGroupThreadFilter(django_filters.FilterSet):
     class Meta:
         model = GroupThread
         fields = dict(id=['exact'],
-                      title=['icontains'])
+                      title=['icontains'],
+                      user_vote=['exact'])
 
 
 def group_thread_list(*, group_id: int, fetched_by: User, filters=None):
     filters = filters or {}
-    group_user_permissions(user=fetched_by, group=group_id)
+    group_user = group_user_permissions(user=fetched_by, group=group_id)
+
+    sq_user_vote = GroupThreadVote.objects.filter(thread_id=OuterRef('id'), created_by=group_user).values('vote')
 
     qs = (GroupThread.objects.filter(created_by__group_id=group_id)
           .annotate(total_comments=Count('comment_section__comment',
-                                         filter=Q(comment_section__comment__active=True))).all())
+                                         filter=Q(comment_section__comment__active=True)),
+                    user_vote=Subquery(sq_user_vote)).all())
 
     return BaseGroupThreadFilter(filters, qs).qs
 

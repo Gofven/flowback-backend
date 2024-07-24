@@ -1,19 +1,21 @@
 from rest_framework import serializers, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.viewsets import ViewSet
 
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.comment.views import CommentListAPI, CommentCreateAPI, CommentUpdateAPI, CommentDeleteAPI, CommentVoteAPI, \
     CommentAncestorListAPI
 from flowback.files.serializers import FileSerializer
-from flowback.group.selectors import group_thread_list, group_thread_comment_list, group_thread_comment_ancestor_list
+from flowback.group.selectors import group_thread_list, group_thread_comment_list, group_thread_comment_ancestor_list, \
+    group_thread_vote_list
 from flowback.group.services import (group_thread_create,
                                      group_thread_update,
                                      group_thread_delete,
                                      group_thread_comment_create,
                                      group_thread_comment_update,
                                      group_thread_comment_delete, group_thread_notification_subscribe,
-                                     group_thread_notification, group_thread_comment_vote)
+                                     group_thread_notification, group_thread_comment_vote, group_thread_vote_update)
 from flowback.user.serializers import BasicUserSerializer
 
 
@@ -25,6 +27,7 @@ class GroupThreadListAPI(APIView):
         order_by = serializers.CharField(required=False)
         id = serializers.IntegerField(required=False)
         title = serializers.CharField(required=False)
+        user_vote = serializers.BooleanField(required=False)
 
     class OutputSerializer(serializers.Serializer):
         created_by = BasicUserSerializer(source='created_by.user')
@@ -33,6 +36,7 @@ class GroupThreadListAPI(APIView):
         pinned = serializers.BooleanField()
         total_comments = serializers.IntegerField()
         attachments = FileSerializer(many=True, source='attachments.filesegment_set', allow_null=True)
+        user_vote = serializers.BooleanField(allow_null=True)
 
     def get(self, request, group_id: int):
         serializer = self.FilterSerializer(data=request.query_params)
@@ -90,6 +94,21 @@ class GroupThreadNotificationSubscribeAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         group_thread_notification_subscribe(user_id=request.user.id, thread_id=thread_id, **serializer.validated_data)
+        return Response(status=status.HTTP_200_OK)
+
+
+class GroupThreadVoteUpdateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        vote = serializers.BooleanField(default=False)
+
+    def post(self, request, thread_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        group_thread_vote_update(user_id=request.user.id,
+                                 thread_id=thread_id,
+                                 **serializer.validated_data)
+
         return Response(status=status.HTTP_200_OK)
 
 
