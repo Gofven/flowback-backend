@@ -11,7 +11,7 @@ from flowback.group.models import (Group,
                                    GroupUserInvite,
                                    GroupUserDelegate,
                                    GroupUserDelegatePool,
-                                   GroupUserDelegator)
+                                   GroupUserDelegator, GroupThreadVote)
 from flowback.kanban.models import KanbanEntry
 from flowback.user.tests.factories import UserFactory
 
@@ -49,6 +49,15 @@ class GroupThreadFactory(factory.django.DjangoModelFactory):
     created_by = factory.SubFactory(GroupUserFactory)
     title = factory.LazyAttribute(lambda _: fake.unique.sentence(nb_words=10).lower())
     comment_section = factory.SubFactory(CommentSectionFactory)
+
+
+class GroupThreadVoteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = GroupThreadVote
+
+    created_by = factory.SubFactory(GroupUserFactory)
+    thread = factory.SubFactory(GroupThreadFactory, created_by=factory.SelfAttribute('..created_by'))
+    vote = factory.LazyAttribute(lambda _: fake.boolean())
 
 
 class GroupPermissionsFactory(factory.django.DjangoModelFactory):

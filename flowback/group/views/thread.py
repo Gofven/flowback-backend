@@ -98,7 +98,7 @@ class GroupThreadNotificationSubscribeAPI(APIView):
 
 class GroupThreadVoteUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
-        vote = serializers.BooleanField(default=False)
+        vote = serializers.BooleanField(required=False, allow_null=True, default=None)
 
     def post(self, request, thread_id: int):
         serializer = self.InputSerializer(data=request.data)

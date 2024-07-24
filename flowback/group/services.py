@@ -563,7 +563,7 @@ def group_thread_vote_update(user_id: int, thread_id: int, vote: bool = None):
 
     group_user = group_user_permissions(user=user_id, group=thread.created_by.group)
 
-    if not vote:
+    if vote is None:
         try:
             GroupThreadVote.objects.get(created_by=group_user, thread=thread).delete()
             return
