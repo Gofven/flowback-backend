@@ -26,7 +26,7 @@ class GroupThreadListAPI(APIView):
         order_by = serializers.CharField(required=False)
         id = serializers.IntegerField(required=False)
         title = serializers.CharField(required=False)
-        user_vote = serializers.BooleanField(required=False)
+        user_vote = serializers.BooleanField(required=False, allow_null=True, default=None)
 
     class OutputSerializer(serializers.Serializer):
         created_by = BasicUserSerializer(source='created_by.user')
@@ -35,6 +35,7 @@ class GroupThreadListAPI(APIView):
         pinned = serializers.BooleanField()
         total_comments = serializers.IntegerField()
         attachments = FileSerializer(many=True, source='attachments.filesegment_set', allow_null=True)
+        score = serializers.IntegerField(default=0)
         user_vote = serializers.BooleanField(allow_null=True)
 
     def get(self, request, group_id: int):

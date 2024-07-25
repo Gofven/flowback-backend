@@ -306,7 +306,9 @@ def group_thread_list(*, group_id: int, fetched_by: User, filters=None):
     qs = (GroupThread.objects.filter(created_by__group_id=group_id)
           .annotate(total_comments=Count('comment_section__comment',
                                          filter=Q(comment_section__comment__active=True)),
-                    user_vote=Subquery(sq_user_vote)).all())
+                    user_vote=Subquery(sq_user_vote),
+                    score=Count('groupthreadvote', filter=Q(groupthreadvote__vote=True)) -
+                    Count('groupthreadvote', filter=Q(groupthreadvote__vote=False))).all())
 
     return BaseGroupThreadFilter(filters, qs).qs
 
