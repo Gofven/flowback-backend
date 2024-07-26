@@ -32,6 +32,7 @@ class GroupThreadListAPI(APIView):
         created_by = BasicUserSerializer(source='created_by.user')
         id = serializers.IntegerField()
         title = serializers.CharField()
+        description = serializers.CharField(allow_null=True, default=None)
         pinned = serializers.BooleanField()
         total_comments = serializers.IntegerField()
         attachments = FileSerializer(many=True, source='attachments.filesegment_set', allow_null=True)

@@ -226,6 +226,7 @@ post_delete.connect(GroupUser.post_delete, sender=GroupUser)
 class GroupThread(BaseModel):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
+    description = models.TextField(null=True, blank=True)
     pinned = models.BooleanField(default=False)
     comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.DO_NOTHING)
     active = models.BooleanField(default=True)

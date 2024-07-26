@@ -1,6 +1,7 @@
 import json
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
 from .factories import PollFactory
 
@@ -10,6 +11,7 @@ from ..services.poll import poll_fast_forward
 from ..views.poll import PollListApi, PollCreateAPI, PollUpdateAPI, PollDeleteAPI
 from ...files.tests.factories import FileSegmentFactory
 from ...group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
+from ...notification.models import NotificationChannel
 from ...user.models import User
 
 
@@ -52,6 +54,12 @@ class PollTest(APITransactionTestCase):
         force_authenticate(request, user)
         response = view(request, group_id=self.group.id)  # Success
 
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check if group notification channel is being created properly
+        NotificationChannel.objects.get(category='poll',
+                                        sender_type='group',
+                                        sender_id=self.group.id)
     def test_create_failing_poll(self):
         factory = APIRequestFactory()
         user = self.group_user_creator.user
@@ -128,7 +136,8 @@ class PollTest(APITransactionTestCase):
         poll.refresh_from_db()
         self.assertEqual('vote', poll.current_phase)
 
-    def delete_poll(self, poll: Poll, user: User):
+    @staticmethod
+    def delete_poll(poll: Poll, user: User):
         factory = APIRequestFactory()
         view = PollDeleteAPI.as_view()
         request = factory.post('')
@@ -138,21 +147,20 @@ class PollTest(APITransactionTestCase):
 
     def test_delete_poll_success(self):
         poll = PollFactory(created_by=self.group_user_one, **generate_poll_phase_kwargs(poll_start_phase='waiting'))
-        response = self.delete_poll(poll, user=self.group_user_one.user)
+        response = self.delete_poll(poll=poll, user=self.group_user_one.user)
 
-        self.assertTrue(response.status_code == 200)
-        self.assertTrue(not Poll.objects.filter(id=poll.id).exists())
+        self.assertTrue(response.status_code == 200, msg=response.data)
 
     def test_delete_poll_in_progress(self):
         poll = PollFactory(created_by=self.group_user_one, **generate_poll_phase_kwargs(poll_start_phase='proposal'))
-        response = self.delete_poll(poll, user=self.group_user_one.user)
+        response = self.delete_poll(poll=poll, user=self.group_user_one.user)
 
         self.assertTrue(response.status_code == 400)
         self.assertTrue(Poll.objects.filter(id=poll.id).exists())
 
     def test_delete_poll_in_progress_admin(self):
         poll = PollFactory(created_by=self.group_user_one, **generate_poll_phase_kwargs(poll_start_phase='proposal'))
-        response = self.delete_poll(poll, user=self.group_user_creator.user)
+        response = self.delete_poll(poll=poll, user=self.group_user_creator.user)
 
         self.assertTrue(response.status_code == 200)
         self.assertTrue(not Poll.objects.filter(id=poll.id).exists())

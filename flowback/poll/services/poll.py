@@ -58,12 +58,6 @@ def poll_create(*, user_id: int,
     if quorum is not None and not group_user.check_permission(poll_quorum=True) and not group_user.is_admin:
         raise ValidationError("Permission denied for custom poll quorum")
 
-    collection = None
-    if attachments:
-        collection = upload_collection(user_id=user_id,
-                                       file=attachments,
-                                       upload_to="group/poll/attachments")
-
     if poll_type == Poll.PollType.SCHEDULE:
         if not end_date:
             raise ValidationError('Missing required parameter(s) for schedule poll')
@@ -79,6 +73,12 @@ def poll_create(*, user_id: int,
                   vote_end_date,
                   end_date]):
         raise ValidationError('Missing required parameter(s) for generic poll')
+
+    collection = None
+    if attachments:
+        collection = upload_collection(user_id=user_id,
+                                       file=attachments,
+                                       upload_to="group/poll/attachments")
 
     poll = Poll(created_by=group_user,
                 title=title,

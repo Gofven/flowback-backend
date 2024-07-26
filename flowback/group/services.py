@@ -504,7 +504,12 @@ def group_kanban_entry_delete(*,
     return group_kanban.kanban_entry_delete(origin_id=group_id, entry_id=entry_id)
 
 
-def group_thread_create(user_id: int, group_id: int, pinned: bool, title: str, attachments: list = None):
+def group_thread_create(user_id: int,
+                        group_id: int,
+                        pinned: bool,
+                        title: str,
+                        description: str = None,
+                        attachments: list = None):
     group_user = group_user_permissions(user=user_id, group=group_id)
 
     if pinned:
@@ -518,7 +523,12 @@ def group_thread_create(user_id: int, group_id: int, pinned: bool, title: str, a
                                         file=attachments,
                                         upload_to='group/thread')
 
-    thread = GroupThread(created_by=group_user, title=title, pinned=pinned, attachments=attachments)
+    thread = GroupThread(created_by=group_user,
+                         title=title,
+                         description=description,
+                         pinned=pinned,
+                         attachments=attachments)
+
     thread.full_clean()
     thread.save()
 
@@ -527,7 +537,7 @@ def group_thread_create(user_id: int, group_id: int, pinned: bool, title: str, a
 
 def group_thread_update(user_id: int, thread_id: int, data: dict):
     thread = get_object(GroupThread, id=thread_id)
-    non_side_effect_fields = ['title', 'attachments']
+    non_side_effect_fields = ['title', 'description', 'attachments']
 
     if 'pinned' in data.keys():
         group_user_permissions(user=user_id, group=thread.created_by.group, permissions=['admin'])
