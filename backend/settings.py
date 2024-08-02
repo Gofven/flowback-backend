@@ -103,6 +103,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_celery_beat',
     'pgtrigger',
+    'oidc_provider',
     'flowback.user',
     'flowback.group',
     'flowback.poll',
@@ -231,6 +232,10 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+
+# OIDC Login URL
+LOGIN_URL = '/accounts/login/'
 
 
 # Database
