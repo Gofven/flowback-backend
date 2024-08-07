@@ -234,8 +234,9 @@ CHANNEL_LAYERS = {
 }
 
 
-# OIDC Login URL
+# OIDC Settings
 LOGIN_URL = '/accounts/login/'
+OIDC_USERINFO = 'backend.oidc_provider_settings.userinfo'
 
 
 # Database
