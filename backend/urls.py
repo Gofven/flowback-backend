@@ -27,8 +27,6 @@ api_urlpatterns = [
     path('poll/user/schedule', PollUserScheduleListAPI.as_view(), name='poll_user_schedule'),
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
     path('schema/redoc/', SpectacularRedocView.as_view(url_name='api:schema'), name='redoc'),
-
-    path('openid/', include('oidc_provider.urls', namespace='oidc_provider')),
 ]
 
 if INTEGRATIONS:
@@ -44,7 +42,8 @@ if INTEGRATIONS:
 
 urlpatterns = [
     path(f'{URL_SUBPATH}/' if URL_SUBPATH else '', include((api_urlpatterns, 'api'))),
-    path('admin/', admin.site.urls, name='admin')
+    path('admin/', admin.site.urls, name='admin'),
+    path('openid/', include('oidc_provider.urls', namespace='oidc_provider')),
 ]
 
 if DEBUG:
