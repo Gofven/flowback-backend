@@ -10,6 +10,5 @@ def userinfo(claims, user: User):
     claims['website'] = user.website
 
     claims['email'] = user.email
-    claims['mail'] = user.email
 
     return claims
