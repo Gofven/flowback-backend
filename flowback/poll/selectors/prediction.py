@@ -5,6 +5,7 @@ from django.db.models.fields.related import RelatedField
 from django.db.models.lookups import LessThan
 from django.utils import timezone
 
+from flowback.common.filters import NumberInFilter
 from flowback.group.selectors import group_user_permissions
 from flowback.poll.models import PollPredictionStatement, PollPredictionBet, PollPredictionStatementVote, \
     PollPredictionStatementSegment
@@ -12,7 +13,7 @@ from flowback.user.models import User
 
 
 class BasePollPredictionStatementFilter(django_filters.FilterSet):
-    proposals = django_filters.NumberFilter(field_name='pollpredictionstatementsegment__proposal', lookup_expr='in')
+    proposals = NumberInFilter(field_name='pollpredictionstatementsegment__proposal')
     description = django_filters.CharFilter(lookup_expr='icontains')
     created_by_id = django_filters.NumberFilter(field_name='created_by__user_id', lookup_expr='exact')
     user_prediction_bet__exists = django_filters.BooleanFilter(lookup_expr='isnull', exclude=True)
