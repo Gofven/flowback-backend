@@ -27,6 +27,7 @@ class PollPredictionStatementListAPI(APIView):
         id = serializers.IntegerField(required=False)
         poll_id = serializers.IntegerField(required=False)
         proposals = serializers.ListField(required=False, child=serializers.IntegerField())
+        title = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
         created_by_id = serializers.IntegerField(required=False)
         user_prediction_bet_exists = serializers.BooleanField(required=False)
@@ -41,7 +42,8 @@ class PollPredictionStatementListAPI(APIView):
 
         id = serializers.IntegerField()
         poll_id = serializers.IntegerField()
-        description = serializers.CharField()
+        title = serializers.CharField()
+        description = serializers.CharField(allow_null=True)
         created_by = GroupUserSerializer()
         end_date = serializers.DateTimeField()
         user_prediction_bet = serializers.IntegerField(required=False)
@@ -114,7 +116,8 @@ class PollPredictionStatementCreateAPI(APIView):
             proposal_id = serializers.IntegerField()
             is_true = serializers.BooleanField()
 
-        description = serializers.CharField()
+        title = serializers.CharField()
+        description = serializers.CharField(required=False)
         end_date = serializers.DateTimeField()
         segments = SegmentSerializer(many=True)
         blockchain_id = serializers.IntegerField(required=False, allow_null=True)

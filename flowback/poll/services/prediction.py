@@ -15,6 +15,7 @@ from ...user.models import User
 
 def poll_prediction_statement_create(poll: int,
                                      user: Union[int, User],
+                                     title: str,
                                      description: str,
                                      end_date: timezone.datetime,
                                      segments: list[dict],
@@ -25,6 +26,7 @@ def poll_prediction_statement_create(poll: int,
                                         permissions=['prediction_statement_create', 'admin'])
     prediction_statement = PollPredictionStatement(created_by=group_user,
                                                    poll=poll,
+                                                   title=title,
                                                    description=description,
                                                    end_date=end_date,
                                                    blockchain_id=blockchain_id)

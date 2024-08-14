@@ -14,6 +14,7 @@ from flowback.user.models import User
 
 class BasePollPredictionStatementFilter(django_filters.FilterSet):
     proposals = NumberInFilter(field_name='pollpredictionstatementsegment__proposal')
+    title = django_filters.CharFilter(lookup_expr='icontains')
     description = django_filters.CharFilter(lookup_expr='icontains')
     created_by_id = django_filters.NumberFilter(field_name='created_by__user_id', lookup_expr='exact')
     user_prediction_bet__exists = django_filters.BooleanFilter(lookup_expr='isnull', exclude=True)

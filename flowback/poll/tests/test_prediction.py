@@ -10,7 +10,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate, APITransa
 
 from flowback.group.models import GroupUser
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
-from flowback.group.views.tag import GroupTagsListApi, GroupTagIntervalMeanAbsoluteErrorAPI
+from flowback.group.views.tag import GroupTagsListApi, GroupTagIntervalMeanAbsoluteCorrectnessAPI
 from flowback.poll.models import Poll, PollPredictionStatement, PollPredictionStatementSegment, PollPredictionBet, \
     PollPredictionStatementVote
 from flowback.poll.tasks import poll_prediction_bet_count
@@ -67,7 +67,8 @@ class PollPredictionStatementTest(APITransactionTestCase):
         user = self.user_prediction_creator.user
         view = PollPredictionStatementCreateAPI.as_view()
 
-        data = dict(description="A Test PredictionBet",
+        data = dict(title="Test",
+                    description="A Test PredictionBet",
                     end_date=timezone.now() + timezone.timedelta(hours=8),
                     segments=[dict(proposal_id=self.proposal_one.id, is_true=True),
                               dict(proposal_id=self.proposal_two.id, is_true=False)])
@@ -370,7 +371,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
         # Request Test
         factory = APIRequestFactory()
         user = self.user_group_creator.user
-        view = GroupTagIntervalMeanAbsoluteErrorAPI.as_view()
+        view = GroupTagIntervalMeanAbsoluteCorrectnessAPI.as_view()
 
         request = factory.get('', data=dict(limit=10))
         force_authenticate(request, user=user)

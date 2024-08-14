@@ -115,6 +115,7 @@ class PollPredictionStatementFactory(factory.django.DjangoModelFactory):
 
     created_by = factory.SubFactory(GroupUserFactory)
     poll = factory.SubFactory(PollFactory, **generate_poll_phase_kwargs('proposal'))
+    title = factory.LazyAttribute(lambda _: fake.name())
     description = factory.LazyAttribute(lambda _: fake.bs())
     end_date = factory.LazyAttribute(lambda _: timezone.now() + timezone.timedelta(hours=99))
 

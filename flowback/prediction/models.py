@@ -5,7 +5,8 @@ from flowback.common.models import BaseModel
 
 
 class PredictionStatement(BaseModel):
-    description = models.TextField(max_length=2000)
+    title = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, null=True, blank=True)
     end_date = models.DateTimeField()
     # created_by: represents ownership
     # fk: represents relationship
