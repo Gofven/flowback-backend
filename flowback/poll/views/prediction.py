@@ -26,7 +26,7 @@ class PollPredictionStatementListAPI(APIView):
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
         poll_id = serializers.IntegerField(required=False)
-        proposals = serializers.ListField(required=False, child=serializers.IntegerField())
+        proposals = serializers.CharField(required=False)
         title = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
         created_by_id = serializers.IntegerField(required=False)

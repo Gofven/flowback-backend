@@ -232,7 +232,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
         factory = APIRequestFactory()
         view = PollPredictionStatementListAPI.as_view()
 
-        request = factory.get('')
+        request = factory.get('', data=dict(proposals='1,3'))
         force_authenticate(request, user=self.user_prediction_caster_one.user)
         response = view(request, group_id=self.group.id)
         self.assertEqual(response.status_code, 200, msg=response.data)
