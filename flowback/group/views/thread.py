@@ -54,6 +54,7 @@ class GroupThreadListAPI(APIView):
 class GroupThreadCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField()
+        description = serializers.CharField(required=False)
         pinned = serializers.BooleanField(default=False)
         attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
