@@ -87,6 +87,9 @@ def poll_create(*, user_id: int,
         if not tag:
             raise ValidationError('Group must have atleast one tag')
 
+        else:
+            tag = tag.id
+
     poll = Poll(created_by=group_user,
                 title=title,
                 description=description,
