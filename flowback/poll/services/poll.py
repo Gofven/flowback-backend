@@ -82,7 +82,7 @@ def poll_create(*, user_id: int,
                                        upload_to="group/poll/attachments")
 
     if not tag:
-        tag = GroupTags.objects.get(id=group_user.group.id).first()
+        tag = GroupTags.objects.filter(id=group_user.group.id).first()
 
         if not tag:
             raise ValidationError('Group must have atleast one tag')
