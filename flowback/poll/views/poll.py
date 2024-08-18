@@ -148,7 +148,7 @@ class PollNotificationSubscribeApi(APIView):
 @extend_schema(tags=['poll'])
 class PollCreateAPI(APIView):
     class InputSerializer(serializers.ModelSerializer):
-        tag = serializers.IntegerField()
+        tag = serializers.IntegerField(required=False)
         quorum = serializers.IntegerField(required=False)
         public = serializers.BooleanField(default=False)
         attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)

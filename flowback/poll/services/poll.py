@@ -1,6 +1,7 @@
 from rest_framework.exceptions import ValidationError
 from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
+from flowback.group.models import GroupTags
 from flowback.group.services import group_notification, group_schedule
 from flowback.notification.services import NotificationManager
 from flowback.poll.models import Poll, PollProposal, PollPhaseTemplate
@@ -41,7 +42,7 @@ def poll_create(*, user_id: int,
                 poll_type: int,
                 allow_fast_forward: bool = False,
                 public: bool,
-                tag: int,
+                tag: int = None,
                 pinned: bool,
                 dynamic: bool,
                 attachments: list = None,
@@ -79,6 +80,12 @@ def poll_create(*, user_id: int,
         collection = upload_collection(user_id=user_id,
                                        file=attachments,
                                        upload_to="group/poll/attachments")
+
+    if not tag:
+        tag = GroupTags.objects.get(id=group_user.group.id).first()
+
+        if not tag:
+            raise ValidationError('Group must have atleast one tag')
 
     poll = Poll(created_by=group_user,
                 title=title,
