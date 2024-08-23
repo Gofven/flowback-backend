@@ -1,16 +1,18 @@
-# TODO groups, groupusers, groupinvites, groupuserinvites,
-#  groupdefaultpermission, grouppermissions, grouptags, groupuserdelegates
 import django_filters
 from typing import Union
-from django.db.models import Q, Exists, OuterRef, Count
+
+from django.db import models
+from django.db.models import Q, Exists, OuterRef, Count, Case, When, F, Subquery, Sum
+from django.db.models.functions import Abs
 from django.forms import model_to_dict
 
-from flowback.comment.selectors import comment_list
+from flowback.comment.selectors import comment_list, comment_ancestor_list
 from flowback.common.services import get_object
 from flowback.kanban.selectors import kanban_entry_list
+from flowback.poll.models import PollPredictionStatement, Poll
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupPermissions, GroupTags, GroupUserDelegator, \
-    GroupUserDelegatePool, GroupThread, GroupFolder
+    GroupUserDelegatePool, GroupThread, GroupFolder, GroupThreadVote
 from flowback.schedule.selectors import schedule_event_list
 from rest_framework.exceptions import ValidationError
 
@@ -33,17 +35,17 @@ def group_default_permissions(*, group: Union[Group, int]):
     return defaults
 
 
+# Check if user have any one of the permissions
 def group_user_permissions(*,
                            user: Union[User, int] = None,
                            group: Union[Group, int] = None,
                            group_user: [GroupUser, int] = None,
                            permissions: Union[list[str], str] = None,
                            raise_exception: bool = True) -> Union[GroupUser, bool]:
-
-    if type(user) == int:
+    if isinstance(user, int):
         user = get_object(User, id=user)
 
-    if type(group) == int:
+    if isinstance(group, int):
         group = get_object(Group, id=group)
 
     permissions = permissions or []
@@ -55,14 +57,18 @@ def group_user_permissions(*,
         group_user = get_object(GroupUser, 'User is not in group', group=group, user=user, active=True)
 
     elif group_user:
-        if type(group_user) == int:
-            group_user = get_object(GroupUser, id=group_user)
+        if isinstance(group_user, int):
+            group_user = get_object(GroupUser, id=group_user, active=True)
+
+        elif isinstance(group_user, GroupUser):
+            group_user = get_object(GroupUser, id=group_user.id, active=True)
 
     else:
         raise Exception('group_user_permissions is missing appropiate parameters')
 
     perobj = GroupPermissions()
-    user_permissions = model_to_dict(group_user.permission) if group_user.permission else group_default_permissions(group=group_user.group)
+    user_permissions = model_to_dict(group_user.permission) if group_user.permission else group_default_permissions(
+        group=group_user.group)
 
     # Check if admin permission is present
     if 'admin' in permissions:
@@ -77,13 +83,15 @@ def group_user_permissions(*,
     validated_permissions = any([user_permissions.get(key, False) for key in permissions]) or not permissions
     if not validated_permissions:
         if raise_exception:
-            raise ValidationError(f'Permission denied, requires one of following permissions: {", ".join(permissions)})')
+            raise ValidationError(
+                f'Permission denied, requires one of following permissions: {", ".join(permissions)})')
         else:
             return False
 
     return group_user
 
 
+# Simple statement to return Q object for group visibility
 def _group_get_visible_for(user: User):
     query = Q(public=True) | Q(Q(public=False) & Q(groupuser__user__in=[user]))
     return Group.objects.filter(query)
@@ -91,6 +99,7 @@ def _group_get_visible_for(user: User):
 
 class BaseGroupFilter(django_filters.FilterSet):
     joined = django_filters.BooleanFilter(lookup_expr='exact')
+    chat_ids = django_filters.NumberFilter(lookup_expr='in')
     exclude_folders = django_filters.BooleanFilter(lookup_expr='isnull')
 
     class Meta:
@@ -104,18 +113,26 @@ class BaseGroupFilter(django_filters.FilterSet):
 def group_list(*, fetched_by: User, filters=None):
     filters = filters or {}
     joined_groups = Group.objects.filter(id=OuterRef('pk'), groupuser__user__in=[fetched_by])
-    qs = _group_get_visible_for(user=fetched_by).annotate(joined=Exists(joined_groups),
-                                                          member_count=Count('groupuser')).order_by('created_at').all()
+    qs = _group_get_visible_for(user=fetched_by
+                                ).annotate(joined=Exists(joined_groups),
+                                           member_count=Count('groupuser')
+                                           ).order_by('created_at').all()
     qs = BaseGroupFilter(filters, qs).qs
     return qs
 
+
+# TODO uncertain if this feature is used anywhere
 def group_folder_list():
     return GroupFolder.objects.all()
 
 
 def group_kanban_entry_list(*, fetched_by: User, group_id: int, filters=None):
     group_user = group_user_permissions(group=group_id, user=fetched_by)
-    return kanban_entry_list(kanban_id=group_user.group.kanban.id, filters=filters, subscriptions=False)
+    subquery = Group.objects.filter(id=OuterRef('kanban__origin_id')).values('name')
+    return kanban_entry_list(kanban_id=group_user.group.kanban.id,
+                             filters=filters,
+                             subscriptions=False
+                             ).annotate(group_name=Subquery(subquery))
 
 
 def group_detail(*, fetched_by: User, group_id: int):
@@ -215,6 +232,36 @@ def group_tags_list(*, group: int, fetched_by: User, filters=None):
     return BaseGroupTagsFilter(filters, qs).qs
 
 
+def group_tags_interval_mean_absolute_correctness(*, tag_id: int, fetched_by: User):
+    """
+    For every combined_bet & outcome in a given tag:
+        abs(sum(combined_bet) – sum(outcome))/N
+        - N is the number of predictions that had at least one bet
+
+    TODO add this value to the group_tags_list selector
+    """
+    tag = GroupTags.objects.get(id=tag_id)
+    group_user_permissions(group=tag.group, user=fetched_by)
+
+    qs_filter = PollPredictionStatement.objects.filter(poll__tag_id=tag_id, pollpredictionstatementvote__isnull=False)
+
+    qs_annotate = qs_filter.annotate(
+        outcome_sum=Sum(Case(When(pollpredictionstatementvote__vote=True, then=1),
+                             When(pollpredictionstatementvote__vote=False, then=-1),
+                             default=0,
+                             output_field=models.IntegerField())),
+
+        outcome=Case(When(outcome_sum__gt=0, then=1),
+                     When(outcome_sum__lte=0, then=0),
+                     default=0.5,
+                     output_field=models.DecimalField(max_digits=14, decimal_places=4)),
+        has_bets=Case(When(pollpredictionbet__isnull=True, then=0), default=1),
+        p1=Abs(F('combined_bet') - F('outcome')))
+
+    qs = qs_annotate.aggregate(interval_mean_absolute_correctness=1 - (Sum('p1') / Sum('has_bets')))
+    return qs.get('interval_mean_absolute_correctness')
+
+
 class BaseGroupUserDelegateFilter(django_filters.FilterSet):
     delegate_id = django_filters.NumberFilter()
     delegate_user_id = django_filters.NumberFilter(field_name='delegate__user_id')
@@ -242,18 +289,28 @@ class BaseGroupThreadFilter(django_filters.FilterSet):
         fields=(('created_at', 'created_at_asc'),
                 ('-created_at', 'created_at_desc'),
                 ('pinned', 'pinned')))
+    user_vote = django_filters.BooleanFilter()
 
     class Meta:
         model = GroupThread
         fields = dict(id=['exact'],
-                      title=['icontains'])
+                      title=['icontains'],
+                      description=['icontains'])
 
 
 def group_thread_list(*, group_id: int, fetched_by: User, filters=None):
     filters = filters or {}
-    group_user_permissions(user=fetched_by, group=group_id)
+    group_user = group_user_permissions(user=fetched_by, group=group_id)
 
-    qs = GroupThread.objects.filter(created_by__group_id=group_id).all()
+    sq_user_vote = GroupThreadVote.objects.filter(thread_id=OuterRef('id'), created_by=group_user).values('vote')
+
+    qs = (GroupThread.objects.filter(created_by__group_id=group_id)
+          .annotate(total_comments=Count('comment_section__comment',
+                                         filter=Q(comment_section__comment__active=True)),
+                    user_vote=Subquery(sq_user_vote),
+                    score=Count('groupthreadvote', filter=Q(groupthreadvote__vote=True)) -
+                    Count('groupthreadvote', filter=Q(groupthreadvote__vote=False))).all())
+
     return BaseGroupThreadFilter(filters, qs).qs
 
 
@@ -261,4 +318,21 @@ def group_thread_comment_list(*, fetched_by: User, thread_id: int, filters=None)
     thread = get_object(GroupThread, id=thread_id)
     group_user_permissions(user=fetched_by, group=thread.created_by.group)
 
-    return comment_list(comment_section_id=thread.comment_section_id, filters=filters)
+    return comment_list(fetched_by=fetched_by, comment_section_id=thread.comment_section_id, filters=filters)
+
+
+def group_thread_comment_ancestor_list(*, fetched_by: User, thread_id: int, comment_id: int):
+    thread = get_object(GroupThread, id=thread_id)
+    group_user_permissions(group=thread.created_by.group, user=fetched_by)
+
+    return comment_ancestor_list(fetched_by=fetched_by,
+                                 comment_section_id=thread.comment_section.id,
+                                 comment_id=comment_id)
+
+
+def group_delegate_pool_comment_list(*, fetched_by: User, delegate_pool_id: int, filters=None):
+    filters = filters or {}
+    delegate_pool = get_object(GroupUserDelegatePool, id=delegate_pool_id)
+    group_user_permissions(group=delegate_pool.group, user=fetched_by)
+
+    return comment_list(fetched_by=fetched_by, comment_section_id=delegate_pool.comment_section.id, filters=filters)

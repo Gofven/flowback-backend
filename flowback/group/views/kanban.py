@@ -1,5 +1,5 @@
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, serializers
 
 from flowback.common.pagination import get_paginated_response
 from flowback.group.selectors import group_kanban_entry_list
@@ -9,6 +9,9 @@ from flowback.kanban.views import KanbanEntryListApi, KanbanEntryCreateAPI, Kanb
 
 
 class GroupKanbanEntryListAPI(KanbanEntryListApi):
+    class OutputSerializer(KanbanEntryListApi.OutputSerializer):
+        group_name = serializers.CharField()
+
     def get(self, request, group_id: int):
         serializer = self.FilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)

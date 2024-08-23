@@ -17,6 +17,7 @@ class GroupListApi(APIView):
         id = serializers.IntegerField(required=False)
         name = serializers.CharField(required=False)
         name__icontains = serializers.CharField(required=False)
+        chat_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
         direct_join = serializers.BooleanField(required=False, default=None, allow_null=True)
         joined = serializers.BooleanField(required=False, default=None, allow_null=True)
 
@@ -36,7 +37,9 @@ class GroupListApi(APIView):
                       'image',
                       'cover_image',
                       'joined',
-                      'member_count')
+                      'chat_id',
+                      'member_count',
+                      'blockchain_id')
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -51,6 +54,7 @@ class GroupListApi(APIView):
             request=request,
             view=self
         )
+
 
 class GroupFolderListApi(APIView): #use serializers.Serializers
     class Pagination(LimitOffsetPagination):
@@ -71,6 +75,7 @@ class GroupFolderListApi(APIView): #use serializers.Serializers
             view=self
         ) 
 
+
 class GroupDetailApi(APIView):
     class OutputSerializer(serializers.ModelSerializer):
         member_count = serializers.IntegerField()
@@ -88,6 +93,8 @@ class GroupDetailApi(APIView):
                       'image',
                       'cover_image',
                       'member_count',
+                      'chat_id',
+                      'blockchain_id',
                       'jitsi_room')
 
     def get(self, request, group: int):
@@ -99,9 +106,19 @@ class GroupDetailApi(APIView):
 
 class GroupCreateApi(APIView):
     class InputSerializer(serializers.ModelSerializer):
+        image = serializers.ImageField(required=False)
+        cover_image = serializers.ImageField(required=False)
+
         class Meta:
             model = Group
-            fields = ('name', 'description', 'image', 'cover_image', 'hide_poll_users', 'direct_join', 'public')
+            fields = ('name',
+                      'description',
+                      'hide_poll_users',
+                      'direct_join',
+                      'public',
+                      'image',
+                      'cover_image',
+                      'blockchain_id')
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)

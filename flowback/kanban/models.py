@@ -30,7 +30,8 @@ class KanbanEntry(BaseModel):
                                                MinValueValidator(1)], default=3)
 
     title = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(null=True, blank=True)
+    attachments = models.ForeignKey('files.FileCollection', on_delete=models.SET_NULL, null=True, blank=True)
     tag = models.IntegerField(choices=KanbanTag.choices)
 
 

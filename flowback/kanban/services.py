@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from flowback.common.services import get_object, model_update
+from flowback.files.services import upload_collection
 from flowback.kanban.models import Kanban, KanbanSubscription, KanbanEntry
 
 
@@ -35,6 +36,7 @@ def kanban_entry_create(*,
                         description: str,
                         tag: int,
                         priority: int,
+                        attachments: list = None,
                         end_date: timezone.datetime = None) -> KanbanEntry:
     kanban = KanbanEntry(kanban_id=kanban_id,
                          created_by_id=created_by_id,
@@ -46,6 +48,12 @@ def kanban_entry_create(*,
                          end_date=end_date)
 
     kanban.full_clean()
+
+    if attachments:
+        kanban.attachments = upload_collection(user_id=created_by_id,
+                                               file=attachments,
+                                               upload_to=f'kanban/task/{kanban_id}')
+
     kanban.save()
 
     # group_notification.create(sender_id=group_id, action=group_notification.Action.create, category='kanban',
@@ -110,9 +118,10 @@ class KanbanManager:
                             created_by_id: int,
                             assignee_id: int = None,
                             title: str,
-                            description: str,
+                            description: str = None,
                             priority: int,
                             tag: int,
+                            attachments: list = None,
                             end_date: timezone.datetime = None) -> KanbanEntry:
         kanban = self.get_kanban(origin_id=origin_id)
         return kanban_entry_create(kanban_id=kanban.id,
@@ -120,6 +129,7 @@ class KanbanManager:
                                    assignee_id=assignee_id,
                                    title=title,
                                    description=description,
+                                   attachments=attachments,
                                    priority=priority,
                                    end_date=end_date,
                                    tag=tag)
@@ -129,8 +139,8 @@ class KanbanManager:
                             origin_id: int,
                             entry_id: int,
                             data) -> KanbanEntry:
-            self.get_entry(origin_id=origin_id, entry_id=entry_id)
-            return kanban_entry_update(kanban_entry_id=entry_id, data=data)
+        self.get_entry(origin_id=origin_id, entry_id=entry_id)
+        return kanban_entry_update(kanban_entry_id=entry_id, data=data)
 
     def kanban_entry_delete(self,
                             *,
