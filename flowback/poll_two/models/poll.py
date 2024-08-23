@@ -3,6 +3,7 @@ from typing import Union
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 
@@ -110,11 +111,20 @@ class Poll(BaseModel):
 
         return True
 
+    @property
+    def current_phase(self) -> PollPhase:
+        phases = self.phase_list
+
+        for phase in reversed(phases):
+            if timezone.now() >= phase:
+                return phase
 
     def check_phase(self, *phases: str):
         self.phase_exists(*phases)
 
-        # TODO create current_phase
+        if self.current_phase.label not in phases:
+            raise ValidationError(f'Poll is not in {", ".join(phases)}, '
+                                  f'currently in {self.current_phase.label}.')
 
 class PollProposal(BaseModel):
     pass
