@@ -1,12 +1,13 @@
 from typing import Union
 
-from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import ArrayField, HStoreField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 
+from backend.settings import SCORE_VOTE_CEILING, SCORE_VOTE_FLOOR
 from flowback.common.models import BaseModel
 from flowback.files.models import FileCollection
 from flowback.group.models import GroupUser, GroupTags
@@ -126,14 +127,46 @@ class Poll(BaseModel):
             raise ValidationError(f'Poll is not in {", ".join(phases)}, '
                                   f'currently in {self.current_phase.label}.')
 
+
 class PollProposal(BaseModel):
-    pass
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
+
+    title = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    data = HStoreField(default=dict)
+    attachments = models.ForeignKey(FileCollection, on_delete=models.SET_NULL, null=True, blank=True)
+    score = models.IntegerField(null=True, blank=True)
 
 
 class PollVote(BaseModel):
-    pass
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
+
+    score = models.IntegerField(default=0)
+    delegators = models.IntegerField(default=0)
+
+    def clean(self):
+        if self.score >= SCORE_VOTE_CEILING:
+            raise ValidationError(f'Voting scores exceeds ceiling bounds (currently set at {SCORE_VOTE_CEILING})')
+
+        if self.score <= SCORE_VOTE_FLOOR:
+            raise ValidationError(f'Voting scores exceeds floor bounds (currently set at {SCORE_VOTE_FLOOR})')
 
 
 # Templates for creating polls
 class PollPhaseTemplate(BaseModel):
-    pass
+    created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    poll_type = models.IntegerField(choices=Poll.PollType.choices)
+    dynamic = models.BooleanField(default=False)
+
+    phases = ArrayField(models.DateTimeField)
+
+    def clean(self):
+        previous_phase = None
+        for phase in self.phases:
+            if phase and previous_phase > phase:
+                raise ValidationError("Phases must be set in ascending order.")
+
+            previous_phase = phase
