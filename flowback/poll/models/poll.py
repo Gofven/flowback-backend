@@ -28,7 +28,7 @@ class Poll(BaseModel):
         FINISHED = 2, _('finished')
         FAILED_QUORUM = -1, _('failed_quorum')
 
-    status = models.IntegerField(default=0)
+    status = models.IntegerField(default=0, choices=Status.choices)
 
     blockchain_id = models.PositiveIntegerField(null=True, blank=True, default=None)
 
@@ -48,7 +48,7 @@ class Poll(BaseModel):
     tag = models.ForeignKey(GroupTags, on_delete=models.SET_NULL, null=True, blank=True)
 
     # Poll Phases
-    phases = ArrayField(models.DateTimeField)
+    phases = ArrayField(models.DateTimeField())
 
     def clean(self):
         if self.poll_type == self.PollType.SCORE and self.phases.count() != 8:
@@ -161,7 +161,7 @@ class PollPhaseTemplate(BaseModel):
     poll_type = models.IntegerField(choices=Poll.PollType.choices)
     dynamic = models.BooleanField(default=False)
 
-    phases = ArrayField(models.DateTimeField)
+    phases = ArrayField(models.DateTimeField())
 
     def clean(self):
         previous_phase = None

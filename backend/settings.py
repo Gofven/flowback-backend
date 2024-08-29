@@ -108,7 +108,6 @@ INSTALLED_APPS = [
     'flowback.user',
     'flowback.group',
     'flowback.poll',
-    'flowback.poll_two',
     'flowback.chat',
     'flowback.kanban',
     'flowback.notification',
