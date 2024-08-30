@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from flowback.poll.models import Poll
+from flowback.poll.models import Poll, PollProposal
 
 
 # Register your models here.
@@ -13,3 +13,9 @@ class PollAdmin(admin.ModelAdmin):
                  ('Visibility', {'fields': ['pinned', 'active', 'public']}),
                  ('Advanced options', {'fields': ['attachments', 'blockchain_id', 'allow_fast_forward']}),
                  ('Debug', {'fields': ['status', 'tag']})]
+
+
+@admin.register(PollProposal)
+class PollProposalAdmin(admin.ModelAdmin):
+    # TODO add the other admin panels
+    pass
