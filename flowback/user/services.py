@@ -15,7 +15,7 @@ from flowback.common.services import model_update, get_object
 from flowback.kanban.services import KanbanManager
 from flowback.schedule.models import ScheduleEvent
 from flowback.schedule.services import ScheduleManager, unsubscribe_schedule
-from flowback.user.models import User, OnboardUser, PasswordReset
+from flowback.user.models import User, OnboardUser, PasswordReset, Report
 
 user_schedule = ScheduleManager(schedule_origin_name='user')
 user_kanban = KanbanManager(origin_type='user')
@@ -216,3 +216,13 @@ def user_get_chat_channel(user_id: int, target_user_id: int):
         message_channel_join(user_id=target_user_id, channel_id=channel.id)
 
     return channel
+
+
+def report_create(*, user_id: int, title: str, description: str):
+    user = get_object(User, id=user_id)
+
+    report = Report(user=user, title=title, description=description)
+    report.full_clean()
+    report.save()
+
+    return report
