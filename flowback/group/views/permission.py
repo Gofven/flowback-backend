@@ -27,6 +27,7 @@ class GroupPermissionListApi(APIView):
                       'poll_fast_forward',
                       'poll_quorum',
                       'allow_vote',
+                      'allow_delegate',
                       'kick_members',
                       'ban_members',
 
@@ -76,6 +77,7 @@ class GroupPermissionCreateApi(APIView):
                       'poll_fast_forward',
                       'poll_quorum',
                       'allow_vote',
+                      'allow_delegate',
                       'kick_members',
                       'ban_members',
 
@@ -115,6 +117,7 @@ class GroupPermissionUpdateApi(APIView):
         poll_fast_forward = serializers.BooleanField(required=False)
         poll_quorum = serializers.BooleanField(required=False)
         allow_vote = serializers.BooleanField(required=False)
+        allow_delegate = serializers.BooleanField(required=False)
         kick_members = serializers.BooleanField(required=False)
         ban_members = serializers.BooleanField(required=False)
 

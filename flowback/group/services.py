@@ -112,6 +112,7 @@ def group_permission_update(*, user: int, group: int, permission_id: int, data) 
                               'poll_fast_forward',
                               'poll_quorum',
                               'allow_vote',
+                              'allow_delegate',
                               'kick_members',
                               'ban_members',
 
@@ -386,7 +387,7 @@ def group_user_delegate_remove(*, user_id: int, group_id: int, delegate_pool_id:
 
 
 def group_user_delegate_pool_create(*, user: int, group: int, blockchain_id: int = None) -> GroupUserDelegatePool:
-    group_user = group_user_permissions(user=user, group=group)
+    group_user = group_user_permissions(user=user, group=group, permissions=['allow_delegate', 'admin'])
 
     # To avoid duplicates (for now)
     get_object(GroupUserDelegate, reverse=True, group=group, group_user=group_user)

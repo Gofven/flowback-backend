@@ -118,6 +118,7 @@ class GroupPermissions(BaseModel):
     poll_fast_forward = models.BooleanField(default=False)
     poll_quorum = models.BooleanField(default=False)
     allow_vote = models.BooleanField(default=True)
+    allow_delegate = models.BooleanField(default=True)
     kick_members = models.BooleanField(default=False)
     ban_members = models.BooleanField(default=False)
 
