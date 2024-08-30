@@ -110,7 +110,7 @@ def group_permission_update(*, user: int, group: int, permission_id: int, data) 
     non_side_effect_fields = ['invite_user',
                               'create_poll',
                               'poll_fast_forward',
-                              'poll_~quorum',
+                              'poll_quorum',
                               'allow_vote',
                               'kick_members',
                               'ban_members',
