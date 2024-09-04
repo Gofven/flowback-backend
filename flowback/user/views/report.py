@@ -17,5 +17,5 @@ class ReportCreateAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        report_create(user_id=request.user_id, **serializer.validated_data)
+        report_create(user_id=request.user.id, **serializer.validated_data)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
