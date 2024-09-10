@@ -7,8 +7,8 @@ from flowback.group.models import GroupUser
 from flowback.group.selectors import group_user_list, group_user_invite_list
 from flowback.group.serializers import GroupUserSerializer
 
-from flowback.group.services import group_join, group_user_update, group_leave, group_invite, group_invite_accept, \
-    group_invite_reject
+from flowback.group.services.group import group_user_update, group_join, group_leave
+from flowback.group.services.invite import group_invite, group_invite_accept, group_invite_reject
 
 
 class GroupUserListApi(APIView):

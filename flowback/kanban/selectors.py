@@ -17,7 +17,8 @@ class BaseKanbanEntryFilter(django_filters.FilterSet):
         fields = dict(title=['icontains'],
                       description=['icontains'],
                       end_date=['gt', 'lt'],
-                      tag=['exact'])
+                      tag=['exact'],
+                      category=['exact', 'icontains'],)
 
 
 def kanban_entry_list(*, kanban_id: int, subscriptions: bool, filters=None):

@@ -24,6 +24,8 @@ class KanbanEntryListApi(APIView):
         description__icontains = serializers.CharField(required=False)
         priority = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
         tag = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
+        category = serializers.CharField(required=False)
+        category__icontains = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
         class UserSerializer(serializers.Serializer):
@@ -42,6 +44,7 @@ class KanbanEntryListApi(APIView):
         description = serializers.CharField(allow_null=True, allow_blank=True)
         attachments = FileSerializer(many=True, source="attachments.filesegment_set", allow_null=True)
         tag = serializers.IntegerField()
+        category = serializers.CharField(allow_null=True)
 
 
 class KanbanEntryCreateAPI(APIView):
@@ -53,6 +56,7 @@ class KanbanEntryCreateAPI(APIView):
         description = serializers.CharField(required=False)
         priority = serializers.ChoiceField((1, 2, 3, 4, 5), default=3)
         tag = serializers.ChoiceField((1, 2, 3, 4, 5))
+        category = serializers.CharField(required=False, allow_null=True)
 
 
 class KanbanEntryUpdateAPI(APIView):
@@ -64,6 +68,7 @@ class KanbanEntryUpdateAPI(APIView):
         end_date = serializers.DateTimeField(required=False)
         priority = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
         tag = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
+        category = serializers.CharField(required=False, allow_null=True)
 
 
 class KanbanEntryDeleteAPI(APIView):

@@ -3,10 +3,10 @@ from flowback.common.pagination import LimitOffsetPagination, get_paginated_resp
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from flowback.group.models import Group, GroupFolder
+from flowback.group.models import Group
 from flowback.group.selectors import group_list, group_detail, group_folder_list
-from flowback.group.services import group_delete, group_update, group_create, group_mail, group_notification, \
-    group_notification_subscribe
+from flowback.group.services.group import group_notification_subscribe
+from flowback.group.services.group import group_notification, group_create, group_update, group_delete, group_mail
 
 
 class GroupListApi(APIView):

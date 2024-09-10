@@ -32,6 +32,7 @@ class KanbanEntry(BaseModel):
     title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     attachments = models.ForeignKey('files.FileCollection', on_delete=models.SET_NULL, null=True, blank=True)
+    category = models.CharField(max_length=255, null=True, blank=True)  # TODO replace with work groups
     tag = models.IntegerField(choices=KanbanTag.choices)
 
 

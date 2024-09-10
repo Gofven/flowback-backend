@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from flowback.group.models import Group, GroupUser
+from flowback.group.models import Group
 from flowback.user.serializers import BasicUserSerializer
 
 

@@ -1,20 +1,22 @@
 from rest_framework import serializers, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.viewsets import ViewSet
 
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.comment.views import CommentListAPI, CommentCreateAPI, CommentUpdateAPI, CommentDeleteAPI, CommentVoteAPI, \
     CommentAncestorListAPI
 from flowback.files.serializers import FileSerializer
 from flowback.group.selectors import group_thread_list, group_thread_comment_list, group_thread_comment_ancestor_list
-from flowback.group.services import (group_thread_create,
-                                     group_thread_update,
-                                     group_thread_delete,
-                                     group_thread_comment_create,
-                                     group_thread_comment_update,
-                                     group_thread_comment_delete, group_thread_notification_subscribe,
-                                     group_thread_notification, group_thread_comment_vote, group_thread_vote_update)
+from flowback.group.services.thread import (group_thread_create,
+                                            group_thread_update,
+                                            group_thread_delete,
+                                            group_thread_comment_create,
+                                            group_thread_comment_update,
+                                            group_thread_comment_delete,
+                                            group_thread_notification_subscribe,
+                                            group_thread_notification,
+                                            group_thread_comment_vote,
+                                            group_thread_vote_update)
 from flowback.user.serializers import BasicUserSerializer
 
 

@@ -223,6 +223,17 @@ post_save.connect(GroupUser.post_save, sender=GroupUser)
 post_delete.connect(GroupUser.post_delete, sender=GroupUser)
 
 
+# Work Group in Flowback
+class WorkGroup(BaseModel):
+    name = models.CharField(max_length=255)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+
+
+class WorkGroupUser(BaseModel):
+    work_group = models.ForeignKey(WorkGroup, on_delete=models.CASCADE)
+    group_user = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+
+
 # GroupThreads are mainly used for creating comment sections for various topics
 class GroupThread(BaseModel):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)

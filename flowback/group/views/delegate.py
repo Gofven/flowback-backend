@@ -6,7 +6,7 @@ from flowback.common.pagination import LimitOffsetPagination, get_paginated_resp
 from flowback.group.models import GroupUserDelegator, GroupTags
 from flowback.group.selectors import group_user_delegate_list, group_user_delegate_pool_list
 from flowback.group.serializers import GroupUserSerializer
-from flowback.group.services import group_user_delegate, group_user_delegate_update, group_user_delegate_remove, \
+from flowback.group.services.delegate import group_user_delegate, group_user_delegate_update, group_user_delegate_remove, \
     group_user_delegate_pool_create, group_user_delegate_pool_delete
 
 

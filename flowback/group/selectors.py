@@ -9,7 +9,7 @@ from django.forms import model_to_dict
 from flowback.comment.selectors import comment_list, comment_ancestor_list
 from flowback.common.services import get_object
 from flowback.kanban.selectors import kanban_entry_list
-from flowback.poll.models import PollPredictionStatement, Poll
+from flowback.poll.models import PollPredictionStatement
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupPermissions, GroupTags, GroupUserDelegator, \
     GroupUserDelegatePool, GroupThread, GroupFolder, GroupThreadVote

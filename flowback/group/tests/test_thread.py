@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from flowback.common.tests import generate_request
-from flowback.group.models import GroupThreadVote, GroupThread
+from flowback.group.models import GroupThreadVote
 from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory, GroupThreadVoteFactory
 from flowback.group.views.thread import GroupThreadVoteUpdateAPI, GroupThreadListAPI
 from flowback.user.models import User
