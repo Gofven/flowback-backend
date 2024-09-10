@@ -15,7 +15,7 @@ from flowback.chat.services import message_create, message_update, message_delet
 from flowback.common.services import get_object
 from flowback.user.models import User
 from flowback.group.models import Group
-from flowback.group.services import group_user_permissions
+from flowback.group.selectors import group_user_permissions
 from flowback.user.serializers import BasicUserSerializer
 
 
