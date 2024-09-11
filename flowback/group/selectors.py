@@ -12,9 +12,9 @@ from flowback.kanban.selectors import kanban_entry_list
 from flowback.poll.models import PollPredictionStatement
 from flowback.user.models import User
 from flowback.group.models import Group, GroupUser, GroupUserInvite, GroupPermissions, GroupTags, GroupUserDelegator, \
-    GroupUserDelegatePool, GroupThread, GroupFolder, GroupThreadVote
+    GroupUserDelegatePool, GroupThread, GroupFolder, GroupThreadVote, WorkGroup, WorkGroupUser, WorkGroupUserJoinRequest
 from flowback.schedule.selectors import schedule_event_list
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, PermissionDenied
 
 
 def group_default_permissions(*, group: Union[Group, int]):
@@ -309,7 +309,7 @@ def group_thread_list(*, group_id: int, fetched_by: User, filters=None):
                                          filter=Q(comment_section__comment__active=True)),
                     user_vote=Subquery(sq_user_vote),
                     score=Count('groupthreadvote', filter=Q(groupthreadvote__vote=True)) -
-                    Count('groupthreadvote', filter=Q(groupthreadvote__vote=False))).all())
+                          Count('groupthreadvote', filter=Q(groupthreadvote__vote=False))).all())
 
     return BaseGroupThreadFilter(filters, qs).qs
 
@@ -336,3 +336,80 @@ def group_delegate_pool_comment_list(*, fetched_by: User, delegate_pool_id: int,
     group_user_permissions(group=delegate_pool.group, user=fetched_by)
 
     return comment_list(fetched_by=fetched_by, comment_section_id=delegate_pool.comment_section.id, filters=filters)
+
+
+# Work Group
+class BaseWorkGroupFilter(django_filters.FilterSet):
+    joined = django_filters.BooleanFilter()
+
+    class Meta:
+        model = WorkGroup
+        fields = dict(id=['exact'],
+                      name=['exact', 'icontains'])
+
+
+def work_group_list(*, group_id: int, fetched_by: User, filters=None):
+    filters = filters or {}
+    group_user = group_user_permissions(group=group_id, user=fetched_by)
+
+    qs = WorkGroup.objects.filter(group_id=group_id
+                                  ).annotate(joined=Q(workgroupuser__group_user__in=[group_user]))
+
+    return BaseWorkGroupFilter(filters, qs).qs
+
+
+# Work Group User
+class BaseWorkGroupUserFilter(django_filters.FilterSet):
+    user_id = django_filters.CharFilter(field_name='group_user__user_id', lookup_expr='exact')
+    group_user_id = django_filters.CharFilter(lookup_expr='exact')
+
+    username = django_filters.CharFilter(field_name='group_user__user__username', lookup_expr='icontains')
+
+    class Meta:
+        model = WorkGroupUser
+        fields = dict(id=['exact'],
+                      group_user_id=['exact'])
+
+
+def work_group_user_list(*, work_group_id: int, fetched_by: User, filters=None):
+    filters = filters or {}
+
+    # Won't need to check group_user_permission if the user is already in the work group
+    work_group_user = WorkGroupUser.objects.get(id=work_group_id, workgroupuser__group_user__user__in=[fetched_by])
+
+    qs = WorkGroupUser.objects.filter(id=work_group_user.work_group_id
+                                      ).annotate(joined=Q(workgroupuser__in=[work_group_user]))
+
+    return BaseWorkGroupFilter(filters, qs).qs
+
+
+# Work Group User
+class BaseWorkGroupUserJoinRequestFilter(django_filters.FilterSet):
+    user_id = django_filters.CharFilter(field_name='group_user__user_id', lookup_expr='exact')
+    group_user_id = django_filters.CharFilter(lookup_expr='exact')
+
+    username = django_filters.CharFilter(field_name='group_user__user__username', lookup_expr='icontains')
+
+    class Meta:
+        model = WorkGroupUserJoinRequest
+        fields = dict(id=['exact'],
+                      group_user_id=['exact'])
+
+
+def work_group_user_join_request_list(*, work_group_id: int, fetched_by: User, filters=None):
+    filters = filters or {}
+
+    work_group = WorkGroup.objects.get(id=work_group_id)
+
+    # Won't need to check if group_user is in work_group due to admin/moderator requirement
+    group_user_is_admin = group_user_permissions(group=work_group.group, user=fetched_by, permissions=['admin'])
+    work_group_user_is_moderator = WorkGroupUser.objects.filter(id=work_group_id,
+                                                                workgroupuser__group_user__user__in=[fetched_by],
+                                                                is_moderator=True).exists()
+
+    if group_user_is_admin or work_group_user_is_moderator:
+        qs = WorkGroupUserJoinRequest.objects.filter(id=work_group_id)
+
+        return BaseWorkGroupFilter(filters, qs).qs
+
+    return PermissionDenied()

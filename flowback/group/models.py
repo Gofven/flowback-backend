@@ -226,10 +226,17 @@ post_delete.connect(GroupUser.post_delete, sender=GroupUser)
 # Work Group in Flowback
 class WorkGroup(BaseModel):
     name = models.CharField(max_length=255)
+    direct_join = models.BooleanField(default=False)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
 
 
 class WorkGroupUser(BaseModel):
+    work_group = models.ForeignKey(WorkGroup, on_delete=models.CASCADE)
+    group_user = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+    is_moderator = models.BooleanField(default=False)
+
+
+class WorkGroupUserJoinRequest(BaseModel):
     work_group = models.ForeignKey(WorkGroup, on_delete=models.CASCADE)
     group_user = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
 
