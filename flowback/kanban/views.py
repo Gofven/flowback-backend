@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from flowback.common.pagination import LimitOffsetPagination
 from flowback.files.serializers import FileSerializer
+from flowback.group.serializers import WorkGroupSerializer
 from flowback.kanban.models import KanbanEntry
 
 
@@ -18,14 +19,13 @@ class KanbanEntryListApi(APIView):
         origin_type = serializers.CharField(required=False)
         origin_id = serializers.IntegerField(required=False)
         created_by = serializers.IntegerField(required=False)
+        work_group_ids = serializers.CharField(required=False)
         order_by = serializers.CharField(required=False)
         assignee = serializers.IntegerField(required=False)
         title__icontains = serializers.CharField(required=False)
         description__icontains = serializers.CharField(required=False)
         priority = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
         tag = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
-        category = serializers.CharField(required=False)
-        category__icontains = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
         class UserSerializer(serializers.Serializer):
@@ -43,6 +43,7 @@ class KanbanEntryListApi(APIView):
         title = serializers.CharField()
         description = serializers.CharField(allow_null=True, allow_blank=True)
         attachments = FileSerializer(many=True, source="attachments.filesegment_set", allow_null=True)
+        work_group = WorkGroupSerializer()
         tag = serializers.IntegerField()
         category = serializers.CharField(allow_null=True)
 
@@ -56,7 +57,6 @@ class KanbanEntryCreateAPI(APIView):
         description = serializers.CharField(required=False)
         priority = serializers.ChoiceField((1, 2, 3, 4, 5), default=3)
         tag = serializers.ChoiceField((1, 2, 3, 4, 5))
-        category = serializers.CharField(required=False, allow_null=True)
 
 
 class KanbanEntryUpdateAPI(APIView):
@@ -68,7 +68,6 @@ class KanbanEntryUpdateAPI(APIView):
         end_date = serializers.DateTimeField(required=False)
         priority = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
         tag = serializers.ChoiceField((1, 2, 3, 4, 5), required=False)
-        category = serializers.CharField(required=False, allow_null=True)
 
 
 class KanbanEntryDeleteAPI(APIView):

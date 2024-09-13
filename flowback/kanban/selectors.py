@@ -1,6 +1,7 @@
 import django_filters
 from django.db.models import Q
 
+from flowback.common.filters import NumberInFilter
 from flowback.kanban.models import KanbanEntry
 
 
@@ -8,6 +9,7 @@ class BaseKanbanEntryFilter(django_filters.FilterSet):
     origin_type = django_filters.CharFilter(field_name='kanban__origin_type')
     origin_id = django_filters.NumberFilter(field_name='kanban_origin_id')
     created_by = django_filters.NumberFilter()
+    work_group_id = NumberInFilter(field_name='work_group_id')
     order_by = django_filters.OrderingFilter(fields=(('priority', 'priority_asc'),
                                                      ('-priority', 'priority_desc')))
     assignee = django_filters.NumberFilter()
@@ -17,8 +19,7 @@ class BaseKanbanEntryFilter(django_filters.FilterSet):
         fields = dict(title=['icontains'],
                       description=['icontains'],
                       end_date=['gt', 'lt'],
-                      tag=['exact'],
-                      category=['exact', 'icontains'],)
+                      tag=['exact'],)
 
 
 def kanban_entry_list(*, kanban_id: int, subscriptions: bool, filters=None):

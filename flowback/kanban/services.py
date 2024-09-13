@@ -36,7 +36,6 @@ def kanban_entry_create(*,
                         description: str,
                         tag: int,
                         priority: int,
-                        category: str = None,
                         attachments: list = None,
                         end_date: timezone.datetime = None) -> KanbanEntry:
     kanban = KanbanEntry(kanban_id=kanban_id,
@@ -45,7 +44,6 @@ def kanban_entry_create(*,
                          title=title,
                          description=description,
                          tag=tag,
-                         category=category,
                          priority=priority,
                          end_date=end_date)
 
@@ -67,7 +65,7 @@ def kanban_entry_create(*,
 def kanban_entry_update(*, kanban_entry_id: int, data) -> KanbanEntry:
     kanban = get_object(KanbanEntry, id=kanban_entry_id)
 
-    non_side_effect_fields = ['title', 'description', 'assignee_id', 'priority', 'tag', 'category', 'end_date']
+    non_side_effect_fields = ['title', 'description', 'assignee_id', 'priority', 'tag', 'end_date']
 
     kanban, has_updated = model_update(instance=kanban,
                                        fields=non_side_effect_fields,
@@ -123,7 +121,6 @@ class KanbanManager:
                             description: str = None,
                             priority: int,
                             tag: int,
-                            category: str = None,
                             attachments: list = None,
                             end_date: timezone.datetime = None) -> KanbanEntry:
         kanban = self.get_kanban(origin_id=origin_id)
@@ -135,8 +132,7 @@ class KanbanManager:
                                    attachments=attachments,
                                    priority=priority,
                                    end_date=end_date,
-                                   tag=tag,
-                                   category=category)
+                                   tag=tag,)
 
     def kanban_entry_update(self,
                             *,
