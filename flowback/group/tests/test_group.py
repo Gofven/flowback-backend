@@ -1,12 +1,15 @@
 import json
 from pprint import pprint
 
+from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
 
+from flowback.common.tests import generate_request
 from flowback.group.models import GroupUser, Group, GroupUserInvite
-from flowback.group.tests.factories import GroupFactory, GroupUserFactory
+from flowback.group.tests.factories import GroupFactory, GroupUserFactory, WorkGroupUserFactory
 from flowback.group.views.group import GroupListApi, GroupCreateApi
-from flowback.group.views.user import GroupInviteApi, GroupJoinApi, GroupInviteAcceptApi, GroupInviteListApi
+from flowback.group.views.user import GroupInviteApi, GroupJoinApi, GroupInviteAcceptApi, GroupInviteListApi, \
+    GroupUserListApi
 from flowback.user.models import User
 from flowback.user.tests.factories import UserFactory
 
@@ -47,6 +50,18 @@ class GroupTest(APITransactionTestCase):
 
         data = json.loads(response.rendered_content)
         pprint(data)
+
+    # Test if work_group is being displayed in response
+    def test_group_user_list(self):
+        work_group_user = WorkGroupUserFactory(group_user=self.group_user_creator_one)
+
+        response = generate_request(api=GroupUserListApi,
+                                    url_params=dict(group=self.group_user_creator_one.group.id),
+                                    user=self.group_user_creator_one.user)
+
+        self.assertTrue(response.status_code == status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['work_groups'][0], work_group_user.work_group.name)
 
     def test_group_create(self):
         factory = APIRequestFactory()

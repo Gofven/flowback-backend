@@ -1,6 +1,7 @@
 import django_filters
 from typing import Union
 
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import models
 from django.db.models import Q, Exists, OuterRef, Count, Case, When, F, Subquery, Sum
 from django.db.models.functions import Abs
@@ -162,8 +163,12 @@ def group_user_list(*, group: int, fetched_by: User, filters=None):
     group_user_permissions(group=group, user=fetched_by)
     filters = filters or {}
     is_delegate = GroupUser.objects.filter(group_id=group, groupuserdelegate__group_user=OuterRef('pk'),
-                                           groupuserdelegate__group=OuterRef('group'))
-    qs = GroupUser.objects.filter(group_id=group, active=True).annotate(delegate=Exists(is_delegate)).all()
+                                           groupuserdelegate__group=OuterRef('group')
+                                           )
+    qs = GroupUser.objects.filter(group_id=group,
+                                  active=True
+                                  ).annotate(delegate=Exists(is_delegate),
+                                             work_groups=ArrayAgg('workgroupuser__work_group__name')).all()
     return BaseGroupUserFilter(filters, qs).qs
 
 

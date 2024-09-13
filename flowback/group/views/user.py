@@ -26,6 +26,7 @@ class GroupUserListApi(APIView):
 
     class OutputSerializer(GroupUserSerializer):
         is_delegate = serializers.BooleanField(source='delegate')
+        work_groups = serializers.ListField(allow_null=True, child=serializers.CharField())
 
     def get(self, request, group: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
