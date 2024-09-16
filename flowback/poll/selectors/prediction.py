@@ -28,7 +28,7 @@ class BasePollPredictionStatementFilter(django_filters.FilterSet):
 
 def poll_prediction_statement_list(*, fetched_by: User, group_id: int, filters=None):
     filters = filters or {}
-    group_user = group_user_permissions(group=group_id, user=fetched_by)
+    group_user = group_user_permissions(user=fetched_by, group=group_id)
 
     # Annotations
     score = Case(When(LessThan(F('end_date'), timezone.now()),
@@ -66,7 +66,7 @@ class BasePollPredictionBetFilter(django_filters.FilterSet):
 
 def poll_prediction_bet_list(*, fetched_by: User, group_id: int = None, filters=None):
     filters = filters or {}
-    group_user_permissions(group=group_id, user=fetched_by)
+    group_user_permissions(user=fetched_by, group=group_id)
 
     qs = PollPredictionBet.objects.filter(prediction_statement__created_by__group_id=group_id,
                                           created_by__user=fetched_by).all()

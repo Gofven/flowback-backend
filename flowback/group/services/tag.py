@@ -6,7 +6,7 @@ from flowback.group.selectors import group_user_permissions
 
 
 def group_tag_create(*, user: int, group: int, name: str) -> GroupTags:
-    group_user_permissions(group=group, user=user, permissions=['admin'])
+    group_user_permissions(user=user, group=group, permissions=['admin'])
     tag = GroupTags(name=name, group_id=group)
     tag.full_clean()
     tag.save()
@@ -15,7 +15,7 @@ def group_tag_create(*, user: int, group: int, name: str) -> GroupTags:
 
 
 def group_tag_update(*, user: int, group: int, tag: int, data) -> GroupTags:
-    group_user_permissions(group=group, user=user, permissions=['admin'])
+    group_user_permissions(user=user, group=group, permissions=['admin'])
     tag = get_object(GroupTags, group_id=group, id=tag)
     non_side_effect_fields = ['active']
 
@@ -32,7 +32,7 @@ def group_tag_update(*, user: int, group: int, tag: int, data) -> GroupTags:
 
 
 def group_tag_delete(*, user: int, group: int, tag: int) -> None:
-    group_user_permissions(group=group, user=user, permissions=['admin'])
+    group_user_permissions(user=user, group=group, permissions=['admin'])
     tag = get_object(GroupTags, group_id=group, id=tag)
 
     if GroupTags.objects.filter(group_id=group, active=True).count() <= 1 and tag.active:

@@ -45,7 +45,7 @@ def group_create(*,
 
 
 def group_update(*, user: int, group: int, data) -> Group:
-    group_user = group_user_permissions(group=group, user=user, permissions=['admin'])
+    group_user = group_user_permissions(user=user, group=group, permissions=['admin'])
     non_side_effect_fields = ['name', 'description', 'image', 'cover_image', 'hide_poll_users',
                               'public', 'direct_join', 'default_permission', 'default_quorum']
 
@@ -64,11 +64,11 @@ def group_update(*, user: int, group: int, data) -> Group:
 
 
 def group_delete(*, user: int, group: int) -> None:
-    group_user_permissions(group=group, user=user, permissions=['creator']).group.delete()
+    group_user_permissions(user=user, group=group, permissions=['creator']).group.delete()
 
 
 def group_mail(*, fetched_by: int, group: int, title: str, message: str) -> None:
-    group_user = group_user_permissions(group=group, user=fetched_by, permissions=['admin'])
+    group_user = group_user_permissions(user=fetched_by, group=group, permissions=['admin'])
 
     subject = f'[{group_user.group.name}] - {title}'
     targets = GroupUser.objects.filter(group_id=group).values('user__email').all()
@@ -112,7 +112,7 @@ def group_join(*, user: int, group: int) -> Union[GroupUser, GroupUserInvite]:
 
 
 def group_leave(*, user: int, group: int) -> None:
-    user = group_user_permissions(group=group, user=user)
+    user = group_user_permissions(user=user, group=group)
 
     if user.user == user.group.created_by:
         raise ValidationError("Group owner isn't allowed to leave, deleting the group is an option")
@@ -125,12 +125,12 @@ def group_leave(*, user: int, group: int) -> None:
 
 
 def group_user_update(*, user: int, group: int, fetched_by: int, data) -> GroupUser:
-    user_to_update = group_user_permissions(group=group, user=fetched_by)
+    user_to_update = group_user_permissions(user=fetched_by, group=group)
     non_side_effect_fields = []
 
     # If user updates someone else (requires Admin)
-    if group_user_permissions(group=group, user=fetched_by, raise_exception=False, permissions=['admin']):
-        user_to_update = group_user_permissions(group=group, user=user)
+    if group_user_permissions(user=fetched_by, group=group, permissions=['admin'], raise_exception=False):
+        user_to_update = group_user_permissions(user=user, group=group)
         non_side_effect_fields.extend(['permission_id', 'is_admin'])
 
     group_user, has_updated = model_update(instance=user_to_update,

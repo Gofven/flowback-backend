@@ -4,7 +4,7 @@ from flowback.group.selectors import group_user_permissions
 
 
 def group_invite(*, user: int, group: int, to: int) -> GroupUserInvite:
-    group = group_user_permissions(group=group, user=user, permissions=['admin', 'invite_user']).group
+    group = group_user_permissions(user=user, group=group, permissions=['admin', 'invite_user']).group
     get_object(GroupUser, error_message='User is already in the group', reverse=True, group=group, user=to, active=True)
     invite = GroupUserInvite(user_id=to, group_id=group.id, external=False)
 
@@ -15,14 +15,14 @@ def group_invite(*, user: int, group: int, to: int) -> GroupUserInvite:
 
 
 def group_invite_remove(*, user: int, group: int, to: int) -> None:
-    group_user_permissions(group=group, user=user, permissions=['admin', 'invite_user'])
+    group_user_permissions(user=user, group=group, permissions=['admin', 'invite_user'])
     invite = get_object(GroupUserInvite, 'User has not been invited', group_id=group, user_id=to)
     invite.delete()
 
 
 def group_invite_accept(*, fetched_by: int, group: int, to: int = None) -> None:
     if to:
-        group_user_permissions(group=group, user=fetched_by, permissions=['invite_user', 'admin'])
+        group_user_permissions(user=fetched_by, group=group, permissions=['invite_user', 'admin'])
         get_object(GroupUser, 'User already joined', reverse=True, user_id=to, group=group, active=True)
         invite = get_object(GroupUserInvite, 'User has not requested invite', user_id=to, group_id=group, external=True)
 
@@ -50,7 +50,7 @@ def group_invite_accept(*, fetched_by: int, group: int, to: int = None) -> None:
 def group_invite_reject(*, fetched_by: id, group: int, to: int = None) -> None:
     if to:
         get_object(GroupUser, 'User already joined', reverse=True, user_id=to, group_id=group)
-        group_user_permissions(group=group, user=fetched_by, permissions=['invite_user', 'admin'])
+        group_user_permissions(user=fetched_by, group=group, permissions=['invite_user', 'admin'])
         invite = get_object(GroupUserInvite, 'User has not been invited', user_id=to, group_id=group)
 
     else:

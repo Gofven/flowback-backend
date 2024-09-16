@@ -8,7 +8,7 @@ def group_permission_create(*,
                             group: int,
                             role_name: str,
                             **permissions) -> GroupPermissions:
-    group_user_permissions(group=group, user=user, permissions=['admin'])
+    group_user_permissions(user=user, group=group, permissions=['admin'])
     group_permission = GroupPermissions(role_name=role_name, author_id=group, **permissions)
     group_permission.full_clean()
     group_permission.save()
@@ -17,7 +17,7 @@ def group_permission_create(*,
 
 
 def group_permission_update(*, user: int, group: int, permission_id: int, data) -> GroupPermissions:
-    group_user_permissions(group=group, user=user, permissions=['admin'])
+    group_user_permissions(user=user, group=group, permissions=['admin'])
     non_side_effect_fields = ['invite_user',
                               'create_poll',
                               'poll_fast_forward',
@@ -54,5 +54,5 @@ def group_permission_update(*, user: int, group: int, permission_id: int, data) 
 
 
 def group_permission_delete(*, user: int, group: int, permission_id: int) -> None:
-    group_user_permissions(group=group, user=user, permissions=['admin'])
+    group_user_permissions(user=user, group=group, permissions=['admin'])
     get_object(GroupPermissions, id=permission_id).delete()

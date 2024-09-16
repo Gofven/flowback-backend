@@ -41,7 +41,7 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
     filters = filters or {}
 
     if group_id:
-        group_user_permissions(group=group_id, user=fetched_by)
+        group_user_permissions(user=fetched_by, group=group_id)
         qs = Poll.objects.filter(created_by__group_id=group_id) \
             .annotate(total_comments=Count('comment_section__comment', filters=dict(active=True)),
                       total_proposals=Count('pollproposal'),

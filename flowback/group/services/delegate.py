@@ -12,7 +12,7 @@ from flowback.group.services.group import group_notification
 
 def group_user_delegate(*, user: int, group: int, delegate_pool_id: int, tags: list[int] = None) -> GroupUserDelegator:
     tags = tags or []
-    delegator = group_user_permissions(group=group, user=user)
+    delegator = group_user_permissions(user=user, group=group)
     delegate_pool = get_object(GroupUserDelegatePool, 'Delegate pool does not exist', id=delegate_pool_id, group=group)
 
     db_tags = GroupTags.objects.filter(id__in=tags, active=True).all()
@@ -69,7 +69,7 @@ def group_user_delegate_update(*, user_id: int, group_id: int, data):
 
 
 def group_user_delegate_remove(*, user_id: int, group_id: int, delegate_pool_id: int) -> None:
-    delegator = group_user_permissions(group=group_id, user=user_id)
+    delegator = group_user_permissions(user=user_id, group=group_id)
     delegate_pool = get_object(GroupUserDelegatePool, 'Delegate pool does not exist', id=delegate_pool_id)
 
     delegate_rel = get_object(GroupUserDelegator, 'User to delegate pool relation does not exist',
@@ -119,7 +119,7 @@ def group_delegate_pool_comment_create(*,
                                        attachments: list = None,
                                        parent_id: int = None) -> Comment:
     delegate_pool = get_object(GroupUserDelegatePool, id=delegate_pool_id)
-    group_user_permissions(group=delegate_pool.group, user=author_id)
+    group_user_permissions(user=author_id, group=delegate_pool.group)
 
     comment = comment_create(author_id=author_id,
                              comment_section_id=delegate_pool.comment_section.id,
@@ -137,7 +137,7 @@ def group_delegate_pool_comment_update(*,
                                        comment_id: int,
                                        data) -> Comment:
     delegate_pool = get_object(GroupUserDelegatePool, id=delegate_pool_id)
-    group_user_permissions(group=delegate_pool.group, user=author_id)
+    group_user_permissions(user=author_id, group=delegate_pool.group)
 
     return comment_update(fetched_by=author_id,
                           comment_section_id=delegate_pool.comment_section.id,
@@ -150,10 +150,9 @@ def group_delegate_pool_comment_delete(*,
                                        delegate_pool_id: int,
                                        comment_id: int):
     delegate_pool = get_object(GroupUserDelegatePool, id=delegate_pool_id)
-    group_user = group_user_permissions(group=delegate_pool.group, user=author_id)
+    group_user = group_user_permissions(user=author_id, group=delegate_pool.group)
 
-    force = bool(group_user_permissions(group_user=group_user,
-                                        permissions=['admin', 'force_delete_comment'],
+    force = bool(group_user_permissions(group_user=group_user, permissions=['admin', 'force_delete_comment'],
                                         raise_exception=False))
 
     return comment_delete(fetched_by=author_id,

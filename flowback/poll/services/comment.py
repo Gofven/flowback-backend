@@ -9,7 +9,7 @@ from flowback.poll.services.poll import poll_notification
 def poll_comment_create(*, author_id: int, poll_id: int, message: str = None, attachments: list = None,
                         parent_id: int = None) -> Comment:
     poll = get_object(Poll, id=poll_id)
-    group_user = group_user_permissions(group=poll.created_by.group.id, user=author_id)
+    group_user = group_user_permissions(user=author_id, group=poll.created_by.group.id)
 
     comment = comment_create(author_id=author_id,
                              comment_section_id=poll.comment_section.id,
@@ -39,7 +39,7 @@ def poll_comment_create(*, author_id: int, poll_id: int, message: str = None, at
 
 def poll_comment_update(*, fetched_by: int, poll_id: int, comment_id: int, data) -> Comment:
     poll = get_object(Poll, id=poll_id)
-    group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
+    group_user_permissions(user=fetched_by, group=poll.created_by.group.id)
 
     return comment_update(fetched_by=fetched_by,
                           comment_section_id=poll.comment_section.id,

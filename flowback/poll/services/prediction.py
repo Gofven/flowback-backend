@@ -21,8 +21,7 @@ def poll_prediction_statement_create(poll: int,
                                      segments: list[dict],
                                      blockchain_id: int = None) -> int:
     poll = get_object(Poll, id=poll)
-    group_user = group_user_permissions(group=poll.created_by.group,
-                                        user=user,
+    group_user = group_user_permissions(user=user, group=poll.created_by.group,
                                         permissions=['prediction_statement_create', 'admin'])
     prediction_statement = PollPredictionStatement(created_by=group_user,
                                                    poll=poll,
@@ -58,8 +57,7 @@ def poll_prediction_statement_create(poll: int,
 # TODO add or remove
 def poll_prediction_statement_update(user: Union[int, User], prediction_statement_id: int) -> None:
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
-    group_user = group_user_permissions(group=prediction_statement.poll.created_by.group,
-                                        user=user,
+    group_user = group_user_permissions(user=user, group=prediction_statement.poll.created_by.group,
                                         permissions=['prediction_statement_update', 'admin'])
 
     prediction_statement.poll.check_phase('prediction_statement', 'dynamic')
@@ -70,8 +68,7 @@ def poll_prediction_statement_update(user: Union[int, User], prediction_statemen
 
 def poll_prediction_statement_delete(user: Union[int, User], prediction_statement_id: int) -> None:
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
-    group_user = group_user_permissions(group=prediction_statement.poll.created_by.group,
-                                        user=user,
+    group_user = group_user_permissions(user=user, group=prediction_statement.poll.created_by.group,
                                         permissions=['prediction_statement_delete', 'admin'])
 
     prediction_statement.poll.check_phase('prediction_statement', 'dynamic')
@@ -87,8 +84,7 @@ def poll_prediction_bet_create(user: Union[int, User],
                                score: int,
                                blockchain_id: int = None) -> int:
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
-    group_user = group_user_permissions(group=prediction_statement.poll.created_by.group,
-                                        user=user,
+    group_user = group_user_permissions(user=user, group=prediction_statement.poll.created_by.group,
                                         permissions=['prediction_bet_create', 'admin'])
 
     prediction_statement.poll.check_phase('prediction_bet', 'dynamic')
@@ -105,8 +101,7 @@ def poll_prediction_bet_create(user: Union[int, User],
 
 def poll_prediction_bet_update(user: Union[int, User], prediction_statement_id: int, data) -> int:
     prediction = get_object(PollPredictionBet, prediction_statement_id=prediction_statement_id, created_by__user=user)
-    group_user = group_user_permissions(group=prediction.prediction_statement.poll.created_by.group,
-                                        user=user,
+    group_user = group_user_permissions(user=user, group=prediction.prediction_statement.poll.created_by.group,
                                         permissions=['prediction_bet_update', 'admin'])
 
     prediction.prediction_statement.poll.check_phase('prediction_bet', 'dynamic')
@@ -126,8 +121,7 @@ def poll_prediction_bet_update(user: Union[int, User], prediction_statement_id: 
 
 def poll_prediction_bet_delete(user: Union[int, User], prediction_statement_id: int):
     prediction = get_object(PollPredictionBet, prediction_statement_id=prediction_statement_id, created_by__user=user)
-    group_user = group_user_permissions(group=prediction.prediction_statement.poll.created_by.group,
-                                        user=user,
+    group_user = group_user_permissions(user=user, group=prediction.prediction_statement.poll.created_by.group,
                                         permissions=['prediction_bet_delete', 'admin'])
 
     prediction.prediction_statement.poll.check_phase('prediction_bet', 'dynamic')
@@ -140,7 +134,7 @@ def poll_prediction_bet_delete(user: Union[int, User], prediction_statement_id: 
 
 def poll_prediction_statement_vote_create(user: Union[int, User], prediction_statement_id: int, vote: bool):
     prediction_statement = get_object(PollPredictionStatement, id=prediction_statement_id)
-    group_user = group_user_permissions(group=prediction_statement.poll.created_by.group, user=user)
+    group_user = group_user_permissions(user=user, group=prediction_statement.poll.created_by.group)
 
     prediction_statement.poll.check_phase('prediction_vote', 'result')
 
@@ -157,8 +151,8 @@ def poll_prediction_statement_vote_update(user: Union[int, User],
     prediction_statement_vote = get_object(PollPredictionStatementVote,
                                            prediction_statement_id=prediction_statement_id,
                                            created_by__user=user)
-    group_user = group_user_permissions(group=prediction_statement_vote.prediction_statement.poll.created_by.group,
-                                        user=user)
+    group_user = group_user_permissions(user=user,
+                                        group=prediction_statement_vote.prediction_statement.poll.created_by.group)
 
     prediction_statement_vote.prediction_statement.poll.check_phase('prediction_vote', 'result')
 
@@ -177,8 +171,8 @@ def poll_prediction_statement_vote_delete(user: Union[int, User], prediction_sta
     prediction_statement_vote = get_object(PollPredictionStatementVote,
                                            prediction_statement_id=prediction_statement_id,
                                            created_by__user=user)
-    group_user = group_user_permissions(group=prediction_statement_vote.prediction_statement.poll.created_by.group,
-                                        user=user)
+    group_user = group_user_permissions(user=user,
+                                        group=prediction_statement_vote.prediction_statement.poll.created_by.group)
 
     prediction_statement_vote.prediction_statement.poll.check_phase('prediction_vote', 'result')
 

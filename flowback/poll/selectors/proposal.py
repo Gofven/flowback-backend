@@ -63,7 +63,7 @@ def poll_proposal_list(*, fetched_by: User, poll_id: int, filters=None):
         poll = get_object(Poll, id=poll_id)
 
         if not poll.public:
-            group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
+            group_user_permissions(user=fetched_by, group=poll.created_by.group.id)
 
         qs = PollProposal.objects.filter(created_by__group_id=poll.created_by.group.id, poll=poll)\
             .order_by(F('score').desc(nulls_last=True))

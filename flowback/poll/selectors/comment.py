@@ -9,14 +9,14 @@ def poll_comment_list(*, fetched_by: User, poll_id: int, filters=None):
     filters = filters or {}
 
     poll = get_object(Poll, id=poll_id)
-    group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
+    group_user_permissions(user=fetched_by, group=poll.created_by.group.id)
 
     return comment_list(fetched_by=fetched_by, comment_section_id=poll.comment_section.id, filters=filters)
 
 
 def poll_comment_ancestor_list(*, fetched_by: User, poll_id: int, comment_id: int):
     poll = get_object(Poll, id=poll_id)
-    group_user_permissions(group=poll.created_by.group.id, user=fetched_by)
+    group_user_permissions(user=fetched_by, group=poll.created_by.group.id)
 
     return comment_ancestor_list(fetched_by=fetched_by,
                                  comment_section_id=poll.comment_section.id,
