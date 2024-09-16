@@ -21,4 +21,3 @@ class KanbanEntryFactory(factory.django.DjangoModelFactory):
 
     description = factory.lazy_attribute(lambda _: fake.sentence())
     tag = factory.LazyAttribute(lambda _: random.randint(1, 5))
-    category = factory.LazyAttribute(lambda _: fake.name())

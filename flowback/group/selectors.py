@@ -142,7 +142,8 @@ def group_folder_list():
 def group_kanban_entry_list(*, fetched_by: User, group_id: int, filters=None):
     group_user = group_user_permissions(user=fetched_by, group=group_id)
     subquery = Group.objects.filter(id=OuterRef('kanban__origin_id')).values('name')
-    return kanban_entry_list(kanban_id=group_user.group.kanban.id,
+    return kanban_entry_list(group_user=group_user,
+                             kanban_id=group_user.group.kanban.id,
                              filters=filters,
                              subscriptions=False
                              ).annotate(group_name=Subquery(subquery))

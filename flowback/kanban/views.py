@@ -51,6 +51,7 @@ class KanbanEntryListApi(APIView):
 class KanbanEntryCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         assignee = serializers.IntegerField(source='assignee_id', required=False, allow_null=True)
+        work_group_id = serializers.IntegerField(required=False, allow_null=True)
         title = serializers.CharField()
         end_date = serializers.DateTimeField(required=False, allow_null=True)
         attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
