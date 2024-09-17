@@ -14,14 +14,16 @@ def group_schedule_event_create(*,
                                 title: str,
                                 start_date: timezone.datetime,
                                 description: str = None,
+                                work_group_id: int = None,
                                 end_date: timezone.datetime = None) -> ScheduleEvent:
-    group_user = group_user_permissions(user=user_id, group=group_id)
+    group_user = group_user_permissions(user=user_id, group=group_id, work_group_id=work_group_id)
     return group_schedule.create_event(schedule_id=group_user.group.schedule.id,
                                        title=title,
                                        start_date=start_date,
                                        end_date=end_date,
                                        origin_id=group_user.group.id,
                                        origin_name='group',
+                                       work_group_id=work_group_id,
                                        description=description)
 
 
@@ -30,7 +32,10 @@ def group_schedule_event_update(*,
                                 group_id: int,
                                 event_id: int,
                                 **data):
-    group_user = group_user_permissions(user=user_id, group=group_id)
+    work_group = group_schedule.get_schedule_event(event_id=event_id).work_group
+    group_user = group_user_permissions(user=user_id,
+                                        group=group_id,
+                                        work_group_id=work_group.id if work_group else None)
     group_schedule.update_event(event_id=event_id, schedule_origin_id=group_user.group.id, data=data)
 
 
@@ -38,7 +43,10 @@ def group_schedule_event_delete(*,
                                 user_id: int,
                                 group_id: int,
                                 event_id: int):
-    group_user = group_user_permissions(user=user_id, group=group_id)
+    work_group = group_schedule.get_schedule_event(event_id=event_id).work_group
+    group_user = group_user_permissions(user=user_id,
+                                        group=group_id,
+                                        work_group_id=work_group.id if work_group else None)
     group_schedule.delete_event(event_id=event_id, schedule_origin_id=group_user.group.id)
 
 

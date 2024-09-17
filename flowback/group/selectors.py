@@ -43,7 +43,8 @@ def group_user_permissions(*,
                            group_user: [GroupUser, int] = None,
                            permissions: Union[list[str], str] = None,
                            work_group_id: Union[list[int] | int] = None,
-                           raise_exception: bool = True) -> Union[GroupUser, bool]:
+                           raise_exception: bool = True,
+                           allow_admin: bool = False) -> Union[GroupUser, bool]:
     if isinstance(user, int):
         user = get_object(User, id=user)
 
@@ -81,10 +82,16 @@ def group_user_permissions(*,
         if group_user.is_admin or group_user.group.created_by == group_user.user or group_user.user.is_superuser:
             admin = True
 
+        permissions.remove('admin')
+        allow_admin = True
+
     # Check if creator permission is present
     if 'creator' in permissions:
         if group_user.group.created_by == group_user.user or group_user.user.is_superuser:
             admin = True
+
+        permissions.remove('creator')
+        allow_admin = True
 
     validated_permissions = any([user_permissions.get(key, False) for key in permissions]) or not permissions
     if not validated_permissions and not admin:
@@ -94,7 +101,7 @@ def group_user_permissions(*,
         else:
             return False
 
-    if work_group_id and not admin:
+    if work_group_id and not (admin and allow_admin):
         work_group_user = WorkGroupUser.objects.filter(group_user__in=[group_user],
                                                        work_group_id__in=work_group_id)
 
@@ -157,7 +164,7 @@ def group_detail(*, fetched_by: User, group_id: int):
 def group_schedule_event_list(*, fetched_by: User, group_id: int, filters=None):
     filters = filters or {}
     group_user = group_user_permissions(user=fetched_by, group=group_id)
-    return schedule_event_list(schedule_id=group_user.group.schedule.id, filters=filters)
+    return schedule_event_list(schedule_id=group_user.group.schedule.id, group_user=group_user, filters=filters)
 
 
 class BaseGroupUserFilter(django_filters.FilterSet):

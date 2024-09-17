@@ -24,15 +24,17 @@ class BaseKanbanEntryFilter(django_filters.FilterSet):
 
 
 # TODO due for rework
-def kanban_entry_list(*, group_user=None, kanban_id: int, subscriptions: bool, filters=None):
+def kanban_entry_list(*, kanban_id: int, subscriptions: bool, group_user=None, filters=None):
     filters = filters or {}
 
     if subscriptions:
-        work_group_ids = WorkGroupUser.objects.filter(group_user=group_user).values_list('work_group_id')
         qs = KanbanEntry.objects.filter(Q(kanban_id=kanban_id) |
                                         Q(assignee__kanban__kanban_subscription_kanban=kanban_id)
-                                        ).exclude(Q(work_group__isnull=False) & ~Q(work_group_id__in=work_group_ids)
-                                                  ).distinct('id').all()
+                                        ).distinct('id')
+
+        if group_user is not None and not group_user.is_admin:
+            work_group_ids = WorkGroupUser.objects.filter(group_user=group_user).values_list('work_group_id')
+            qs = qs.exclude(Q(work_group__isnull=False) & ~Q(work_group_id__in=work_group_ids)).all()
 
     else:
         qs = KanbanEntry.objects.filter(Q(kanban_id=kanban_id)).all()
