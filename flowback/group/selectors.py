@@ -386,8 +386,6 @@ def work_group_list(*, group_id: int, fetched_by: User, filters=None):
 # Work Group User
 class BaseWorkGroupUserFilter(django_filters.FilterSet):
     user_id = django_filters.CharFilter(field_name='group_user__user_id', lookup_expr='exact')
-    group_user_id = django_filters.CharFilter(lookup_expr='exact')
-
     username = django_filters.CharFilter(field_name='group_user__user__username', lookup_expr='icontains')
 
     class Meta:
