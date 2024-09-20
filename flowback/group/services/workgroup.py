@@ -58,7 +58,7 @@ def work_group_user_leave(*, user_id: int, work_group_id: int) -> None:
     WorkGroupUser.objects.get(group_user=group_user, work_group=work_group).delete()
 
 
-def work_group_user_add(*, user_id: int, work_group_id: int, target_user_id: int, is_moderator: bool) -> WorkGroupUser:
+def work_group_user_add(*, user_id: int, work_group_id: int, target_group_user_id: int, is_moderator: bool) -> WorkGroupUser:
     work_group = WorkGroup.objects.get(id=work_group_id)
     group_user = group_user_permissions(user=user_id, group=work_group.group)
 
@@ -70,7 +70,7 @@ def work_group_user_add(*, user_id: int, work_group_id: int, target_user_id: int
         work_group_user_is_moderator = False
 
     if group_user.is_admin or work_group_user_is_moderator:
-        target_group_user = group_user_permissions(user=target_user_id, group=work_group.group)
+        target_group_user = group_user_permissions(group_user=target_group_user_id)
 
         if WorkGroupUser.objects.filter(group_user=target_group_user, work_group=work_group).exists():
             raise ValidationError("User is already in the working group.")

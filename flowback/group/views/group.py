@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 
 from flowback.group.models import Group
 from flowback.group.selectors import group_list, group_detail, group_folder_list, work_group_user_list, \
-    work_group_user_join_request_list
+    work_group_user_join_request_list, work_group_list
 from flowback.group.serializers import GroupUserSerializer
 from flowback.group.services.group import group_notification_subscribe
 from flowback.group.services.group import group_notification, group_create, group_update, group_delete, group_mail
@@ -183,6 +183,33 @@ class GroupMailApi(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+class WorkGroupListAPI(APIView):
+    class Pagination(LimitOffsetPagination):
+        pass
+
+    class InputSerializer(serializers.Serializer):
+        joined = serializers.BooleanField(required=False)
+        id = serializers.IntegerField(required=False)
+        name = serializers.CharField(required=False)
+        name__icontains = serializers.CharField(required=False)
+
+    class OutputSerializer(serializers.Serializer):
+        name = serializers.CharField(required=False)
+        direct_join = serializers.BooleanField(required=False)
+
+    def get(self, request, group_id: int):
+        serializer = self.InputSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        response = work_group_list(fetched_by=request.user, group_id=group_id, filters=serializer.validated_data)
+
+        return get_paginated_response(pagination_class=self.Pagination,
+                                      serializer_class=self.OutputSerializer,
+                                      queryset=response,
+                                      request=request,
+                                      view=self)
+
+
 class WorkGroupUserListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         max_limit = 100
@@ -290,7 +317,7 @@ class WorkGroupUserLeaveAPI(APIView):
 
 class WorkGroupUserAddAPI(APIView):
     class InputSerializer(serializers.Serializer):
-        target_user_id = serializers.IntegerField()
+        target_group_user_id = serializers.IntegerField()
         is_moderator = serializers.BooleanField(default=False)
 
     def post(self, request, work_group_id: int):
