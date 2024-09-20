@@ -11,7 +11,8 @@ from flowback.group.models import (Group,
                                    GroupUserInvite,
                                    GroupUserDelegate,
                                    GroupUserDelegatePool,
-                                   GroupUserDelegator, GroupThreadVote, WorkGroup, WorkGroupUser)
+                                   GroupUserDelegator, GroupThreadVote, WorkGroup, WorkGroupUser,
+                                   WorkGroupUserJoinRequest)
 from flowback.kanban.models import KanbanEntry
 from flowback.user.tests.factories import UserFactory
 
@@ -45,6 +46,14 @@ class WorkGroupFactory(factory.django.DjangoModelFactory):
 class WorkGroupUserFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = WorkGroupUser
+
+    group_user = factory.SubFactory(GroupUserFactory)
+    work_group = factory.SubFactory(WorkGroupFactory, group=factory.SelfAttribute('..group_user.group'))
+
+
+class WorkGroupJoinRequestFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = WorkGroupUserJoinRequest
 
     group_user = factory.SubFactory(GroupUserFactory)
     work_group = factory.SubFactory(WorkGroupFactory, group=factory.SelfAttribute('..group_user.group'))
