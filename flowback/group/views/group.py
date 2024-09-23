@@ -187,18 +187,19 @@ class WorkGroupListAPI(APIView):
     class Pagination(LimitOffsetPagination):
         pass
 
-    class InputSerializer(serializers.Serializer):
-        joined = serializers.BooleanField(required=False)
+    class FilterSerializer(serializers.Serializer):
+        joined = serializers.BooleanField(required=False, allow_null=True, default=None)
         id = serializers.IntegerField(required=False)
         name = serializers.CharField(required=False)
         name__icontains = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
+        id = serializers.IntegerField(required=False)
         name = serializers.CharField(required=False)
         direct_join = serializers.BooleanField(required=False)
 
     def get(self, request, group_id: int):
-        serializer = self.InputSerializer(data=request.query_params)
+        serializer = self.FilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
         response = work_group_list(fetched_by=request.user, group_id=group_id, filters=serializer.validated_data)
@@ -257,7 +258,6 @@ class WorkGroupUserJoinRequestListAPI(APIView):
         work_group_id = serializers.IntegerField()
         work_group_name = serializers.CharField(source="work_group.name")
         group_user = GroupUserSerializer()
-        is_moderator = serializers.BooleanField()
 
     def get(self, request, work_group_id: int):
         serializer = self.FilterSerializer(data=request.query_params)
@@ -279,40 +279,48 @@ class WorkGroupCreateAPI(APIView):
         name = serializers.CharField()
         direct_join = serializers.BooleanField(default=False)
 
-    def post(self, request, group: int):
+    def post(self, request, group_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        work_group = work_group_create(user_id=request.user.id, group_id=group, **serializer.validated_data)
+        work_group = work_group_create(user_id=request.user.id, group_id=group_id, **serializer.validated_data)
 
-        return Response(status=status.HTTP_200_OK, data=work_group.id)
+        return Response(status=status.HTTP_201_CREATED, data=work_group.id)
 
 
 class WorkGroupUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         name = serializers.CharField()
-        direct_join = serializers.BooleanField(default=False)
+        direct_join = serializers.BooleanField(required=False, allow_null=True, default=None)
 
     def post(self, request, work_group_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        work_group_update(user_id=request.user.id, work_group_id=work_group_id, **serializer.validated_data)
+        work_group_update(user_id=request.user.id, work_group_id=work_group_id, data=serializer.validated_data)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class WorkGroupDeleteAPI(APIView):
     def post(self, request, work_group_id: int):
         work_group_delete(user_id=request.user.id, work_group_id=work_group_id)
 
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class WorkGroupUserJoinAPI(APIView):
     def post(self, request, work_group_id: int):
         work_group_user_join(user_id=request.user.id, work_group_id=work_group_id)
 
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class WorkGroupUserLeaveAPI(APIView):
     def post(self, request, work_group_id: int):
         work_group_user_leave(user_id=request.user.id, work_group_id=work_group_id)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class WorkGroupUserAddAPI(APIView):

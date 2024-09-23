@@ -22,7 +22,7 @@ def group_kanban_entry_create(*,
     group_user_permissions(user=fetched_by_id,
                            group=group_id,
                            permissions=['admin', 'create_kanban_task'],
-                           work_group_id=work_group_id)
+                           work_group=work_group_id)
     return group_kanban.kanban_entry_create(origin_id=group_id,
                                             created_by_id=fetched_by_id,
                                             assignee_id=assignee_id,
@@ -44,7 +44,7 @@ def group_kanban_entry_update(*,
     group_user_permissions(user=fetched_by_id,
                            group=group_id,
                            permissions=['admin', 'update_kanban_task'],
-                           work_group_id=work_group.id)
+                           work_group=work_group.id)
     return group_kanban.kanban_entry_update(origin_id=group_id,
                                             entry_id=entry_id,
                                             data=data)
@@ -58,5 +58,5 @@ def group_kanban_entry_delete(*,
     group_user_permissions(user=fetched_by_id,
                            group=group_id,
                            permissions=['admin', 'delete_kanban_task'],
-                           work_group_id=work_group.id)
+                           work_group=work_group.id)
     return group_kanban.kanban_entry_delete(origin_id=group_id, entry_id=entry_id)

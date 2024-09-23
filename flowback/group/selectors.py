@@ -40,9 +40,9 @@ def group_default_permissions(*, group: Union[Group, int]):
 def group_user_permissions(*,
                            user: Union[User, int] = None,
                            group: Union[Group, int] = None,
-                           group_user: [GroupUser, int] = None,
+                           group_user: GroupUser | int = None,
                            permissions: Union[list[str], str] = None,
-                           work_group_id: Union[list[int] | int] = None,
+                           work_group: WorkGroup | int = None,
                            raise_exception: bool = True,
                            allow_admin: bool = False) -> Union[GroupUser, bool]:
     if isinstance(user, int):
@@ -50,9 +50,6 @@ def group_user_permissions(*,
 
     if isinstance(group, int):
         group = get_object(Group, id=group)
-
-    if isinstance(work_group_id, int):
-        work_group_id = [work_group_id]
 
     permissions = permissions or []
     admin = False
@@ -62,6 +59,12 @@ def group_user_permissions(*,
 
     if user and group:
         group_user = get_object(GroupUser, 'User is not in group', group=group, user=user, active=True)
+
+    elif user and work_group:
+        if isinstance(work_group, int):
+            work_group = WorkGroup.objects.get(id=work_group)
+
+        group_user = GroupUser.objects.get(group=work_group.group, user=user, active=True)
 
     elif group_user:
         if isinstance(group_user, int):
@@ -73,6 +76,7 @@ def group_user_permissions(*,
     else:
         raise Exception('group_user_permissions is missing appropiate parameters')
 
+    admin = group_user.is_admin
     perobj = GroupPermissions()
     user_permissions = model_to_dict(group_user.permission) if group_user.permission else group_default_permissions(
         group=group_user.group)
@@ -80,30 +84,28 @@ def group_user_permissions(*,
     # Check if admin permission is present
     if 'admin' in permissions:
         if group_user.is_admin or group_user.group.created_by == group_user.user or group_user.user.is_superuser:
-            admin = True
+            allow_admin = True
 
         permissions.remove('admin')
-        allow_admin = True
 
     # Check if creator permission is present
     if 'creator' in permissions:
         if group_user.group.created_by == group_user.user or group_user.user.is_superuser:
-            admin = True
+            allow_admin = True
 
         permissions.remove('creator')
-        allow_admin = True
 
     validated_permissions = any([user_permissions.get(key, False) for key in permissions]) or not permissions
-    if not validated_permissions and not admin:
+    if not validated_permissions and not (admin and allow_admin):
         if raise_exception:
             raise PermissionDenied(
                 f'Requires one of following permissions: {", ".join(permissions)})')
         else:
             return False
 
-    if work_group_id and not (admin and allow_admin):
+    if work_group and not (admin and allow_admin):
         work_group_user = WorkGroupUser.objects.filter(group_user__in=[group_user],
-                                                       work_group_id__in=work_group_id)
+                                                       work_group=work_group)
 
         if not work_group_user.exists():
             raise PermissionDenied("User is not in requested work group(s)")
@@ -398,10 +400,10 @@ def work_group_user_list(*, work_group_id: int, fetched_by: User, filters=None):
     filters = filters or {}
 
     # Won't need to check group_user_permission if the user is already in the work group
-    work_group_user = WorkGroupUser.objects.get(id=work_group_id, workgroupuser__group_user__user__in=[fetched_by])
+    group_user = group_user_permissions(user=fetched_by, work_group=work_group_id, allow_admin=True)
 
-    qs = WorkGroupUser.objects.filter(id=work_group_user.work_group_id
-                                      ).annotate(joined=Q(workgroupuser__in=[work_group_user]))
+    qs = WorkGroupUser.objects.filter(work_group_id=work_group_id
+                                      ).annotate(joined=Q(group_user__in=[group_user]))
 
     return BaseWorkGroupFilter(filters, qs).qs
 
@@ -427,7 +429,7 @@ def work_group_user_join_request_list(*, work_group_id: int, fetched_by: User, f
     # Won't need to check if group_user is in work_group due to admin/moderator requirement
     group_user_is_admin = group_user_permissions(user=fetched_by, group=work_group.group, permissions=['admin'])
     work_group_user_is_moderator = WorkGroupUser.objects.filter(id=work_group_id,
-                                                                workgroupuser__group_user__user__in=[fetched_by],
+                                                                group_user__user__in=[fetched_by],
                                                                 is_moderator=True).exists()
 
     if group_user_is_admin or work_group_user_is_moderator:

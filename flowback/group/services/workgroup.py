@@ -6,9 +6,9 @@ from flowback.group.selectors import group_user_permissions
 
 
 def work_group_create(*, user_id: int, group_id: int, name: str, direct_join: bool) -> WorkGroup:
-    group_user_permissions(user=user_id, group=group_id, permissions=['admin'])
+    group_user = group_user_permissions(user=user_id, group=group_id, permissions=['admin'])
 
-    work_group = WorkGroup(name=name, direct_join=direct_join)
+    work_group = WorkGroup(name=name, direct_join=direct_join, group=group_user.group)
     work_group.full_clean()
     work_group.save()
 
@@ -19,7 +19,7 @@ def work_group_update(*, user_id: int, work_group_id: int, data) -> WorkGroup:
     work_group = WorkGroup.objects.get(id=work_group_id)
     group_user_permissions(user=user_id, group=work_group.group, permissions=['admin'])
 
-    available_fields = ['name']
+    available_fields = ['name', 'direct_join']
 
     instance, has_updated = model_update(instance=work_group,
                                          fields=available_fields,
@@ -58,7 +58,10 @@ def work_group_user_leave(*, user_id: int, work_group_id: int) -> None:
     WorkGroupUser.objects.get(group_user=group_user, work_group=work_group).delete()
 
 
-def work_group_user_add(*, user_id: int, work_group_id: int, target_group_user_id: int, is_moderator: bool) -> WorkGroupUser:
+def work_group_user_add(*, user_id: int,
+                        work_group_id: int,
+                        target_group_user_id: int,
+                        is_moderator: bool) -> WorkGroupUser:
     work_group = WorkGroup.objects.get(id=work_group_id)
     group_user = group_user_permissions(user=user_id, group=work_group.group)
 
@@ -75,6 +78,13 @@ def work_group_user_add(*, user_id: int, work_group_id: int, target_group_user_i
         if WorkGroupUser.objects.filter(group_user=target_group_user, work_group=work_group).exists():
             raise ValidationError("User is already in the working group.")
 
+        work_group_user_join_request = WorkGroupUserJoinRequest.objects.filter(group_user_id=target_group_user_id,
+                                                                               work_group=work_group)
+
+        if work_group_user_join_request.exists():
+            if not (work_group_user_is_moderator or group_user.is_admin):
+                raise PermissionDenied("Needs either work group moderator or group admin.")
+
         work_group_user = WorkGroupUser(group_user=target_group_user,
                                         work_group=work_group,
                                         is_moderator=is_moderator
@@ -82,6 +92,9 @@ def work_group_user_add(*, user_id: int, work_group_id: int, target_group_user_i
                                         else False)
         work_group_user.full_clean()
         work_group_user.save()
+
+        if work_group_user_join_request.exists():
+            work_group_user_join_request.delete()
 
         return work_group_user
 

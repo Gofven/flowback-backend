@@ -181,11 +181,11 @@ class GroupTest(APITransactionTestCase):
 
     # Work Group Test
     def test_work_group_list(self):
-        work_group_one = WorkGroupFactory(group=self.group_user_creator_one)
-        work_group_two = WorkGroupFactory(group=self.group_user_creator_one)
+        work_group_one = WorkGroupFactory(group=self.group_user_creator_one.group)
+        work_group_two = WorkGroupFactory(group=self.group_user_creator_one.group)
 
         # Irrelevant work group, for testing purpose
-        WorkGroupFactory(group=self.group_user_creator_two)
+        WorkGroupFactory(group=self.group_user_creator_two.group)
 
         response = generate_request(api=WorkGroupListAPI,
                                     user=self.group_user_creator_one.user,
@@ -197,15 +197,15 @@ class GroupTest(APITransactionTestCase):
         self.assertEqual(response.data['results'][1]['id'], work_group_two.id)
 
     def test_work_group_user_list(self):
-        work_group_one = WorkGroupFactory(group=self.group_user_creator_one)
-        work_group_two = WorkGroupFactory(group=self.group_user_creator_one)
-        work_group_user_one = WorkGroupUserFactory(group_user__group=self.group_user_creator_one,
+        work_group_one = WorkGroupFactory(group=self.group_user_creator_one.group)
+        work_group_two = WorkGroupFactory(group=self.group_user_creator_one.group)
+        work_group_user_one = WorkGroupUserFactory(group_user__group=self.group_user_creator_one.group,
                                                    work_group=work_group_one)
-        work_group_user_two = WorkGroupUserFactory(group_user__group=self.group_user_creator_one,
+        work_group_user_two = WorkGroupUserFactory(group_user__group=self.group_user_creator_one.group,
                                                    work_group=work_group_one)
 
         # Irrelevant work group user, for testing purpose
-        WorkGroupUserFactory(group_user__group=self.group_user_creator_one, work_group=work_group_two)
+        WorkGroupUserFactory(group_user__group=self.group_user_creator_one.group, work_group=work_group_two)
 
         response = generate_request(api=WorkGroupUserListAPI,
                                     user=self.group_user_creator_one.user,
@@ -219,22 +219,22 @@ class GroupTest(APITransactionTestCase):
                          work_group_user_two.group_user.user.id)
 
     def test_work_group_user_join_request_list(self):
-        work_group_one = WorkGroupFactory(group=self.group_user_creator_one)
-        work_group_two = WorkGroupFactory(group=self.group_user_creator_one)
-        work_group_user_one = WorkGroupUserFactory(group_user__group=self.group_user_creator_one,
+        work_group_one = WorkGroupFactory(group=self.group_user_creator_one.group)
+        work_group_two = WorkGroupFactory(group=self.group_user_creator_one.group)
+        work_group_user_one = WorkGroupUserFactory(group_user__group=self.group_user_creator_one.group,
                                                    work_group=work_group_one)
-        WorkGroupUserFactory(group_user__group=self.group_user_creator_one, work_group=work_group_one)
+        WorkGroupUserFactory(group_user__group=self.group_user_creator_one.group, work_group=work_group_one)
 
         # Join Request
-        join_request = WorkGroupJoinRequestFactory(group_user__group=self.group_user_creator_one,
+        join_request = WorkGroupJoinRequestFactory(group_user__group=self.group_user_creator_one.group,
                                                    work_group=work_group_one)
 
         # Irrelevant work group user, for testing purpose
-        WorkGroupUserFactory(group_user__group=self.group_user_creator_one, work_group=work_group_two)
-        WorkGroupJoinRequestFactory(group_user__group=self.group_user_creator_one, work_group=work_group_two)
+        WorkGroupUserFactory(group_user__group=self.group_user_creator_one.group, work_group=work_group_two)
+        WorkGroupJoinRequestFactory(group_user__group=self.group_user_creator_one.group, work_group=work_group_two)
 
         response = generate_request(api=WorkGroupUserJoinRequestListAPI,
-                                    user=work_group_user_one.user,
+                                    user=work_group_user_one.group_user.user,
                                     url_params=dict(work_group_id=work_group_one.id))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -250,14 +250,14 @@ class GroupTest(APITransactionTestCase):
                                     url_params=dict(group_id=self.group_user_creator_one.group.id),
                                     user=self.group_user_creator_one.user)
 
-        work_group = WorkGroup.objects.get(response.data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        work_group = WorkGroup.objects.get(id=response.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(work_group.name, data['name'])
         self.assertEqual(work_group.group, self.group_user_creator_one.group)
         self.assertEqual(work_group.direct_join, data['direct_join'])
 
     def test_work_group_update(self):
-        work_group = WorkGroupFactory(user=self.group_user_creator_one.user, name="test_old", direct_join=False)
+        work_group = WorkGroupFactory(group=self.group_user_creator_one.group, name="test_old", direct_join=False)
         data = dict(name="test_updated", direct_join=True)
 
         response = generate_request(api=WorkGroupUpdateAPI,
@@ -266,29 +266,29 @@ class GroupTest(APITransactionTestCase):
                                     user=self.group_user_creator_one.user)
 
         work_group.refresh_from_db()
-        self.assertTrue(response.status_code == status.HTTP_200_OK)
+        self.assertTrue(response.status_code == status.HTTP_204_NO_CONTENT)
         self.assertEqual(work_group.name, data['name'])
         self.assertEqual(work_group.direct_join, data['direct_join'])
 
     def test_work_group_delete(self):
-        work_group = WorkGroupFactory(user=self.group_user_creator_one.user, name="test_old", direct_join=False)
+        work_group = WorkGroupFactory(group=self.group_user_creator_one.group, name="test_old", direct_join=False)
 
         response = generate_request(api=WorkGroupDeleteAPI,
                                     url_params=dict(work_group_id=work_group.id),
                                     user=self.group_user_creator_one.user)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(WorkGroup.objects.filter(id=work_group.id).exists())
 
     # Work Group User Test
     def test_work_group_user_join(self):
-        work_group = WorkGroupFactory(user=self.group_user_creator_one.user, direct_join=False)
+        work_group = WorkGroupFactory(group=self.group_user_creator_one.group, direct_join=True)
 
         response = generate_request(api=WorkGroupUserJoinAPI,
                                     url_params=dict(work_group_id=work_group.id),
                                     user=self.group_user_creator_one.user)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertTrue(WorkGroupUser.objects.filter(id=work_group.id).exists())
 
     def test_work_group_user_leave(self):
@@ -298,38 +298,42 @@ class GroupTest(APITransactionTestCase):
                                     url_params=dict(work_group_id=work_group_user.work_group.id),
                                     user=self.group_user_creator_one.user)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(WorkGroupUser.objects.filter(id=work_group_user.work_group.id).exists())
 
     def test_work_group_user_invite(self):
         group_user = GroupUserFactory(group=self.group_user_creator_one.group)
-        work_group = WorkGroupFactory(user=self.group_user_creator_one.user, direct_join=False)
+        work_group = WorkGroupFactory(group=self.group_user_creator_one.group, direct_join=False)
+        work_group_user = WorkGroupUserFactory(group_user=GroupUserFactory(group=self.group_user_creator_one.group,
+                                                                           is_admin=False),
+                                               work_group=work_group,
+                                               is_moderator=True)
 
-        response = generate_request(api=WorkGroupUserAddAPI,
-                                    url_params=dict(work_group_id=work_group.id),
-                                    data=dict(target_user_id=group_user.id, is_moderator=False),
-                                    user=self.group_user_creator_one.user)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(WorkGroupUser.objects.filter(group_user=group_user, work_group=work_group).exists())
-        self.assertTrue(WorkGroupUserJoinRequest.objects.filter(group_user=group_user, work_group=work_group).exists())
-
-        # Accept invite
         response = generate_request(api=WorkGroupUserJoinAPI,
                                     url_params=dict(work_group_id=work_group.id),
                                     user=group_user.user)
 
-        response.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT, response.data)
+        self.assertFalse(WorkGroupUser.objects.filter(group_user=group_user, work_group=work_group).exists())
+        self.assertTrue(WorkGroupUserJoinRequest.objects.filter(group_user=group_user, work_group=work_group).exists())
+
+        # Accept join request
+        response = generate_request(api=WorkGroupUserAddAPI,
+                                    url_params=dict(work_group_id=work_group.id),
+                                    data=dict(target_group_user_id=group_user.id, is_moderator=False),
+                                    user=work_group_user.group_user.user)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertTrue(WorkGroupUser.objects.filter(group_user=group_user, work_group=work_group).exists())
         self.assertFalse(WorkGroupUserJoinRequest.objects.filter(group_user=group_user, work_group=work_group).exists())
 
     def test_work_group_user_direct_join(self):
         group_user = GroupUserFactory(group=self.group_user_creator_one.group)
-        work_group = WorkGroupFactory(user=self.group_user_creator_one.user, direct_join=True)
+        work_group = WorkGroupFactory(group=self.group_user_creator_one.group, direct_join=True)
 
         response = generate_request(api=WorkGroupUserAddAPI,
                                     url_params=dict(work_group_id=work_group.id),
-                                    data=dict(target_user_id=group_user.id, is_moderator=False),
+                                    data=dict(target_group_user_id=group_user.id, is_moderator=False),
                                     user=self.group_user_creator_one.user)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

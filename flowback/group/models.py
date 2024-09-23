@@ -235,10 +235,18 @@ class WorkGroupUser(BaseModel):
     group_user = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     is_moderator = models.BooleanField(default=False)
 
+    class Meta:
+        constraints = [models.UniqueConstraint(name='WorkGroupUser_group_user_and_work_group_is_unique',
+                                               fields=['work_group', 'group_user'])]
+
 
 class WorkGroupUserJoinRequest(BaseModel):
     work_group = models.ForeignKey(WorkGroup, on_delete=models.CASCADE)
     group_user = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(name='WorkGroupUserJoinRequest_group_user_and_work_group_is_unique',
+                                               fields=['work_group', 'group_user'])]
 
 
 # GroupThreads are mainly used for creating comment sections for various topics
