@@ -1,7 +1,10 @@
 from django.urls import path
 
-from .views.group import GroupFolderListApi, GroupListApi, GroupDetailApi, GroupCreateApi, GroupUpdateApi, GroupDeleteApi, GroupMailApi, \
-    GroupNotificationSubscribeApi
+from .views.group import GroupFolderListApi, GroupListApi, GroupDetailApi, GroupCreateApi, GroupUpdateApi, \
+    GroupDeleteApi, GroupMailApi, \
+    GroupNotificationSubscribeApi, WorkGroupListAPI, WorkGroupUserListAPI, WorkGroupUserJoinRequestListAPI, \
+    WorkGroupCreateAPI, WorkGroupUpdateAPI, WorkGroupDeleteAPI, WorkGroupUserJoinAPI, WorkGroupUserLeaveAPI, \
+    WorkGroupUserAddAPI, WorkGroupUserUpdateAPI, WorkGroupUserRemoveAPI
 from .views.user import (GroupUserListApi,
                          GroupUserUpdateApi,
                          GroupJoinApi,
@@ -65,6 +68,20 @@ group_patterns = [
     path('<int:group>/invite', GroupInviteApi.as_view(), name='group_invite'),
     path('<int:group>/invite/accept', GroupInviteAcceptApi.as_view(), name='group_invite_accept'),
     path('<int:group>/invite/reject', GroupInviteRejectApi.as_view(), name='group_invite_reject'),
+
+    path('<int:group_id>/list', WorkGroupListAPI.as_view(), name='work_group_list'),
+    path('workgroup/<int:work_group_id>/list', WorkGroupUserListAPI.as_view(), name='work_group_user_list'),
+    path('workgroup/<int:work_group_id>/joinrequest/list',
+         WorkGroupUserJoinRequestListAPI.as_view(),
+         name='work_group_user_list'),
+    path('<int:group_id>/workgroup/create', WorkGroupCreateAPI.as_view(), name='work_group_create'),
+    path('workgroup/<int:work_group_id>/update', WorkGroupUpdateAPI.as_view(), name='work_group_update'),
+    path('workgroup/<int:work_group_id>/delete', WorkGroupDeleteAPI.as_view(), name='work_group_delete'),
+    path('workgroup/<int:work_group_id>/join', WorkGroupUserJoinAPI.as_view(), name='work_group_join'),
+    path('workgroup/<int:work_group_id>/leave', WorkGroupUserLeaveAPI.as_view(), name='work_group_leave'),
+    path('workgroup/<int:work_group_id>/user/add', WorkGroupUserAddAPI.as_view(), name='work_group_user_add'),
+    path('workgroup/<int:work_group_id>/user/update', WorkGroupUserUpdateAPI.as_view(), name='work_group_user_update'),
+    path('workgroup/<int:work_group_id>/user/remove', WorkGroupUserRemoveAPI.as_view(), name='work_group_user_remove'),
 
     path('<int:group>/permissions', GroupPermissionListApi.as_view(), name='group_permissions'),
     path('<int:group>/permission/create', GroupPermissionCreateApi.as_view(), name='group_permission_create'),
