@@ -101,7 +101,7 @@ def work_group_user_add(*, user_id: int,
     raise PermissionDenied()
 
 
-def work_group_user_remove(*, user_id: int, work_group_id: int, target_user_id: int) -> None:
+def work_group_user_remove(*, user_id: int, work_group_id: int, target_group_user_id: int) -> None:
     work_group = WorkGroup.objects.get(id=work_group_id)
     group_user = group_user_permissions(user=user_id, group=work_group.group)
 
@@ -113,8 +113,26 @@ def work_group_user_remove(*, user_id: int, work_group_id: int, target_user_id: 
         work_group_user_is_moderator = False
 
     if group_user.is_admin or work_group_user_is_moderator:
-        target_group_user = group_user_permissions(user=target_user_id, group=work_group.group)
+        target_group_user = group_user_permissions(user=target_group_user_id, group=work_group.group)
 
         WorkGroupUser.objects.get(group_user=target_group_user, work_group=work_group).delete()
 
     raise PermissionDenied()
+
+
+def work_group_user_update(*, user_id: int, work_group_id: int, target_group_user_id: int, data) -> WorkGroupUser:
+    work_group = WorkGroup.objects.get(id=work_group_id)
+    group_user = group_user_permissions(user=user_id, group=work_group.group)
+    work_group_user = WorkGroupUser.objects.get(group_user=group_user, work_group=work_group)
+
+    if not work_group_user.is_moderator or group_user.is_admin:
+        raise PermissionDenied("Requires work group moderator permission or admin.")
+
+    available_fields = ['is_moderator']
+
+    target_work_group_user = WorkGroupUser.objects.get(group_user=target_group_user_id, work_group=work_group)
+    instance, has_updated = model_update(instance=target_work_group_user,
+                                         fields=available_fields,
+                                         data=data)
+
+    return instance

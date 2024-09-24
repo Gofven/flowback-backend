@@ -10,7 +10,7 @@ from flowback.group.serializers import GroupUserSerializer
 from flowback.group.services.group import group_notification_subscribe
 from flowback.group.services.group import group_notification, group_create, group_update, group_delete, group_mail
 from flowback.group.services.workgroup import work_group_create, work_group_update, work_group_delete, \
-    work_group_user_join, work_group_user_leave, work_group_user_add, work_group_user_remove
+    work_group_user_join, work_group_user_leave, work_group_user_add, work_group_user_remove, work_group_user_update
 
 
 class GroupListApi(APIView):
@@ -339,12 +339,31 @@ class WorkGroupUserAddAPI(APIView):
         return Response(status=status.HTTP_200_OK, data=work_group_user.id)
 
 
+class WorkGroupUserUpdateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        target_group_user_id = serializers.IntegerField()
+        is_moderator = serializers.BooleanField(required=False)
+
+    def post(self, request, work_group_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        work_group_user_update(user_id=request.user.id,
+                               work_group_id=work_group_id,
+                               target_group_user_id=serializer.validated_data.pop('target_group_user_id'),
+                               data=serializer.validated_data)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class WorkGroupUserRemoveAPI(APIView):
     class InputSerializer(serializers.Serializer):
-        target_user_id = serializers.IntegerField()
+        target_group_user_id = serializers.IntegerField()
 
     def post(self, request, work_group_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         work_group_user_remove(user_id=request.user.id, work_group_id=work_group_id, **serializer.validated_data)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
