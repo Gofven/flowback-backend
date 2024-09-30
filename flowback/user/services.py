@@ -198,22 +198,34 @@ def user_kanban_entry_delete(*, user_id: int, entry_id: int):
                                            entry_id=entry_id)
 
 
-def user_get_chat_channel(user_id: int, target_user_id: int):
-    if user_id == target_user_id:
+def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
+    if isinstance(target_user_ids, int):
+        target_user_ids = [target_user_ids]
+
+    if user_id in target_user_ids:
         raise ValidationError("You can't message yourself")
 
-    user = get_object(User, id=user_id)
-    target_user = get_object(User, id=target_user_id)
+    user = User.objects.get(id=user_id)
+    target_users = User.objects.filter(id__in=target_user_ids, is_active=True)
+
+    if not len(target_users) == len(target_user_ids):
+        raise ValidationError("Not every user requested do exist")
 
     try:
+        # Find a channel where all users are in the same chat
+        qs_filters = {"messagechannelparticipant__user": u for u in target_users}
         channel = MessageChannel.objects.filter(origin_name=user.message_channel_origin,
-                                                messagechannelparticipant__user=user
-                                                ).get(messagechannelparticipant__user=target_user)
+                                                messagechannelparticipant__user=user,
+                                                **qs_filters)
 
     except MessageChannel.DoesNotExist:
-        channel = message_channel_create(origin_name=user.message_channel_origin)
-        message_channel_join(user_id=user_id, channel_id=channel.id)
-        message_channel_join(user_id=target_user_id, channel_id=channel.id)
+        title = f"{user.username}, {', '.join([u.username for u in target_users])}"
+        channel = message_channel_create(origin_name=user.message_channel_origin,
+                                         title=title if len(target_users) > 1 else None)
+        message_channel_join(user_id=user.id, channel_id=channel.id)
+
+        for u in target_users:
+            message_channel_join(user_id=u.id, channel_id=channel.id)
 
     return channel
 
