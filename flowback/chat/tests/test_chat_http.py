@@ -1,6 +1,7 @@
 from pprint import pprint
 
 from django.test import TransactionTestCase
+from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from ..models import (MessageChannel,
@@ -22,7 +23,8 @@ from .factories import (MessageChannelFactory,
                         MessageChannelParticipantFactory,
                         MessageChannelTopicFactory,
                         MessageFileCollectionFactory)
-from ..views import MessageListAPI, MessageChannelPreviewAPI
+from ..views import MessageListAPI, MessageChannelPreviewAPI, MessageChannelParticipantListAPI
+from ...common.tests import generate_request
 from ...user.tests.factories import UserFactory
 
 
@@ -162,3 +164,22 @@ class ChatTestHTTP(TransactionTestCase):
                 self.assertEqual(response.data.get('count'), i + 1)
                 self.assertGreater(response.data['results'][i - 1]['created_at'],
                                    response.data['results'][i]['created_at'])
+
+    def test_message_channel_participant(self):
+        channel = MessageChannelFactory()
+        channel_participants = MessageChannelParticipantFactory.create_batch(50, channel=channel)
+
+        # Test if success
+        response = generate_request(MessageChannelParticipantListAPI,
+                                    url_params=dict(channel_id=channel.id),
+                                    user=channel_participants[0].user)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data.get('count'), 50)
+
+        # Test permission denied
+        response = generate_request(MessageChannelParticipantListAPI,
+                                    url_params=dict(channel_id=channel.id),
+                                    user=self.user_one)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, response.data)

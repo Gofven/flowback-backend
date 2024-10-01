@@ -1,7 +1,9 @@
+import operator
 import uuid
+from functools import reduce
 
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
@@ -202,10 +204,9 @@ def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
     if isinstance(target_user_ids, int):
         target_user_ids = [target_user_ids]
 
-    if user_id in target_user_ids:
-        raise ValidationError("You can't message yourself")
+    if user_id not in target_user_ids:
+        target_user_ids.append(user_id)
 
-    user = User.objects.get(id=user_id)
     target_users = User.objects.filter(id__in=target_user_ids, is_active=True)
 
     if not len(target_users) == len(target_user_ids):
@@ -213,17 +214,23 @@ def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
 
     try:
         # Find a channel where all users are in the same chat
-        qs_filters = {"messagechannelparticipant__user": u for u in target_users}
-        channel = MessageChannel.objects.filter(origin_name=user.message_channel_origin,
-                                                messagechannelparticipant__user=user,
-                                                **qs_filters)
+        channel = MessageChannel.objects.annotate(count=Count('users')).filter(
+            count=target_users.count())
+
+        for user in target_users.all():
+            channel = channel.filter(users=user.id)
+
+        channel = channel.first()
+
+        if not channel:
+            raise MessageChannel.DoesNotExist
 
     except MessageChannel.DoesNotExist:
-        title = f"{user.username}, {', '.join([u.username for u in target_users])}"
-        channel = message_channel_create(origin_name=user.message_channel_origin,
+        title = f"{', '.join([u.username for u in target_users])}"
+        channel = message_channel_create(origin_name=User.message_channel_origin,
                                          title=title if len(target_users) > 1 else None)
-        message_channel_join(user_id=user.id, channel_id=channel.id)
 
+        # In the future, make this a bulk_create statement
         for u in target_users:
             message_channel_join(user_id=u.id, channel_id=channel.id)
 

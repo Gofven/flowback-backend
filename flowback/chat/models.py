@@ -8,6 +8,7 @@ from flowback.user.models import User
 class MessageChannel(BaseModel):
     origin_name = models.CharField(max_length=255)
     title = models.CharField(max_length=255, null=True, blank=True)
+    users = models.ManyToManyField(User, through='chat.MessageChannelParticipant')
 
 
 # Allows for "channels" inside a group
