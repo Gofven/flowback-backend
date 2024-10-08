@@ -1,7 +1,6 @@
 Django==4.2.7
 django-extensions==3.2.1
 djangorestframework==3.14.0
-psycopg~=3.2.3
 psycopg2==2.9.9
 django-environ==0.8.1
 pillow==10.0.1
