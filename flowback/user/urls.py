@@ -41,7 +41,7 @@ user_patterns = [
     path('user/kanban/entry/update', UserKanbanEntryUpdateAPI.as_view(), name='user_kanban_entry_update'),
     path('user/kanban/entry/delete', UserKanbanEntryDeleteAPI.as_view(), name='user_kanban_entry_delete'),
 
-    path('user/chat/<int:target_user_id>', UserGetChatChannelAPI.as_view(), name='user_get_chat_channel'),
+    path('user/chat', UserGetChatChannelAPI.as_view(), name='user_get_chat_channel'),
 
     path('report/create', ReportCreateAPI.as_view(), name='report_create'),
 ]
