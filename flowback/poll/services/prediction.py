@@ -19,6 +19,7 @@ def poll_prediction_statement_create(poll: int,
                                      description: str,
                                      end_date: timezone.datetime,
                                      segments: list[dict],
+                                     attachments: list = None,
                                      blockchain_id: int = None) -> int:
     poll = get_object(Poll, id=poll)
     group_user = group_user_permissions(user=user, group=poll.created_by.group,
@@ -27,6 +28,7 @@ def poll_prediction_statement_create(poll: int,
                                                    poll=poll,
                                                    title=title,
                                                    description=description,
+                                                   attachments=attachments,
                                                    end_date=end_date,
                                                    blockchain_id=blockchain_id)
 

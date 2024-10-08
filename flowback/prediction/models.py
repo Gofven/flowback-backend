@@ -1,7 +1,9 @@
+from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 from flowback.common.models import BaseModel
+from flowback.files.models import FileCollection
 
 
 class PredictionStatement(BaseModel):
@@ -11,7 +13,10 @@ class PredictionStatement(BaseModel):
     # created_by: represents ownership
     # fk: represents relationship
     combined_bet = models.DecimalField(max_digits=8, decimal_places=7, null=True, blank=True)
-
+    attachments = ArrayField(models.FileField(upload_to='group/poll/prediction/attachments'),
+                             null=True,
+                             blank=True,
+                             max_length=10)
     blockchain_id = models.PositiveIntegerField(null=True, blank=True, default=None)
 
     class Meta:

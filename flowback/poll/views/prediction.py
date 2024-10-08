@@ -44,6 +44,7 @@ class PollPredictionStatementListAPI(APIView):
         poll_id = serializers.IntegerField()
         title = serializers.CharField()
         description = serializers.CharField(allow_null=True)
+        attachments = serializers.ListField(child=serializers.FileField(), allow_null=True)
         created_by = GroupUserSerializer()
         end_date = serializers.DateTimeField()
         user_prediction_bet = serializers.IntegerField(required=False)
@@ -121,6 +122,7 @@ class PollPredictionStatementCreateAPI(APIView):
         end_date = serializers.DateTimeField()
         segments = SegmentSerializer(many=True)
         blockchain_id = serializers.IntegerField(required=False, allow_null=True)
+        attachments = serializers.ListField(child=serializers.FileField(), required=False)
 
     def post(self, request, poll_id: int):
         serializer = self.InputSerializer(data=request.data)
