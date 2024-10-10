@@ -113,7 +113,7 @@ INSTALLED_APPS = [
     'flowback.comment',
     'flowback.schedule',
     'flowback.files',
-    'drf_spectacular'
+    'drf_spectacular',
     'phonenumber_field',
     ] + env('INTEGRATIONS')
 
