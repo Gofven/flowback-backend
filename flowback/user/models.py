@@ -65,6 +65,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     bio = models.TextField(null=True, blank=True)
     website = models.TextField(null=True, blank=True)
+    contact_email = models.EmailField(null=True, blank=True)
+    contact_phone = models.CharField(max_length=20, null=True, blank=True)
 
     schedule = models.ForeignKey(Schedule, on_delete=models.SET_NULL, null=True, blank=True)
     kanban = models.ForeignKey('kanban.Kanban', on_delete=models.SET_NULL, null=True, blank=True)

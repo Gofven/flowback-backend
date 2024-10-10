@@ -114,7 +114,8 @@ INSTALLED_APPS = [
     'flowback.schedule',
     'flowback.files',
     'drf_spectacular'
-] + env('INTEGRATIONS')
+    'phonenumber_field',
+    ] + env('INTEGRATIONS')
 
 CELERY_BROKER_URL = env('RABBITMQ_BROKER_URL')
 

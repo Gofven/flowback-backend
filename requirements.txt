@@ -27,3 +27,4 @@ pytest-django==4.8.0
 numpy==1.26.4
 django-tree-queries==0.19.0
 django-oidc-provider~=0.8.2
+django-phonenumber-field==8.0.0
