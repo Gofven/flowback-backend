@@ -221,6 +221,10 @@ class WorkGroupUserListAPI(APIView):
         user_id = serializers.IntegerField(required=False)
         group_user_id = serializers.IntegerField(required=False)
         username = serializers.CharField(required=False)
+        order_by = serializers.ChoiceField(required=False, choices=['created_at_asc',
+                                                                    'created_at_desc',
+                                                                    'name_asc',
+                                                                    'name_desc'])
 
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
