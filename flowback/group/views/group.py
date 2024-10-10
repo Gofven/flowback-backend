@@ -194,9 +194,10 @@ class WorkGroupListAPI(APIView):
         name__icontains = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-        id = serializers.IntegerField(required=False)
-        name = serializers.CharField(required=False)
-        direct_join = serializers.BooleanField(required=False)
+        id = serializers.IntegerField()
+        name = serializers.CharField()
+        member_count = serializers.IntegerField()
+        direct_join = serializers.BooleanField()
 
     def get(self, request, group_id: int):
         serializer = self.FilterSerializer(data=request.query_params)
