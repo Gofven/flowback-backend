@@ -1,1 +1,5 @@
-- Hi everyone c: This is a test!
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   modules/views.rst

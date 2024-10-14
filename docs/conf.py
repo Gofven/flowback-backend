@@ -15,7 +15,7 @@ import django
 from datetime import date
 
 sys.path.insert(0, os.path.abspath(".."))
-os.environ["DJANGO_SETTINGS_MODULE"] = "backend"
+os.environ["DJANGO_SETTINGS_MODULE"] = "backend.settings"
 django.setup()
 
 project = "Flowback"
