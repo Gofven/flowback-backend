@@ -60,3 +60,70 @@ class UserTest(APITransactionTestCase):
 
         # Count all participants + the user itself
         self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=response.data['id']).count(), 26)
+
+    def test_generate(self):
+        import os
+        import inspect
+        import ast
+        from typing import List
+        from tabulate import tabulate
+
+        # Function to extract all the functions from a given module's file path
+        def get_functions_from_module(file_path: str) -> List[dict]:
+            functions = []
+            with open(file_path, 'r') as file:
+                file_content = file.read()
+                tree = ast.parse(file_content)
+
+            # Iterate through all nodes in the file
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    function_name = node.name
+                    signature = inspect.signature(eval(function_name))
+
+                    args = []
+                    for param in signature.parameters.values():
+                        param_type = param.annotation if param.annotation is not param.empty else 'Any'
+                        args.append((param.name, param_type))
+
+                    return_type = signature.return_annotation if signature.return_annotation is not signature.empty else 'Any'
+
+                    # Function summary details
+                    function_summary = {
+                        'function': f"{function_name}({', '.join([f'{arg[0]}: {arg[1]}' for arg in args])})",
+                        'arguments': [f"({arg[1]}) {arg[0]}: argument description" for arg in args],
+                        'return': f"({return_type}) return description",
+                        'description': "Brief function description",
+                    }
+
+                    functions.append(function_summary)
+
+            return functions
+
+        # Function to summarize functions in a specific directory
+        def summarize_functions_in_directory(directory: str):
+            all_functions = []
+
+            for root, dirs, files in os.walk(directory):
+                for file in files:
+                    if file.endswith('.py'):
+                        module_path = os.path.join(root, file)
+                        all_functions.extend(get_functions_from_module(module_path))
+
+            return all_functions
+
+        # Function to display the summary table
+        def display_summary(functions: List[dict]):
+            table = []
+            for func in functions:
+                table.append([func['function'], func['arguments'][0], func['return'], func['description']])
+                # Add rows for additional arguments
+                for arg in func['arguments'][1:]:
+                    table.append(['', arg, '', ''])
+
+            print(tabulate(table, headers=["Function", "Arguments", "Return", "Description"]))
+
+        # Example usage
+        directory_path = 'C:\\Users\\Waffle\\Documents\\Flowback\\backend\\flowback'
+        functions = summarize_functions_in_directory(directory_path)
+        display_summary(functions)
