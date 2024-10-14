@@ -117,6 +117,7 @@ INSTALLED_APPS = [
     'phonenumber_field',
     ] + env('INTEGRATIONS')
 
+
 CELERY_BROKER_URL = env('RABBITMQ_BROKER_URL')
 
 REST_FRAMEWORK = {
