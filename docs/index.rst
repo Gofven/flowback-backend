@@ -2,4 +2,4 @@
    :maxdepth: 2
    :caption: Contents:
 
-   modules/views.rst
+   user/services.rst
