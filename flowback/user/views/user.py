@@ -117,7 +117,7 @@ class UserGetApi(APIView):
 
 
 class UserUpdateApi(APIView):
-    class InputSerializer(serializers.ModelSerializer):
+    class InputSerializer(serializers.Serializer):
         username = serializers.CharField(required=False)
         profile_image = serializers.ImageField(required=False)
         banner_image = serializers.ImageField(required=False)
