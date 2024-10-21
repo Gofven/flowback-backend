@@ -19,7 +19,6 @@ class KanbanEntryListApi(APIView):
         origin_type = serializers.CharField(required=False)
         origin_id = serializers.IntegerField(required=False)
         created_by = serializers.IntegerField(required=False)
-        work_group_ids = serializers.CharField(required=False)
         order_by = serializers.CharField(required=False)
         assignee = serializers.IntegerField(required=False)
         title__icontains = serializers.CharField(required=False)
