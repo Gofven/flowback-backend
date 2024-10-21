@@ -58,5 +58,5 @@ def group_kanban_entry_delete(*,
     group_user_permissions(user=fetched_by_id,
                            group=group_id,
                            permissions=['admin', 'delete_kanban_task'],
-                           work_group=work_group.id)
+                           work_group=work_group.id if work_group else None)
     return group_kanban.kanban_entry_delete(origin_id=group_id, entry_id=entry_id)
