@@ -160,13 +160,14 @@ class GroupTest(APITransactionTestCase):
 
 
     def test_work_group_user_leave(self):
-        work_group_user = WorkGroupUserFactory(group_user=self.group_user_creator_one)
+        group_user = GroupUserFactory(group=self.group_user_creator_one.group)
+        work_group_user = WorkGroupUserFactory(group_user=group_user)
 
         response = generate_request(api=WorkGroupUserLeaveAPI,
                                     url_params=dict(work_group_id=work_group_user.work_group.id),
                                     user=self.group_user_creator_one.user)
 
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT, response.data)
         self.assertFalse(WorkGroupUser.objects.filter(id=work_group_user.work_group.id).exists())
 
 
