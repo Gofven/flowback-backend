@@ -10,7 +10,7 @@ class GroupFolderAdmin(admin.ModelAdmin):
 class GroupAdmin(admin.ModelAdmin):
     list_display = ('created_by', 'active', 'direct_join',
                     'public', 'default_permission', 'name',
-                    'description', 'image', 'cover_image',
+                    'description', 'image', 'cover_image', 'poll_phase_minimum_space',
                     'hide_poll_users', 'schedule', 'kanban', 'jitsi_room', 'group_folder')
     
 

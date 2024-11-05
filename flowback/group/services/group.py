@@ -47,7 +47,8 @@ def group_create(*,
 def group_update(*, user: int, group: int, data) -> Group:
     group_user = group_user_permissions(user=user, group=group, permissions=['admin'])
     non_side_effect_fields = ['name', 'description', 'image', 'cover_image', 'hide_poll_users',
-                              'public', 'direct_join', 'default_permission', 'default_quorum']
+                              'public', 'direct_join', 'default_permission', 'default_quorum',
+                              'poll_phase_minimum_space']
 
     # Check if group_permission exists to allow for a new default_permission
     if default_permission := data.get('default_permission'):

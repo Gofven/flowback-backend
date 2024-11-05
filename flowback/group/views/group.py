@@ -141,6 +141,7 @@ class GroupUpdateApi(APIView):
         cover_image = serializers.ImageField(required=False)
         public = serializers.BooleanField(required=False)
         hide_poll_users = serializers.BooleanField(required=False)
+        poll_phase_minimum_space = serializers.IntegerField(required=False)
         direct_join = serializers.BooleanField(required=False)
         default_permission = serializers.IntegerField(required=False, allow_null=True)
         default_quorum = serializers.IntegerField(required=False, allow_null=True)
