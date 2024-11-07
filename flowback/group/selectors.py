@@ -8,6 +8,7 @@ from django.db.models.functions import Abs
 from django.forms import model_to_dict
 
 from flowback.comment.selectors import comment_list, comment_ancestor_list
+from flowback.common.filters import NumberInFilter
 from flowback.common.services import get_object
 from flowback.kanban.selectors import kanban_entry_list
 from flowback.poll.models import PollPredictionStatement
@@ -317,6 +318,7 @@ class BaseGroupThreadFilter(django_filters.FilterSet):
                 ('-created_at', 'created_at_desc'),
                 ('pinned', 'pinned')))
     user_vote = django_filters.BooleanFilter()
+    id_list = NumberInFilter(field_name='id')
 
     class Meta:
         model = GroupThread

@@ -1,4 +1,5 @@
 import django_filters
+from django.db import models
 from django.db.models import OuterRef, Q, Exists
 from django_filters import FilterSet
 from rest_framework.exceptions import ValidationError
@@ -59,21 +60,35 @@ class UserHomeFeedFilter(django_filters.FilterSet):
 def user_home_feed(*, fetched_by: User, filters=None):
     filters = filters or {}
     joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
+    related_fields = ['id',
+                      'created_by',
+                      'created_at',
+                      'updated_at',
+                      'title',
+                      'description',
+                      'related_model',
+                      'group_joined']
 
     # Thread
-    thread_qs = GroupThread.objects.filter(Q(created_by__group__groupuser__user__in=[fetched_by])
-                                           | Q(created_by__group__public=True))
-    thread_qs = thread_qs.annotate(related_model='group_thread',
+
+    q = (Q(created_by__group__groupuser__user__in=[fetched_by]) & Q(created_by__group__groupuser__active=True)
+         | Q(created_by__group__public=True) & ~Q(created_by__group__groupuser__user__in=[fetched_by])
+         | Q(created_by__group__public=True) & Q(created_by__group__groupuser__user__in=[fetched_by])
+         & Q(created_by__group__groupuser__active=False))
+
+    thread_qs = GroupThread.objects.filter(q)
+    thread_qs = thread_qs.annotate(related_model=models.Value('group_thread', models.CharField()),
                                    group_joined=Exists(joined_groups))
-    thread_qs = thread_qs.values('id', 'created_by', 'title', 'description', 'related_model', 'group_joined')
+    thread_qs = thread_qs.values(*related_fields)
+    thread_qs = UserHomeFeedFilter(filters, thread_qs).qs
 
     # Poll
-    poll_qs = Poll.objects.filter(Q(created_by__group__groupuser__user__in=[fetched_by])
-                                  | Q(created_by__group__public=True))
-    poll_qs = poll_qs.annotate(related_model='poll',
+    poll_qs = Poll.objects.filter(q)
+    poll_qs = poll_qs.annotate(related_model=models.Value('poll', models.CharField()),
                                group_joined=Exists(joined_groups))
-    poll_qs = poll_qs.values('id', 'created_by', 'title', 'description', 'related_model', 'group_joined')
+    poll_qs = poll_qs.values(*related_fields)
+    poll_qs = UserHomeFeedFilter(filters, poll_qs).qs
 
-    qs = thread_qs.union(poll_qs)
+    qs = thread_qs.union(poll_qs).order_by('-created_at')
 
-    return UserHomeFeedFilter(filters, qs).qs
+    return qs

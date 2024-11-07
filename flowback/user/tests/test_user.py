@@ -6,11 +6,12 @@ from rest_framework.test import APITransactionTestCase, APIRequestFactory, force
 from flowback.chat.models import MessageChannel, MessageChannelParticipant
 from flowback.chat.tests.factories import MessageChannelFactory
 from flowback.common.tests import generate_request
-from flowback.group.tests.factories import GroupThreadFactory
+from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory
 from flowback.poll.tests.factories import PollFactory
 from flowback.user.models import User
 from flowback.user.services import user_create, user_create_verify
 from flowback.user.tests.factories import UserFactory
+from flowback.user.views.home import UserHomeFeedAPI
 from flowback.user.views.user import UserDeleteAPI, UserGetChatChannelAPI, UserUpdateApi
 
 
@@ -55,6 +56,23 @@ class UserTest(APITransactionTestCase):
                          user=user)
 
         self.assertEqual(User.objects.get(id=user.id).contact_phone, "+46701234567")
+
+    def test_user_home_feed(self):
+        group_user, group_user_three = GroupUserFactory.create_batch(size=2, group__public=False)
+        group_user_two = GroupUserFactory(group__public=True)
+
+        GroupThreadFactory.create_batch(size=2)
+        PollFactory.create_batch(size=5, created_by=group_user)
+
+        PollFactory.create_batch(size=5, created_by=group_user_two)
+        GroupThreadFactory.create_batch(size=5, created_by=group_user_two)
+
+        PollFactory.create_batch(size=5, created_by=group_user_three)
+        GroupThreadFactory.create_batch(size=5, created_by=group_user_three)
+
+        response = generate_request(api=UserHomeFeedAPI, user=group_user.user)
+        print(response.status_code)
+        print(response.data)
 
     def test_user_get_chat_channel(self):
         participants = UserFactory.create_batch(25)

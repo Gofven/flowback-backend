@@ -6,7 +6,7 @@ from flowback.group.serializers import GroupUserSerializer
 from flowback.user.selectors import user_home_feed
 
 
-class HomeFeedAPI(APIView):
+class UserHomeFeedAPI(APIView):
     class Pagination(LimitOffsetPagination):
         default_limit = 25
         max_limit = 100
@@ -16,17 +16,19 @@ class HomeFeedAPI(APIView):
         related_model = serializers.CharField(required=False)
         id = serializers.IntegerField(required=False)
         title = serializers.CharField(required=False)
-        group_joined = serializers.BooleanField(required=False)
+        group_joined = serializers.BooleanField(required=False, allow_null=True, default=None)
         user_vote = serializers.BooleanField(required=False, allow_null=True, default=None)
 
     class OutputSerializer(serializers.Serializer):
-        created_by = GroupUserSerializer(required=False)
+        created_by = GroupUserSerializer()
+        created_at = serializers.DateTimeField()
+        updated_at = serializers.DateTimeField()
         id = serializers.IntegerField()
         title = serializers.CharField()
         description = serializers.CharField(allow_null=True, default=None)
-        related_model = serializers.CharField(required=False)
-        group_joined = serializers.BooleanField(required=False)
-        user_vote = serializers.BooleanField(allow_null=True)
+        related_model = serializers.CharField()
+        group_joined = serializers.BooleanField()
+        user_vote = serializers.BooleanField(allow_null=True, default=None)
 
     def get(self, request):
         serializer = self.FilterSerializer(data=request.query_params)
