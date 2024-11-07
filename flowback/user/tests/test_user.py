@@ -71,8 +71,13 @@ class UserTest(APITransactionTestCase):
         GroupThreadFactory.create_batch(size=5, created_by=group_user_three)
 
         response = generate_request(api=UserHomeFeedAPI, user=group_user.user)
-        print(response.status_code)
-        print(response.data)
+
+        # Check if order_by is for created_at, in descending order
+        for x in range(1, response.data['count']):
+            self.assertTrue(response.data['results'][x]['created_at'] < response.data['results'][x - 1]['created_at'])
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['count'], 17)
 
     def test_user_get_chat_channel(self):
         participants = UserFactory.create_batch(25)
