@@ -63,6 +63,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     email_notifications = models.BooleanField(default=False)
     dark_theme = models.BooleanField(default=False)
 
+    user_config = models.TextField(null=True, blank=True)
+
     bio = models.TextField(null=True, blank=True)
     website = models.TextField(null=True, blank=True)
     contact_email = models.EmailField(null=True, blank=True)
