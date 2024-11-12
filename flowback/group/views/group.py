@@ -174,6 +174,7 @@ class GroupMailApi(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField()
         message = serializers.CharField()
+        work_group_id = serializers.IntegerField(required=False)
 
     def post(self, request, group: int):
         serializer = self.InputSerializer(data=request.data)

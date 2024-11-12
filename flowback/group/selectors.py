@@ -54,6 +54,7 @@ def group_user_permissions(*,
 
     permissions = permissions or []
     admin = False
+    work_group_moderator_check = False
 
     if isinstance(permissions, str):
         permissions = [permissions]
@@ -96,6 +97,12 @@ def group_user_permissions(*,
 
         permissions.remove('creator')
 
+    # Check if work_group_moderator is present, mark as true and check further down
+    if 'work_group_moderator' in permissions:
+        work_group_moderator_check = True
+
+        permissions.remove('work_group_moderator')
+
     validated_permissions = any([user_permissions.get(key, False) for key in permissions]) or not permissions
     if not validated_permissions and not (admin and allow_admin):
         if raise_exception:
@@ -105,11 +112,10 @@ def group_user_permissions(*,
             return False
 
     if work_group and not (admin and allow_admin):
-        work_group_user = WorkGroupUser.objects.filter(group_user__in=[group_user],
-                                                       work_group=work_group)
+        work_group_user = WorkGroupUser.objects.get(group_user=group_user, work_group=work_group)
 
-        if not work_group_user.exists():
-            raise PermissionDenied("User is not in requested work group(s)")
+        if work_group_moderator_check and not work_group_user.is_moderator:
+            raise PermissionDenied("Requires work group moderator permission")
 
     return group_user
 
