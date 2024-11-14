@@ -13,10 +13,9 @@ from flowback.prediction.models import (PredictionBet,
                                         PredictionStatement,
                                         PredictionStatementSegment,
                                         PredictionStatementVote)
-from flowback.comment.services import comment_section_create_model_default
 from flowback.common.models import BaseModel
 from flowback.group.models import Group, GroupUser, GroupUserDelegatePool, GroupTags
-from flowback.comment.models import CommentSection
+from flowback.comment.models import CommentSection, comment_section_create_model_default
 import pgtrigger
 
 from flowback.schedule.models import Schedule, ScheduleEvent
