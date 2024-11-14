@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from flowback.group.models import Group, GroupUser
+from flowback.group.models import Group
 from flowback.user.serializers import BasicUserSerializer
 
 
@@ -21,3 +21,8 @@ class GroupUserSerializer(serializers.Serializer):
     group_id = serializers.IntegerField(required=False)
     group_name = serializers.CharField(required=False, source='group.name')
     group_image = serializers.CharField(required=False, source='group.image')
+
+
+class WorkGroupSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()

@@ -1,3 +1,4 @@
+from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
@@ -107,7 +108,7 @@ class UserGetApi(APIView):
         class Meta:
             model = User
             fields = 'id', 'email', 'username', 'profile_image', \
-                     'banner_image', 'bio', 'website', 'dark_theme'
+                     'banner_image', 'bio', 'website', 'dark_theme', 'user_config'
 
     def get(self, request):
         user = get_user(request.user.id)
@@ -116,16 +117,16 @@ class UserGetApi(APIView):
 
 
 class UserUpdateApi(APIView):
-    class InputSerializer(serializers.ModelSerializer):
+    class InputSerializer(serializers.Serializer):
         username = serializers.CharField(required=False)
         profile_image = serializers.ImageField(required=False)
         banner_image = serializers.ImageField(required=False)
         bio = serializers.CharField(required=False)
         website = serializers.CharField(required=False)
-
-        class Meta:
-            model = User
-            fields = 'username', 'profile_image', 'banner_image', 'bio', 'website', 'dark_theme'
+        dark_theme = serializers.BooleanField(required=False)
+        contact_email = serializers.CharField(required=False)
+        contact_phone = PhoneNumberField(required=False)
+        user_config = serializers.CharField(required=False)
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
@@ -143,9 +144,16 @@ class UserDeleteAPI(APIView):
 
 
 class UserGetChatChannelAPI(APIView):
+    class FilterSerializer(serializers.Serializer):
+        target_user_ids = serializers.ListField(child=serializers.IntegerField())
+
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
+        title = serializers.CharField()
 
-    def get(self, request, target_user_id: int):
-        data = user_get_chat_channel(user_id=request.user.id, target_user_id=target_user_id)
+    def get(self, request):
+        serializer = self.FilterSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        data = user_get_chat_channel(user_id=request.user.id, **serializer.validated_data)
+
         return Response(status=status.HTTP_200_OK, data=self.OutputSerializer(data).data)

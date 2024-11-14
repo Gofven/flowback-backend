@@ -14,6 +14,10 @@ def generate_request(api: Type[APIView],
                      data: dict = None,
                      url_params: dict = None,
                      user: User = None):
+
+    if url_params is None:
+        url_params = dict()
+
     factory = APIRequestFactory()
     method = [i[0] for i in inspect.getmembers(api, predicate=inspect.isfunction)]
     view = api.as_view()

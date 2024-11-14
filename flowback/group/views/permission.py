@@ -5,7 +5,9 @@ from rest_framework.views import APIView
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.group.models import GroupPermissions
 from flowback.group.selectors import group_permissions_list
-from flowback.group.services import group_permission_create, group_permission_update, group_permission_delete
+from flowback.group.services.permission import (group_permission_create,
+                                                group_permission_update,
+                                                group_permission_delete)
 
 
 class GroupPermissionListApi(APIView):
@@ -27,6 +29,8 @@ class GroupPermissionListApi(APIView):
                       'poll_fast_forward',
                       'poll_quorum',
                       'allow_vote',
+                      'allow_delegate',
+                      'send_group_email',
                       'kick_members',
                       'ban_members',
 
@@ -76,6 +80,7 @@ class GroupPermissionCreateApi(APIView):
                       'poll_fast_forward',
                       'poll_quorum',
                       'allow_vote',
+                      'allow_delegate',
                       'kick_members',
                       'ban_members',
 
@@ -115,8 +120,10 @@ class GroupPermissionUpdateApi(APIView):
         poll_fast_forward = serializers.BooleanField(required=False)
         poll_quorum = serializers.BooleanField(required=False)
         allow_vote = serializers.BooleanField(required=False)
+        allow_delegate = serializers.BooleanField(required=False)
         kick_members = serializers.BooleanField(required=False)
         ban_members = serializers.BooleanField(required=False)
+        send_group_email = serializers.BooleanField(required=False)
 
         create_proposal = serializers.BooleanField(required=False)
         update_proposal = serializers.BooleanField(required=False)

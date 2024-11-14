@@ -5,7 +5,9 @@ from flowback.common.pagination import LimitOffsetPagination, get_paginated_resp
 
 from flowback.group.models import GroupTags
 from flowback.group.selectors import group_tags_list, group_tags_interval_mean_absolute_correctness
-from flowback.group.services import group_tag_create, group_tag_update, group_tag_delete
+from flowback.group.services.tag import (group_tag_create,
+                                         group_tag_update,
+                                         group_tag_delete)
 
 
 class GroupTagsListApi(APIView):

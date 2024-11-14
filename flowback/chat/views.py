@@ -2,10 +2,12 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .selectors import message_list, message_channel_preview_list, message_channel_topic_list
+from .selectors import message_list, message_channel_preview_list, message_channel_topic_list, \
+    message_channel_participant_list
 from .serializers import MessageSerializer, BasicMessageSerializer
 from .services import message_channel_userdata_update, message_channel_leave, message_files_upload
 from flowback.common.pagination import get_paginated_response, LimitOffsetPagination
+from ..user.serializers import BasicUserSerializer
 
 
 class MessageListAPI(APIView):
@@ -98,6 +100,35 @@ class MessageChannelTopicListAPI(APIView):
         return get_paginated_response(pagination_class=self.Pagination,
                                       serializer_class=self.OutputSerializer,
                                       queryset=topics,
+                                      request=request,
+                                      view=self)
+
+
+class MessageChannelParticipantListAPI(APIView):
+    class Pagination(LimitOffsetPagination):
+        max_limit = 100
+        default_limit = 50
+
+    class FilterSerializer(serializers.Serializer):
+        username__icontains = serializers.CharField(required=False)
+        id = serializers.IntegerField(required=False)
+        user_id = serializers.IntegerField(required=False)
+
+    class OutputSerializer(serializers.Serializer):
+        id = serializers.IntegerField()
+        user = BasicUserSerializer()
+
+    def get(self, request, channel_id: int):
+        serializer = self.FilterSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        participants = message_channel_participant_list(user=request.user,
+                                                        channel_id=channel_id,
+                                                        filters=serializer.validated_data)
+
+        return get_paginated_response(pagination_class=self.Pagination,
+                                      serializer_class=self.OutputSerializer,
+                                      queryset=participants,
                                       request=request,
                                       view=self)
 

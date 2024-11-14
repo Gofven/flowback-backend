@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from flowback.common.pagination import LimitOffsetPagination
 from flowback.files.serializers import FileSerializer
+from flowback.group.serializers import WorkGroupSerializer
 from flowback.kanban.models import KanbanEntry
 
 
@@ -41,12 +42,15 @@ class KanbanEntryListApi(APIView):
         title = serializers.CharField()
         description = serializers.CharField(allow_null=True, allow_blank=True)
         attachments = FileSerializer(many=True, source="attachments.filesegment_set", allow_null=True)
+        work_group = WorkGroupSerializer()
         tag = serializers.IntegerField()
+        category = serializers.CharField(allow_null=True)
 
 
 class KanbanEntryCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
-        assignee = serializers.IntegerField(source='assignee_id', required=False, allow_null=True)
+        assignee_id = serializers.IntegerField(required=False, allow_null=True)
+        work_group_id = serializers.IntegerField(required=False, allow_null=True)
         title = serializers.CharField()
         end_date = serializers.DateTimeField(required=False, allow_null=True)
         attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)

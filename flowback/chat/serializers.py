@@ -11,6 +11,7 @@ class _MessageSerializerTemplate(serializers.Serializer):
     updated_at = serializers.DateTimeField()
     channel_id = serializers.IntegerField()
     channel_origin_name = serializers.CharField(source="channel.origin_name")
+    channel_title = serializers.CharField(source="channel.title")
     topic_id = serializers.IntegerField(required=False)
     topic_name = serializers.CharField(required=False, source='topic.name')
     message = serializers.CharField()

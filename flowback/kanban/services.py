@@ -31,12 +31,13 @@ def kanban_subscription_delete(*, kanban_id: int, target_id: int) -> None:
 def kanban_entry_create(*,
                         kanban_id: int,
                         created_by_id: int,
-                        assignee_id: int,
                         title: str,
                         description: str,
                         tag: int,
                         priority: int,
+                        assignee_id: int = None,
                         attachments: list = None,
+                        work_group_id=None,
                         end_date: timezone.datetime = None) -> KanbanEntry:
     kanban = KanbanEntry(kanban_id=kanban_id,
                          created_by_id=created_by_id,
@@ -45,6 +46,7 @@ def kanban_entry_create(*,
                          description=description,
                          tag=tag,
                          priority=priority,
+                         work_group_id=work_group_id,
                          end_date=end_date)
 
     kanban.full_clean()
@@ -122,6 +124,7 @@ class KanbanManager:
                             priority: int,
                             tag: int,
                             attachments: list = None,
+                            work_group_id=None,
                             end_date: timezone.datetime = None) -> KanbanEntry:
         kanban = self.get_kanban(origin_id=origin_id)
         return kanban_entry_create(kanban_id=kanban.id,
@@ -130,9 +133,10 @@ class KanbanManager:
                                    title=title,
                                    description=description,
                                    attachments=attachments,
+                                   work_group_id=work_group_id,
                                    priority=priority,
                                    end_date=end_date,
-                                   tag=tag)
+                                   tag=tag,)
 
     def kanban_entry_update(self,
                             *,

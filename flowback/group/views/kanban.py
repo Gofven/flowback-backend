@@ -3,13 +3,14 @@ from rest_framework import status, serializers
 
 from flowback.common.pagination import get_paginated_response
 from flowback.group.selectors import group_kanban_entry_list
-from flowback.group.services import group_kanban_entry_create, group_kanban_entry_update, group_kanban_entry_delete
+from flowback.group.services.kanban import group_kanban_entry_create, group_kanban_entry_update, group_kanban_entry_delete
 
 from flowback.kanban.views import KanbanEntryListApi, KanbanEntryCreateAPI, KanbanEntryUpdateAPI, KanbanEntryDeleteAPI
 
 
 class GroupKanbanEntryListAPI(KanbanEntryListApi):
     class OutputSerializer(KanbanEntryListApi.OutputSerializer):
+        work_group_ids = serializers.CharField(required=False)
         group_name = serializers.CharField()
 
     def get(self, request, group_id: int):

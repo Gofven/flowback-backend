@@ -2,7 +2,8 @@ from rest_framework.exceptions import ValidationError
 from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
 from flowback.group.models import GroupTags
-from flowback.group.services import group_notification, group_schedule
+from flowback.group.services.schedule import group_schedule
+from flowback.group.services.group import group_notification
 from flowback.notification.services import NotificationManager
 from flowback.poll.models import Poll, PollProposal, PollPhaseTemplate
 from flowback.group.selectors import group_user_permissions

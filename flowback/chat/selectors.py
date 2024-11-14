@@ -1,5 +1,6 @@
 from django.db.models import Q, OuterRef, Subquery, Case, When, F
 import django_filters
+from rest_framework.exceptions import PermissionDenied
 
 from .models import MessageChannel, Message, MessageChannelParticipant, MessageChannelTopic
 from flowback.user.models import User
@@ -93,5 +94,28 @@ def message_channel_preview_list(*, user: User, filters=None):
                                                               ).distinct('channel').all()
 
     qs = Message.objects.filter(id__in=message_qs)
+
+    return BaseMessageChannelPreviewFilter(filters, qs).qs
+
+
+class MessageChannelParticipantFilter(django_filters.FilterSet):
+    username__icontains = django_filters.CharFilter(lookup_expr='icontains', field_name='user__username')
+
+    class Meta:
+        model = MessageChannelParticipant
+        fields = dict(id=['exact'],
+                      user_id=['exact'])
+
+
+def message_channel_participant_list(*, user: User, channel_id: int, filters=None):
+    filters = filters or {}
+
+    try:
+        participant = MessageChannelParticipant.objects.get(user=user, channel_id=channel_id, active=True)
+
+    except MessageChannelParticipant.DoesNotExist:
+        raise PermissionDenied("User is not a participant of this channel")
+
+    qs = MessageChannelParticipant.objects.filter(channel=participant.channel, active=True).all()
 
     return BaseMessageChannelPreviewFilter(filters, qs).qs
