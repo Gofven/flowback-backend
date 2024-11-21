@@ -14,7 +14,7 @@ class ServerConfigListAPI(APIView):
         DEBUG = serializers.BooleanField(help_text="Backend debug mode")
         FLOWBACK_KANBAN_LANES = serializers.ListField(
             child=serializers.CharField(),
-            help_text="List of kanban lanes, when using the kanban list APIs, the kanban lanes represent the position"
+            help_text="List of kanban lanes, when using the kanban list APIs, the kanban lanes represent the position "
                       "of the kanban 'lane' field, starting from 1")
         FLOWBACK_ALLOW_GROUP_CREATION = serializers.BooleanField(help_text='Allow users to create groups')
         FLOWBACK_ALLOW_DYNAMIC_POLL = serializers.BooleanField(help_text="Allow users to create dynamic polls")
