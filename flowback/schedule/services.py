@@ -38,7 +38,9 @@ def create_event(*,
                  description: str = None,
                  work_group_id: int = None,
                  assignee_ids: list[int] = None,
-                 meeting_link: str = None) -> ScheduleEvent:
+                 meeting_link: str = None,
+                 repeat_frequency: int = None,
+                 repeat_duration: int = None) -> ScheduleEvent:
     schedule = Schedule.objects.get(id=schedule_id)
 
     # Simple hack to allow assignees for schedules, needs refactor in future
@@ -56,7 +58,9 @@ def create_event(*,
                           origin_name=origin_name,
                           work_group_id=work_group_id,
                           origin_id=origin_id,
-                          meeting_link=meeting_link)
+                          meeting_link=meeting_link,
+                          repeat_duration=repeat_duration,
+                          repeat_frequency=repeat_frequency)
     event.full_clean()
     event.save()
 
