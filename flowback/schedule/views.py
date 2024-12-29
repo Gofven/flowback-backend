@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.views import APIView
 from flowback.common.pagination import LimitOffsetPagination
 from flowback.group.serializers import WorkGroupSerializer, GroupUserSerializer
+from flowback.schedule.models import ScheduleEvent
 
 
 class ScheduleEventListTemplateAPI(APIView):
@@ -57,6 +58,7 @@ class ScheduleEventCreateTemplateAPI(APIView):
                                              help_text="List of group user IDs (Only available for group schedules)")
         meeting_link = serializers.URLField(required=False,
                                             help_text="URL link to meeting, can be any URL.")
+        repeat_frequency = serializers.ChoiceField(required=False, choices=ScheduleEvent.Frequency.choices)
 
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
