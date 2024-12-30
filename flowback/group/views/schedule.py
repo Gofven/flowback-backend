@@ -16,7 +16,7 @@ from flowback.group.selectors import group_schedule_event_list
 
 class GroupScheduleEventListAPI(ScheduleEventListTemplateAPI):
     def get(self, request, group_id: int):
-        serializer = self.InputSerializer(data=request.query_params)
+        serializer = self.FilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
         events = group_schedule_event_list(fetched_by=request.user,

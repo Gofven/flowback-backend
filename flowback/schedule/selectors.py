@@ -12,6 +12,13 @@ class ScheduleEventBaseFilter(django_filters.FilterSet):
     work_group_ids = NumberInFilter()
     assignee_ids = NumberInFilter(field_name='assignees__id')
 
+    order_by = django_filters.OrderingFilter(fields=(('created_at', 'created_at_asc'),
+                                                     ('-created_at', 'created_at_desc'),
+                                                     ('start_date', 'start_date_asc'),
+                                                     ('-start_date', 'start_date_desc'),
+                                                     ('end_date', 'end_date_asc'),
+                                                     ('-end_date', 'end_date_desc')))
+
 
     class Meta:
         model = ScheduleEvent
