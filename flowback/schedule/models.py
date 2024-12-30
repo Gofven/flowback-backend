@@ -1,9 +1,10 @@
 import datetime
 import json
 
+from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MaxValueValidator
 from django.db import models
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_delete
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask, CrontabSchedule
 from rest_framework.exceptions import ValidationError
@@ -42,18 +43,27 @@ class ScheduleEvent(BaseModel):
     origin_id = models.IntegerField()
 
     repeat_frequency = models.IntegerField(null=True, blank=True, choices=Frequency.choices)
-    repeat_task = models.ForeignKey(PeriodicTask, on_delete=models.CASCADE, null=True, blank=True)
-    repeat_next_run = models.DateTimeField(null=True, blank=True)
+
+    reminders = ArrayField(models.IntegerField(), size=10, null=True, blank=True)  # Max 10 reminders
+    reminder_tasks = models.ManyToManyField(PeriodicTask)
 
     def clean(self):
         if self.end_date and self.start_date > self.end_date:
             raise ValidationError('Start date is greater than end date')
 
+        if self.reminders:
+            if list(set(self.reminders)) < self.reminders:
+                raise ValidationError("Reminders can't have duplicates")
+
     @classmethod
     def post_save(cls, instance, created, *args, **kwargs):
-        start_date = instance.start_date - datetime.timedelta(hours=2)  # Offset start_date by 2 hours
+        # Offset start_date by the earliest reminder - 1 minute
 
-        if created:
+        if not created or not instance.reminders:
+            return
+
+        for i in instance.reminders:
+            start_date = instance.start_date - datetime.timedelta(seconds=i)
             repeat_frequency = instance.repeat_frequency
 
             if repeat_frequency:  # Create scheduled notifications on repeat
@@ -81,23 +91,23 @@ class ScheduleEvent(BaseModel):
                 else:
                     return
 
-                periodic_task = PeriodicTask.objects.create(name="Schedule Event",
+                periodic_task = PeriodicTask.objects.create(name=f"schedule_event_{instance.id}_{i}",
                                                             task="schedule.tasks.event_notify",
-                                                            kwargs=json.dumps(dict(event_id=instance.id,
-                                                                                   reminders=[0, 7200])),
-                                                            crontab=schedule)
+                                                            kwargs=json.dumps(dict(event_id=instance.id)),
+                                                            crontab=schedule[0])
                 periodic_task.save()
 
-                instance.repeat_task = periodic_task
+                instance.reminder_tasks.add(periodic_task)
                 instance.save()
 
-    @classmethod
-    def post_delete(cls, instance, *args, **kwargs):
-        if instance.periodic_task:
-            instance.periodic_task.delete()
+        # TODO add reminders for one-off events
+
+    @classmethod  # Delete reminders
+    def pre_delete(cls, instance, *args, **kwargs):
+        instance.reminder_tasks.all().delete()
 
 post_save.connect(ScheduleEvent.post_save, ScheduleEvent)
-post_delete.connect(ScheduleEvent.post_delete, ScheduleEvent)
+pre_delete.connect(ScheduleEvent.pre_delete, ScheduleEvent)
 
 
 class ScheduleSubscription(BaseModel):

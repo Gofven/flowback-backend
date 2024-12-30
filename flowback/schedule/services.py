@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from os import remove
 
 from charset_normalizer.constant import FREQUENCIES
 from django.utils import timezone
@@ -44,7 +45,8 @@ def create_event(*,
                  work_group_id: int = None,
                  assignee_ids: list[int] = None,
                  meeting_link: str = None,
-                 repeat_frequency: int = None) -> ScheduleEvent:
+                 repeat_frequency: int = None,
+                 reminders: list[int] = None) -> ScheduleEvent:
     schedule = Schedule.objects.get(id=schedule_id)
 
     # Simple hack to allow assignees for schedules, needs refactor in future
@@ -63,7 +65,8 @@ def create_event(*,
                           work_group_id=work_group_id,
                           origin_id=origin_id,
                           meeting_link=meeting_link,
-                          repeat_frequency=repeat_frequency)
+                          repeat_frequency=repeat_frequency,
+                          reminders=reminders)
 
     event.full_clean()
     event.save()
@@ -113,7 +116,9 @@ def delete_event(*, event_id: int):
 def subscribe_schedule(*, schedule_id: int, target_id: int) -> ScheduleSubscription:
     subscription = ScheduleSubscription(schedule_id=schedule_id, target_id=target_id)
     subscription.full_clean()
-    return subscription.save()
+    subscription.save()
+
+    return subscription
 
 
 def unsubscribe_schedule(*, schedule_id: int, target_id: int):

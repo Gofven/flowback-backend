@@ -12,27 +12,24 @@ from flowback.schedule.models import ScheduleEvent
 schedule_notification = NotificationManager(sender_type="schedule")
 
 @shared_task
-def event_notify(event_id: int, reminders: list[int]):
+def event_notify(event_id: int, seconds_before_event: int = None):
     """
     :param event_id:  ScheduleEvent id
-    :param reminders:  The amount of seconds before the event begins, add "0" to include notification when the event begins
+    :param seconds_before_event:  Purely visual, additional data for notification message
     """
     event = ScheduleEvent.objects.get(id=event_id)
-    reminders = list(set(reminders))  # Remove duplicates
 
-    for i in reminders:
-        if i == 0:
-            message = f'The event "{event.title}" has begun!'
+    if not seconds_before_event:
+        message = f'The event "{event.title}" has begun!'
 
-        else:
-            message = f'The event "{event.title}" begins in {"{:0>8}".format(str(timedelta(seconds=i)))}!'
+    else:
+        message = (f'The event "{event.title}" begins in '
+                   f'{"{:0>8}".format(str(timedelta(seconds=seconds_before_event)))}!')
 
-        timestamp = event.start_date - timedelta(seconds=i)
         schedule_notification.create(sender_id=event.schedule.id,
                                      action='info',
                                      category='event',
                                      message=message,
-                                     timestamp=timestamp,
                                      related_id=event.id)
 
     # event = ScheduleEvent.objects.get(id=event_id)
