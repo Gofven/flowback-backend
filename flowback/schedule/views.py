@@ -19,6 +19,8 @@ class ScheduleEventListTemplateAPI(APIView):
         end_date__lt = serializers.DateTimeField(required=False)
         end_date__gt = serializers.DateTimeField(required=False)
 
+        repeat_frequency__isnull = serializers.BooleanField(required=False)
+
         order_by = serializers.CharField(required=False, help_text="Allowed options: "
                                                                    "`created_at_asc`, `created_at_desc`, "
                                                                    "`start_date_asc`, `start_date_desc`, "

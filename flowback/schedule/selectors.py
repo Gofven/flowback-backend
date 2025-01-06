@@ -11,6 +11,7 @@ class ScheduleEventBaseFilter(django_filters.FilterSet):
     title = django_filters.CharFilter(lookup_expr='iexact')
     work_group_ids = NumberInFilter()
     assignee_ids = NumberInFilter(field_name='assignees__id')
+    repeat_frequency__isnull = django_filters.BooleanFilter(field_name='repeat_frequency', lookup_expr='isnull')
 
     order_by = django_filters.OrderingFilter(fields=(('created_at', 'created_at_asc'),
                                                      ('-created_at', 'created_at_desc'),
