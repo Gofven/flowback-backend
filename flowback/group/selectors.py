@@ -329,7 +329,7 @@ class BaseGroupThreadFilter(django_filters.FilterSet):
     class Meta:
         model = GroupThread
         fields = dict(id=['exact'],
-                      title=['icontains'],
+                      title=['exact', 'icontains'],
                       description=['icontains'])
 
 
