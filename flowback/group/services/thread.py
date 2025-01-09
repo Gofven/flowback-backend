@@ -44,7 +44,7 @@ def group_thread_create(user_id: int,
 
 def group_thread_update(user_id: int, thread_id: int, data: dict):
     thread = get_object(GroupThread, id=thread_id)
-    non_side_effect_fields = ['title', 'description', 'attachments']
+    non_side_effect_fields = ['title', 'description', 'attachments', 'pinned']
 
     if 'pinned' in data.keys():
         group_user_permissions(user=user_id, group=thread.created_by.group, permissions=['admin'])
