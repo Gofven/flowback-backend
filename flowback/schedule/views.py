@@ -68,6 +68,7 @@ class ScheduleEventCreateTemplateAPI(APIView):
                                             help_text="URL link to meeting, can be any URL.")
         repeat_frequency = serializers.ChoiceField(required=False, choices=ScheduleEvent.Frequency.choices)
         reminders = serializers.ListField(child=serializers.IntegerField(),
+                                          required=False,
                                           max_length=10,
                                           help_text="List of reminders in seconds, before the event begins"
                                                     "(add 0 to get a reminder when the event begin)")
