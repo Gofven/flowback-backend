@@ -1,18 +1,15 @@
 from rest_framework.exceptions import ValidationError
 from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
-from flowback.group.models import GroupTags
-from flowback.group.services.schedule import group_schedule
 from flowback.group.services.group import group_notification
 from flowback.notification.services import NotificationManager
-from flowback.poll.models import Poll, PollProposal, PollPhaseTemplate
+from flowback.poll.models import Poll, PollPhaseTemplate
 from flowback.group.selectors import group_user_permissions
 from django.utils import timezone
 from datetime import datetime
 
 from flowback.poll.services.vote import poll_proposal_vote_count
 from flowback.poll.tasks import poll_area_vote_count, poll_prediction_bet_count
-from flowback.user.models import User
 
 poll_notification = NotificationManager(sender_type='poll', possible_categories=['timeline',
                                                                                  'poll',
