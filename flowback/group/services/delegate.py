@@ -15,6 +15,9 @@ def group_user_delegate(*, user: int, group: int, delegate_pool_id: int, tags: l
     delegator = group_user_permissions(user=user, group=group)
     delegate_pool = get_object(GroupUserDelegatePool, 'Delegate pool does not exist', id=delegate_pool_id, group=group)
 
+    if GroupUserDelegate.objects.filter(group_user=delegator).exists():
+        raise ValidationError('Delegator cannot be a delegate')
+
     db_tags = GroupTags.objects.filter(id__in=tags, active=True).all()
 
     # Check if user_tags already exists, user's can't have multiple delegators on a single tag
@@ -81,6 +84,9 @@ def group_user_delegate_remove(*, user_id: int, group_id: int, delegate_pool_id:
 def group_user_delegate_pool_create(*, user: int, group: int, blockchain_id: int = None) -> GroupUserDelegatePool:
     group_user = group_user_permissions(user=user, group=group, permissions=['allow_delegate', 'admin'])
 
+    if GroupUserDelegator.objects.filter(delegator=group_user).exists():
+        raise ValidationError('Delegate cannot be a delegator')
+
     # To avoid duplicates (for now)
     get_object(GroupUserDelegate, reverse=True, group=group, group_user=group_user)
 
@@ -146,16 +152,16 @@ def group_delegate_pool_comment_update(*,
 
 
 def group_delegate_pool_comment_delete(*,
-                                       author_id: int,
+                                       fetched_by: int,
                                        delegate_pool_id: int,
                                        comment_id: int):
     delegate_pool = get_object(GroupUserDelegatePool, id=delegate_pool_id)
-    group_user = group_user_permissions(user=author_id, group=delegate_pool.group)
+    group_user = group_user_permissions(user=fetched_by, group=delegate_pool.group)
 
     force = bool(group_user_permissions(group_user=group_user, permissions=['admin', 'force_delete_comment'],
                                         raise_exception=False))
 
-    return comment_delete(fetched_by=author_id,
+    return comment_delete(fetched_by=fetched_by,
                           comment_section_id=delegate_pool.comment_section.id,
                           comment_id=comment_id,
                           force=force)

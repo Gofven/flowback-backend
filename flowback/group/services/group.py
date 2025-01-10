@@ -18,7 +18,7 @@ group_notification = NotificationManager(sender_type='group', possible_categorie
 def group_create(*,
                  user: int,
                  name: str,
-                 description: str,
+                 description: str = None,
                  hide_poll_users: bool,
                  public: bool,
                  direct_join: bool,
@@ -29,6 +29,10 @@ def group_create(*,
 
     if not (env('FLOWBACK_ALLOW_GROUP_CREATION') or (user.is_staff or user.is_superuser)):
         raise ValidationError('Permission denied')
+
+    # TODO Fullclean MUST work!
+    if direct_join and not public:
+        raise ValidationError('Private groups are unable to allow Direct Join')
 
     # Create Group
     group = Group(created_by=user, name=name, description=description, image=image,
