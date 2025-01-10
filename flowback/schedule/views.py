@@ -3,7 +3,6 @@ from rest_framework.views import APIView
 from flowback.common.pagination import LimitOffsetPagination
 from flowback.group.serializers import WorkGroupSerializer, GroupUserSerializer
 from flowback.schedule.models import ScheduleEvent
-from flowback.schedule.selectors import ScheduleEventBaseFilter
 
 
 class ScheduleEventListTemplateAPI(APIView):
@@ -19,7 +18,7 @@ class ScheduleEventListTemplateAPI(APIView):
         end_date__lt = serializers.DateTimeField(required=False)
         end_date__gt = serializers.DateTimeField(required=False)
 
-        repeat_frequency__isnull = serializers.BooleanField(required=False)
+        repeat_frequency__isnull = serializers.BooleanField(required=False, allow_null=True)
 
         order_by = serializers.CharField(required=False, help_text="Allowed options: "
                                                                    "`created_at_asc`, `created_at_desc`, "
