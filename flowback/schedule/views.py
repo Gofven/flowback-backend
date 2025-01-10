@@ -3,7 +3,6 @@ from rest_framework.views import APIView
 from flowback.common.pagination import LimitOffsetPagination
 from flowback.group.serializers import WorkGroupSerializer, GroupUserSerializer
 from flowback.schedule.models import ScheduleEvent
-from flowback.schedule.selectors import ScheduleEventBaseFilter
 
 
 class ScheduleEventListTemplateAPI(APIView):
