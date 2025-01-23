@@ -1,0 +1,61 @@
+services:
+  flowback-postgresql:
+    image: postgres:16.2
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    restart: unless-stopped
+    user: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-flowback}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-flowback}
+      POSTGRES_DB: ${POSTGRES_DB:-flowback}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-U", "${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    env_file:
+      - .env
+#    ports:
+#      - "5432:5432"
+
+  flowback-redis:
+    image: redis:5
+    restart: unless-stopped
+#    ports:
+#      - "6379:6379"
+
+  flowback-rabbitmq:
+    image: rabbitmq:3.13
+    hostname: flowback
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: flowback
+      RABBITMQ_DEFAULT_PASS: flowback
+      RABBITMQ_DEFAULT_VHOST: flowback
+#    ports:
+#      - "5672:5672"
+#      - "15672:15672"
+
+  flowback-backend:
+    build: .
+    command: >
+      bash -c "python manage.py migrate
+      && python manage.py runserver 0.0.0.0:8000"
+    container_name: django-docker
+    ports:
+      - "8000:8000"
+    volumes:
+      - .env:/app/.env
+      - ./media:/app/media
+    depends_on:
+      flowback-postgresql:
+        condition: service_healthy
+    environment:
+      FLOWBACK_PSQL_NAME: ${POSTGRES_DB:-flowback}
+      FLOWBACK_PSQL_USER: ${POSTGRES_USER:-flowback}
+      FLOWBACK_PSQL_PASSWORD: ${POSTGRES_PASSWORD:-flowback}
+      FLOWBACK_PSQL_HOST: ${POSTGRES_HOST:-flowback-postgresql}
+      FLOWBACK_PSQL_PORT: ${POSTGRES_PORT:-5432}
+    env_file:
+      - .env
