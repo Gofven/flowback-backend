@@ -24,6 +24,11 @@ env = environ.Env(DEBUG=(bool, False),
                   INSTANCE_NAME=(str, 'Flowback'),
                   PG_SERVICE=(str, 'flowback'),
                   PG_PASS=(str, '.flowback_pgpass'),
+                  FLOWBACK_PSQL_NAME=(str, None),
+                  FLOWBACK_PSQL_USER=(str, None),
+                  FLOWBACK_PSQL_PASSWORD=(str, None),
+                  FLOWBACK_PSQL_HOST=(str, None),
+                  FLOWBACK_PSQL_PORT=(str, None),
                   REDIS_IP=(str, 'localhost'),
                   REDIS_PORT=(str, '6379'),
                   RABBITMQ_BROKER_URL=(str, 'amqp://flowback:flowback@localhost:5672/flowback'),
@@ -54,20 +59,28 @@ env = environ.Env(DEBUG=(bool, False),
                   FLOWBACK_KANBAN_LANES=(list, ['Backlog', 'Chosen For Execution', 'In Progress', 'Evaluation', 'Finished'])
                   )
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 TESTING = sys.argv[1:2] == ['test'] or "pytest" in sys.modules
-env.read_env(os.path.join(BASE_DIR, "../../.env"))
+env.read_env(os.path.join(BASE_DIR, ".env"))
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
+# Django Secret Key. If it's missing, it'll be generated and stored in .env
+SECRET_KEY = env('DJANGO_SECRET', default=None)
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('DJANGO_SECRET')
+if not SECRET_KEY:
+    from django.core.management.utils import get_random_secret_key
+
+    SECRET_KEY = get_random_secret_key()
+
+    with open(os.path.join(BASE_DIR, ".env"), "a+") as env_file:
+        env_file.write(f"\nDJANGO_SECRET={SECRET_KEY}\n")
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
+
 
 FLOWBACK_URL = env('FLOWBACK_URL')
 INSTANCE_NAME = env('INSTANCE_NAME')
@@ -88,6 +101,7 @@ if env('SECURE_PROXY_SSL_HEADERS'):
 
 URL_SUBPATH = env('URL_SUBPATH')
 INTEGRATIONS = env('INTEGRATIONS')
+
 
 # Application definition
 
@@ -235,20 +249,20 @@ CHANNEL_LAYERS = {
 # OIDC Settings
 LOGIN_URL = '/accounts/login/'
 OIDC_USERINFO = 'backend.oidc_provider_settings.userinfo'
-
-
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
+db_data = dict(ENGINE='django.db.backends.postgresql_psycopg2')
+if env('FLOWBACK_PSQL_NAME'):
+    db_data['NAME'] = env('FLOWBACK_PSQL_NAME')
+    db_data['USER'] = env('FLOWBACK_PSQL_USER')
+    db_data['PASSWORD'] = env('FLOWBACK_PSQL_PASSWORD')
+    db_data['HOST'] = env('FLOWBACK_PSQL_HOST')
+    db_data['PORT'] = env('FLOWBACK_PSQL_PORT')
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'OPTIONS': {
-            'service': PG_SERVICE,
-            'passfile': PG_PASS,
-        },
-    }
-}
+else:
+    db_data['OPTIONS'] = dict(service=PG_SERVICE, passfile=PG_PASS)
+
+DATABASES = {'default': db_data}
 
 if TESTING:
     with (open(PG_PASS) as pgpass):
