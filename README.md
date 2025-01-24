@@ -1,9 +1,25 @@
-## Flowback Backend
+# Flowback Backend
 Flowback was created and project lead by Loke Hagberg. The co-creators of this version were:
 Siamand Shahkaram, Emil Svenberg and Yuliya Hagberg.
-It is a decision making platform.
+It is a decision-making platform.
 
 <sub><sub>This text is not allowed to be removed.</sub></sub>
+
+
+## Installation
+
+### Docker Compose
+To run Flowback backend using Docker Compose, follow these instructions: 
+1) [Download](https://github.com/Gofven/flowback/archive/refs/heads/master.zip) or [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository to your local computer
+2) Download [Docker Compose](https://docs.docker.com/compose/install/linux/) (Linux) or [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows)
+3) Using your computers terminal, navigate to the local repository using `cd <directory>`
+4) Run `docker compose up -d`
+
+When docker compose is running, it'll create .env file in the repository folder if it doesn't exist, 
+or append `DJANGO_SECRET` to the file if .env exists and the variable isn't present in it. 
+If you wish to change the environment variables, use .env.example as reference!
+
+## Content
 
 The following is from Collected papers on finitist mathematics and phenomenalism: a digital phenomenology by Loke Hagberg 2023 [1].
 

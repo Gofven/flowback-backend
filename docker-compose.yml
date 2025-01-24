@@ -1,8 +1,6 @@
 services:
   flowback-postgresql:
     image: postgres:16.2
-    volumes:
-      - ./data/db:/var/lib/postgresql/data
     restart: unless-stopped
     user: postgres
     environment:
@@ -15,7 +13,8 @@ services:
       timeout: 5s
       retries: 5
     env_file:
-      - .env
+      - path: ./.env
+        required: false
 #    ports:
 #      - "5432:5432"
 
@@ -46,7 +45,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .env:/app/.env
+      - .:/app
       - ./media:/app/media
     depends_on:
       flowback-postgresql:
@@ -58,4 +57,5 @@ services:
       FLOWBACK_PSQL_HOST: ${POSTGRES_HOST:-flowback-postgresql}
       FLOWBACK_PSQL_PORT: ${POSTGRES_PORT:-5432}
     env_file:
-      - .env
+      - path: ./.env
+        required: false
