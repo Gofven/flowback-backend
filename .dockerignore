@@ -1,0 +1,9 @@
+.idea
+media
+static
+data
+
+.env.example
+.readthedocs.yaml
+general.log
+pytest.ini
