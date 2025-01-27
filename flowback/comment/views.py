@@ -25,7 +25,7 @@ class CommentListAPI(APIView):
                                                     'score_asc',
                                                     'score_desc'], default='score_desc')
         id = serializers.IntegerField(required=False)
-        message__icontains = serializers.ListField(child=serializers.CharField(), required=False)
+        message__icontains = serializers.CharField(required=False)
         author_id = serializers.IntegerField(required=False)
         author_id__in = serializers.CharField(required=False)
         parent_id = serializers.IntegerField(required=False)
