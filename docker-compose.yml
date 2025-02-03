@@ -58,6 +58,8 @@ services:
       FLOWBACK_PSQL_PASSWORD: ${POSTGRES_PASSWORD:-flowback}
       FLOWBACK_PSQL_HOST: ${POSTGRES_HOST:-flowback-postgresql}
       FLOWBACK_PSQL_PORT: ${POSTGRES_PORT:-5432}
+      FLOWBACK_REDIS_HOST: ${FLOWBACK_REDIS_HOST:-flowback-redis}
+      FLOWBACK_RABBITMQ_HOST: ${FLOWBACK_RABBITMQ_HOST:-flowback-rabbitmq}
     env_file:
       - path: ./.env
         required: false
