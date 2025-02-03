@@ -77,6 +77,8 @@ class Group(BaseModel):
             schedule.save()
             kanban = Kanban(name=instance.name, origin_type='group', origin_id=instance.id)
             kanban.save()
+            group_user = GroupUser(user=instance.created_by, group=instance, is_admin=True)
+            group_user.save()
 
             instance.schedule = schedule
             instance.kanban = kanban

@@ -13,6 +13,7 @@ from ..services.poll import poll_fast_forward, poll_create
 from ..views.poll import PollListApi, PollCreateAPI, PollUpdateAPI, PollDeleteAPI
 from ...common.tests import generate_request
 from ...files.tests.factories import FileSegmentFactory
+from ...group.models import GroupUser
 from ...group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
 from ...notification.models import NotificationChannel
 from ...user.models import User
@@ -22,7 +23,7 @@ class PollTest(APITransactionTestCase):
     def setUp(self):
         self.group = GroupFactory()
         self.group_tag = GroupTagsFactory(group=self.group)
-        self.group_user_creator = GroupUserFactory(group=self.group, user=self.group.created_by)
+        self.group_user_creator = GroupUser.objects.get(user=self.group.created_by, group=self.group)
         (self.group_user_one,
          self.group_user_two,
          self.group_user_three) = GroupUserFactory.create_batch(3, group=self.group)
