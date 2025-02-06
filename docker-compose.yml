@@ -42,12 +42,11 @@ services:
     build: .
     command: >
       bash -c "python manage.py migrate
-      && python manage.py runserver 0.0.0.0:8000"
+      && python manage.py runserver 0.0.0.0:${PORT:-8000}"
     container_name: django-docker
     ports:
-      - "8000:8000"
+      - ${PORT:-8000}:${PORT:-8000}
     volumes:
-      - .:/app
       - ./media:/app/media
     depends_on:
       flowback-postgresql:
@@ -58,8 +57,8 @@ services:
       FLOWBACK_PSQL_PASSWORD: ${POSTGRES_PASSWORD:-flowback}
       FLOWBACK_PSQL_HOST: ${POSTGRES_HOST:-flowback-postgresql}
       FLOWBACK_PSQL_PORT: ${POSTGRES_PORT:-5432}
-      FLOWBACK_REDIS_HOST: ${FLOWBACK_REDIS_HOST:-flowback-redis}
-      FLOWBACK_RABBITMQ_HOST: ${FLOWBACK_RABBITMQ_HOST:-flowback-rabbitmq}
+      FLOWBACK_REDIS_HOST: ${REDIS_HOST:-flowback-redis}
+      FLOWBACK_RABBITMQ_HOST: ${RABBITMQ_HOST:-flowback-rabbitmq}
     env_file:
       - path: ./.env
         required: false
