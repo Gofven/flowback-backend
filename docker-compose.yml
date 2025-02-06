@@ -48,6 +48,7 @@ services:
       - ${PORT:-8000}:${PORT:-8000}
     volumes:
       - ./media:/app/media
+      - ./static:/app/static
     depends_on:
       flowback-postgresql:
         condition: service_healthy
