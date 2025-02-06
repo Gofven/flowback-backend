@@ -43,7 +43,6 @@ services:
     command: >
       bash -c "python manage.py migrate
       && python manage.py runserver 0.0.0.0:${PORT:-8000}"
-    container_name: django-docker
     ports:
       - ${PORT:-8000}:${PORT:-8000}
     volumes:
