@@ -157,7 +157,7 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Flowback API',
     'DESCRIPTION': 'Documentation for interfacing with Flowback',
-    'VERSION': '1.0.1',
+    'VERSION': '1.0.2',
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
