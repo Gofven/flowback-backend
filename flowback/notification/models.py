@@ -5,6 +5,8 @@ from flowback.common.models import BaseModel
 from flowback.user.models import User
 
 
+# Current idea: A list of notifications containing data aswell as list of related data
+
 # Add get_or_create on every app startup for channels:
 # https://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only
 class NotificationChannel(BaseModel):
