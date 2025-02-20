@@ -5,27 +5,39 @@ from flowback.common.models import BaseModel
 from flowback.user.models import User
 
 
-# Current idea: A list of notifications containing data aswell as list of related data
-
-# Add get_or_create on every app startup for channels:
-# https://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only
 class NotificationChannel(BaseModel):
     category = models.CharField(max_length=255)
-    sender_type = models.CharField(max_length=255)
-    sender_id = models.IntegerField()
-
-    class Meta:
-        unique_together = ('category', 'sender_type', 'sender_id')
 
 
+# NotificationObject is created containing data for each occurrence
 class NotificationObject(BaseModel):
-    related_id = models.IntegerField(null=True, blank=True)
-    action = models.CharField(max_length=255)
-    message = models.TextField()
+    class Action(models.TextChoices):
+        CREATED = 'CREATED', 'Created'
+        UPDATED = 'UPDATED', 'Updated'
+        DELETED = 'DELETED', 'Deleted'
+        INFO = 'INFO', 'Info'
+        WARNING = 'WARNING', 'Warning'
+        ERROR = 'ERROR', 'Error'
+
+    action = models.CharField(choices=Action.choices)
+    message = models.TextField(max_length=2000)
+    data = models.JSONField(null=True, blank=True)  # Suggested to store relevant data for user
     timestamp = models.DateTimeField(default=timezone.now)
     channel = models.ForeignKey(NotificationChannel, on_delete=models.CASCADE)
 
 
+# Notification is created for every user subscribed to a channel,
+# with a NotificationObject attached to it containing the data
+class Notification(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    notification_object = models.ForeignKey("notification.NotificationObject", on_delete=models.CASCADE)
+    read = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('user', 'notification_object')
+
+
+# Notification Subscription allows users to subscribe to the NotificationChannel, to get Notifications for themselves
 class NotificationSubscription(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     channel = models.ForeignKey(NotificationChannel, on_delete=models.CASCADE)
@@ -34,10 +46,4 @@ class NotificationSubscription(BaseModel):
         unique_together = ('user', 'channel')
 
 
-class Notification(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    notification_object = models.ForeignKey(NotificationObject, on_delete=models.CASCADE)
-    read = models.BooleanField(default=False)
 
-    class Meta:
-        unique_together = ('user', 'notification_object')
