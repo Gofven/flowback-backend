@@ -111,11 +111,16 @@ def group_user_permissions(*,
         else:
             return False
 
-    if work_group and not (admin and allow_admin):
-        work_group_user = WorkGroupUser.objects.get(group_user=group_user, work_group=work_group)
+    if work_group and not admin:
+        try:
+            work_group_user = WorkGroupUser.objects.get(group_user=group_user, work_group=work_group)
+
+        except WorkGroupUser.DoesNotExist:
+            raise PermissionDenied("Requires work group membership")
 
         if work_group_moderator_check and not work_group_user.is_moderator:
             raise PermissionDenied("Requires work group moderator permission")
+
 
     return group_user
 
