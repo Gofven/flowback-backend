@@ -21,6 +21,7 @@ class KanbanEntryListApi(APIView):
     class FilterSerializer(serializers.Serializer):
         origin_type = serializers.CharField(required=False)
         origin_id = serializers.IntegerField(required=False)
+        work_group_id = serializers.IntegerField(required=False)
         created_by = serializers.IntegerField(required=False)
         order_by = serializers.CharField(required=False)
         assignee = serializers.IntegerField(required=False)
