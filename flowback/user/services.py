@@ -1,3 +1,4 @@
+import logging
 import operator
 import uuid
 from functools import reduce
@@ -10,7 +11,7 @@ from django.utils import timezone
 
 from rest_framework.exceptions import ValidationError
 
-from backend.settings import DEFAULT_FROM_EMAIL, FLOWBACK_URL
+from backend.settings import DEFAULT_FROM_EMAIL, FLOWBACK_URL, EMAIL_HOST
 from flowback.chat.models import MessageChannel
 from flowback.chat.services import message_channel_create, message_channel_join
 from flowback.common.services import model_update, get_object
@@ -23,7 +24,7 @@ user_schedule = ScheduleManager(schedule_origin_name='user')
 user_kanban = KanbanManager(origin_type='user')
 
 
-def user_create(*, username: str, email: str) -> str:
+def user_create(*, username: str, email: str) -> OnboardUser | None:
     users = User.objects.filter(Q(email=email) | Q(username=username))
     if users.exists():
         for user in users:
@@ -40,9 +41,14 @@ def user_create(*, username: str, email: str) -> str:
         link = f'''Use this link to create your account: {FLOWBACK_URL}/create_account/
                    ?email={email}&verification_code={user.verification_code}'''
 
-    send_mail('Flowback Verification Code', link, DEFAULT_FROM_EMAIL, [email])
+    if EMAIL_HOST:
+        send_mail('Flowback Verification Code', link, DEFAULT_FROM_EMAIL, [email])
 
-    return user.verification_code
+    else:
+        logging.info("Email host not configured. Email not sent, but code was sent to the console.")
+        print(f"Verification code for '{user.username}': {user.verification_code}")
+
+        return user
 
 
 def user_create_verify(*, verification_code: str, password: str):
@@ -68,7 +74,7 @@ def user_create_verify(*, verification_code: str, password: str):
                                     password=password)
 
 
-def user_forgot_password(*, email: str):
+def user_forgot_password(*, email: str) -> PasswordReset:
     user = get_object_or_404(User, email=email)
 
     password_reset = PasswordReset.objects.create(user=user)
@@ -79,9 +85,14 @@ def user_forgot_password(*, email: str):
         link = f'''Use this link to reset your account password: {FLOWBACK_URL}/forgot_password/
                        ?email={email}&verification_code={password_reset.verification_code}'''
 
-    send_mail('Flowback Verification Code', link, DEFAULT_FROM_EMAIL, [email])
+    if EMAIL_HOST:
+        send_mail('Flowback Verification Code', link, DEFAULT_FROM_EMAIL, [email])
 
-    return password_reset.verification_code
+    else:
+        logging.info("Email host not configured. Email not sent, but code was sent to the console.")
+        print(f"Verification code for '{user.username}': {password_reset.verification_code}")
+
+    return password_reset
 
 
 def user_forgot_password_verify(*, verification_code: str, password: str):
@@ -176,7 +187,7 @@ def user_kanban_entry_create(*,
                              description: str = None,
                              attachments: list = None,
                              priority: int,
-                             tag: int,
+                             lane: int,
                              end_date: timezone.datetime = None):
     return user_kanban.kanban_entry_create(origin_id=user_id,
                                            created_by_id=user_id,
@@ -186,7 +197,7 @@ def user_kanban_entry_create(*,
                                            attachments=attachments,
                                            priority=priority,
                                            end_date=end_date,
-                                           tag=tag)
+                                           lane=lane)
 
 
 def user_kanban_entry_update(*, user_id: int, entry_id: int, data):

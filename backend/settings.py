@@ -24,6 +24,11 @@ env = environ.Env(DEBUG=(bool, False),
                   INSTANCE_NAME=(str, 'Flowback'),
                   PG_SERVICE=(str, 'flowback'),
                   PG_PASS=(str, '.flowback_pgpass'),
+                  FLOWBACK_PSQL_NAME=(str, None),
+                  FLOWBACK_PSQL_USER=(str, None),
+                  FLOWBACK_PSQL_PASSWORD=(str, None),
+                  FLOWBACK_PSQL_HOST=(str, None),
+                  FLOWBACK_PSQL_PORT=(str, None),
                   REDIS_IP=(str, 'localhost'),
                   REDIS_PORT=(str, '6379'),
                   RABBITMQ_BROKER_URL=(str, 'amqp://flowback:flowback@localhost:5672/flowback'),
@@ -33,13 +38,13 @@ env = environ.Env(DEBUG=(bool, False),
                   AWS_S3_SECRET_ACCESS_KEY=(str, None),
                   AWS_S3_STORAGE_BUCKET_NAME=(str, None),
                   AWS_S3_CUSTOM_URL=(str, None),
-                  DISABLE_DEFAULT_USER_REGISTRATION=(bool, False),
+                  FLOWBACK_DISABLE_DEFAULT_USER_REGISTRATION=(bool, False),
                   FLOWBACK_DEFAULT_GROUP_JOIN=(str, None),
                   FLOWBACK_ALLOW_DYNAMIC_POLL=(bool, False),
                   FLOWBACK_ALLOW_GROUP_CREATION=(bool, True),
                   FLOWBACK_GROUP_ADMIN_USER_LIST_ACCESS_ONLY=(bool, False),
                   FLOWBACK_DEFAULT_PERMISSION=(str, 'rest_framework.permissions.IsAuthenticated'),
-                  PREDICTION_HISTORY_LIMIT=(int, 100),
+                  FLOWBACK_PREDICTION_HISTORY_LIMIT=(int, 100),  # TODO Unused?
                   EMAIL_HOST=(str, None),
                   EMAIL_PORT=(str, None),
                   EMAIL_FROM=(str, None),
@@ -48,24 +53,34 @@ env = environ.Env(DEBUG=(bool, False),
                   EMAIL_USE_TLS=(bool, None),
                   EMAIL_USE_SSL=(bool, None),
                   INTEGRATIONS=(list, []),
-                  SCORE_VOTE_CEILING=(int, 100),
-                  SCORE_VOTE_FLOOR=(int, 0)
+                  FLOWBACK_SCORE_VOTE_CEILING=(int, 100),
+                  FLOWBACK_SCORE_VOTE_FLOOR=(int, 0),
+                  FLOWBACK_KANBAN_PRIORITY_LIMIT=(int, 5),
+                  FLOWBACK_KANBAN_LANES=(list, ['Backlog', 'Chosen For Execution', 'In Progress', 'Evaluation', 'Finished'])
                   )
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 TESTING = sys.argv[1:2] == ['test'] or "pytest" in sys.modules
-env.read_env(os.path.join(BASE_DIR, "../../.env"))
+env.read_env(os.path.join(BASE_DIR, ".env"))
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
+# Django Secret Key. If it's missing, it'll be generated and stored in .env
+SECRET_KEY = env('DJANGO_SECRET', default=None)
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('DJANGO_SECRET')
+if not SECRET_KEY:
+    from django.core.management.utils import get_random_secret_key
+
+    SECRET_KEY = get_random_secret_key()
+
+    with open(os.path.join(BASE_DIR, ".env"), "a+") as env_file:
+        env_file.write(f"\nDJANGO_SECRET={SECRET_KEY}\n")
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
+
 
 FLOWBACK_URL = env('FLOWBACK_URL')
 INSTANCE_NAME = env('INSTANCE_NAME')
@@ -86,6 +101,7 @@ if env('SECURE_PROXY_SSL_HEADERS'):
 
 URL_SUBPATH = env('URL_SUBPATH')
 INTEGRATIONS = env('INTEGRATIONS')
+
 
 # Application definition
 
@@ -113,6 +129,7 @@ INSTALLED_APPS = [
     'flowback.comment',
     'flowback.schedule',
     'flowback.files',
+    'flowback.server',
     'drf_spectacular',
     'phonenumber_field',
     ] + env('INTEGRATIONS')
@@ -139,13 +156,6 @@ SPECTACULAR_SETTINGS = {
 }
 
 AUTH_USER_MODEL = 'user.User'
-DISABLE_DEFAULT_USER_REGISTRATION = env('DISABLE_DEFAULT_USER_REGISTRATION')
-
-if data := env('FLOWBACK_DEFAULT_GROUP_JOIN'):
-    FLOWBACK_DEFAULT_GROUP_JOIN = [int(i) for i in env('FLOWBACK_DEFAULT_GROUP_JOIN').split(',')]
-
-else:
-    FLOWBACK_DEFAULT_GROUP_JOIN = []
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -239,20 +249,20 @@ CHANNEL_LAYERS = {
 # OIDC Settings
 LOGIN_URL = '/accounts/login/'
 OIDC_USERINFO = 'backend.oidc_provider_settings.userinfo'
-
-
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
+db_data = dict(ENGINE='django.db.backends.postgresql_psycopg2')
+if env('FLOWBACK_PSQL_NAME'):
+    db_data['NAME'] = env('FLOWBACK_PSQL_NAME')
+    db_data['USER'] = env('FLOWBACK_PSQL_USER')
+    db_data['PASSWORD'] = env('FLOWBACK_PSQL_PASSWORD')
+    db_data['HOST'] = env('FLOWBACK_PSQL_HOST')
+    db_data['PORT'] = env('FLOWBACK_PSQL_PORT')
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'OPTIONS': {
-            'service': PG_SERVICE,
-            'passfile': PG_PASS,
-        },
-    }
-}
+else:
+    db_data['OPTIONS'] = dict(service=PG_SERVICE, passfile=PG_PASS)
+
+DATABASES = {'default': db_data}
 
 if TESTING:
     with (open(PG_PASS) as pgpass):
@@ -289,11 +299,28 @@ EMAIL_USE_TLS = env('EMAIL_USE_TLS') or True
 EMAIL_USE_SSL = env('EMAIL_USE_SSL') or False
 DEFAULT_FROM_EMAIL = env('EMAIL_FROM', default=env('EMAIL_HOST_USER'))
 
+# User related settings
+FLOWBACK_DISABLE_DEFAULT_USER_REGISTRATION = env('FLOWBACK_DISABLE_DEFAULT_USER_REGISTRATION')
+
+if data := env('FLOWBACK_DEFAULT_GROUP_JOIN'):
+    FLOWBACK_DEFAULT_GROUP_JOIN = [int(i) for i in env('FLOWBACK_DEFAULT_GROUP_JOIN').split(',')]
+
+else:
+    FLOWBACK_DEFAULT_GROUP_JOIN = []
 
 # Poll related settings
-SCORE_VOTE_CEILING = env('SCORE_VOTE_CEILING')
-SCORE_VOTE_FLOOR = env('SCORE_VOTE_FLOOR')
+FLOWBACK_SCORE_VOTE_CEILING = env('FLOWBACK_SCORE_VOTE_CEILING')
+FLOWBACK_SCORE_VOTE_FLOOR = env('FLOWBACK_SCORE_VOTE_FLOOR')
 FLOWBACK_ALLOW_DYNAMIC_POLL = env('FLOWBACK_ALLOW_DYNAMIC_POLL')
+FLOWBACK_PREDICTION_HISTORY_LIMIT = env('FLOWBACK_PREDICTION_HISTORY_LIMIT')
+
+# Group related settings
+FLOWBACK_ALLOW_GROUP_CREATION = env('FLOWBACK_ALLOW_GROUP_CREATION')
+FLOWBACK_GROUP_ADMIN_USER_LIST_ACCESS_ONLY = env('FLOWBACK_GROUP_ADMIN_USER_LIST_ACCESS_ONLY')
+
+# Kanban related settings
+FLOWBACK_KANBAN_PRIORITY_LIMIT = env('FLOWBACK_KANBAN_PRIORITY_LIMIT')
+FLOWBACK_KANBAN_LANES = env('FLOWBACK_KANBAN_LANES')
 
 
 # Logging
