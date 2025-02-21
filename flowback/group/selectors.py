@@ -46,40 +46,36 @@ def group_user_permissions(*,
                            work_group: WorkGroup | int = None,
                            raise_exception: bool = True,
                            allow_admin: bool = False) -> Union[GroupUser, bool]:
+    permissions = permissions or []
+    work_group_moderator_check = False
+
+    # Setup initial values for the function
     if isinstance(user, int):
         user = get_object(User, id=user)
 
     if isinstance(group, int):
         group = get_object(Group, id=group)
 
-    permissions = permissions or []
-    admin = False
-    work_group_moderator_check = False
-
     if isinstance(permissions, str):
         permissions = [permissions]
 
+    if isinstance(work_group, int):
+        work_group = WorkGroup.objects.get(id=work_group)
+
+    if isinstance(group_user, int):
+        group_user = GroupUser.objects.get(id=group_user)
+
     if user and group:
-        group_user = get_object(GroupUser, 'User is not in group', group=group, user=user, active=True)
+        group_user = GroupUser.objects.get(user=user, group=group)
 
     elif user and work_group:
-        if isinstance(work_group, int):
-            work_group = WorkGroup.objects.get(id=work_group)
-
         group_user = GroupUser.objects.get(group=work_group.group, user=user, active=True)
 
-    elif group_user:
-        if isinstance(group_user, int):
-            group_user = get_object(GroupUser, id=group_user, active=True)
-
-        elif isinstance(group_user, GroupUser):
-            group_user = get_object(GroupUser, id=group_user.id, active=True)
-
-    else:
+    elif not group_user:
         raise Exception('group_user_permissions is missing appropiate parameters')
 
+    # Logic behind checking permissions
     admin = group_user.is_admin
-    perobj = GroupPermissions()
     user_permissions = model_to_dict(group_user.permission) if group_user.permission else group_default_permissions(
         group=group_user.group)
 
@@ -88,20 +84,14 @@ def group_user_permissions(*,
         if group_user.is_admin or group_user.group.created_by == group_user.user or group_user.user.is_superuser:
             allow_admin = True
 
-        permissions.remove('admin')
-
     # Check if creator permission is present
     if 'creator' in permissions:
         if group_user.group.created_by == group_user.user or group_user.user.is_superuser:
             allow_admin = True
 
-        permissions.remove('creator')
-
     # Check if work_group_moderator is present, mark as true and check further down
     if 'work_group_moderator' in permissions:
         work_group_moderator_check = True
-
-        permissions.remove('work_group_moderator')
 
     validated_permissions = any([user_permissions.get(key, False) for key in permissions]) or not permissions
     if not validated_permissions and not (admin and allow_admin):
