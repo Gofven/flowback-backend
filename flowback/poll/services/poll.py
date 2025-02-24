@@ -229,13 +229,13 @@ def poll_fast_forward(*, user_id: int, poll_id: int, phase: str):
         poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
 
     else:
-        poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id))
+        poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), countdown=5)
 
     if poll.prediction_bet_end_date > timezone.now():
         poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
 
     else:
-        poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id))
+        poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id), countdown=5)
 
     poll_notification.shift(sender_id=poll_id,
                             category='timeline',
