@@ -42,9 +42,6 @@ def group_create(*,
     # group.full_clean()
     group.save()
 
-    # Generate GroupUser
-    GroupUser.objects.create(user=user, group=group, is_admin=True)
-
     return group
 
 

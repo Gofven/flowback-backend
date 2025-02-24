@@ -14,21 +14,21 @@ class CommentSectionTest(APITransactionTestCase):
     # Tests if the comment_list API gives a tree structure that's ordered properly
     def test_comment_list(self):
         # Floor 0
-        comment: Comment = CommentFactory(comment_section=self.comment_section, score=2)
-        comment_b: Comment = CommentFactory(comment_section=self.comment_section, score=10)
+        comment: Comment = CommentFactory(comment_section=self.comment_section, post__score=2)
+        comment_b: Comment = CommentFactory(comment_section=self.comment_section, post__score=10)
 
         # Floor 1
-        comment_1: Comment = CommentFactory(comment_section=self.comment_section, parent=comment, score=7)
-        comment_2: Comment = CommentFactory(comment_section=self.comment_section, parent=comment, score=5)
+        comment_1: Comment = CommentFactory(comment_section=self.comment_section, parent=comment, post__score=7)
+        comment_2: Comment = CommentFactory(comment_section=self.comment_section, parent=comment, post__score=5)
 
         # Floor 2
-        comment_11: Comment = CommentFactory(comment_section=self.comment_section, parent=comment_1, score=2)
-        comment_21: Comment = CommentFactory(comment_section=self.comment_section, parent=comment_2, score=3)
-        comment_22: Comment = CommentFactory(comment_section=self.comment_section, parent=comment_2, score=1)
+        comment_11: Comment = CommentFactory(comment_section=self.comment_section, parent=comment_1, post__score=2)
+        comment_21: Comment = CommentFactory(comment_section=self.comment_section, parent=comment_2, post__score=3)
+        comment_22: Comment = CommentFactory(comment_section=self.comment_section, parent=comment_2)
 
         # Floor 3
-        comment_111: Comment = CommentFactory(comment_section=self.comment_section, parent=comment_11, score=9)
-        comment_112: Comment = CommentFactory(comment_section=self.comment_section, parent=comment_11, score=1)
+        comment_111: Comment = CommentFactory(comment_section=self.comment_section, parent=comment_11, post__score=9)
+        comment_112: Comment = CommentFactory(comment_section=self.comment_section, parent=comment_11)
 
         factory = APIRequestFactory()
         view = CommentListAPI.as_view()

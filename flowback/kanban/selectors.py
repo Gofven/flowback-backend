@@ -17,10 +17,10 @@ class BaseKanbanEntryFilter(django_filters.FilterSet):
 
     class Meta:
         model = KanbanEntry
-        fields = dict(title=['icontains'],
-                      description=['icontains'],
+        fields = dict(title=['exact', 'icontains'],
+                      description=['exact', 'icontains'],
                       end_date=['gt', 'lt'],
-                      lane=['exact'],)
+                      lane=['exact', 'icontains'],)
 
 
 # TODO due for rework

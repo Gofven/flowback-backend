@@ -138,14 +138,14 @@ def group_delegate_pool_comment_create(*,
 
 
 def group_delegate_pool_comment_update(*,
-                                       author_id: int,
+                                       fetched_by: int,
                                        delegate_pool_id: int,
                                        comment_id: int,
                                        data) -> Comment:
     delegate_pool = get_object(GroupUserDelegatePool, id=delegate_pool_id)
-    group_user_permissions(user=author_id, group=delegate_pool.group)
+    group_user_permissions(user=fetched_by, group=delegate_pool.group)
 
-    return comment_update(fetched_by=author_id,
+    return comment_update(fetched_by=fetched_by,
                           comment_section_id=delegate_pool.comment_section.id,
                           comment_id=comment_id,
                           data=data)
