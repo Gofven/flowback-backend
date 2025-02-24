@@ -380,8 +380,7 @@ class BaseWorkGroupFilter(django_filters.FilterSet):
     class Meta:
         model = WorkGroup
         fields = dict(id=['exact'],
-                      name=['exact', 'icontains'],
-                      joined=['exact'])
+                      name=['exact', 'icontains'])
 
 
 def work_group_list(*, group_id: int, fetched_by: User, filters=None):
