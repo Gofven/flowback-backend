@@ -101,6 +101,7 @@ class PollListApi(APIView):
                       'total_predictions',
                       'quorum',
                       'status',
+                      'status_prediction',
                       'attachments')
 
     def get(self, request, group_id: int = None):

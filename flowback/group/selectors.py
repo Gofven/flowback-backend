@@ -247,6 +247,7 @@ class BaseGroupTagsFilter(django_filters.FilterSet):
         model = GroupTags
         fields = dict(id=['exact'],
                       name=['exact', 'icontains'],
+                      description=['exact', 'icontains'],
                       active=['exact'])
 
 

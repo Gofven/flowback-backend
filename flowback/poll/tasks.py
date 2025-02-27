@@ -39,7 +39,9 @@ def poll_prediction_bet_count(poll_id: int):
 
     # Get every predictor participating in poll
     timestamp = timezone.now()  # Avoid new bets causing list to be offset
-    poll = get_object(Poll, id=poll_id)
+    poll = Poll.objects.get(id=poll_id)
+    poll.status_prediction = 2
+    poll.save()
     predictors = GroupUser.objects.filter(pollpredictionbet__prediction_statement__poll=poll).all()
 
     # Get list of previous outcomes in a given area (poll)
@@ -204,3 +206,6 @@ def poll_prediction_bet_count(poll_id: int):
 
         statement.combined_bet = combined_bet
         statement.save()
+
+    poll.status_prediction = 1
+    poll.save()

@@ -68,6 +68,14 @@ class Poll(BaseModel):
     -1 - Failed Quorum
     """
     status = models.IntegerField(default=0)
+
+    """
+    Prediction Status Code
+    0 - Idle
+    1 - Finished
+    2 - Calculating Combined Bets
+    """
+    status_prediction = models.IntegerField(default=0)
     result = models.BooleanField(default=False)
 
     # Comment section
