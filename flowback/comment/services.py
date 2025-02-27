@@ -76,9 +76,6 @@ def comment_vote(*, fetched_by: int, comment_section_id: int, comment_id: int, v
     comment = Comment.objects.get(comment_section_id=comment_section_id, id=comment_id)
     user = User.objects.get(id=fetched_by)
 
-    if comment.author == user:
-        raise ValidationError("Can't vote on a comment that belongs to yourself")
-
     if vote is None:
         try:
             return CommentVote.objects.get(created_by=user, comment=comment).delete()
