@@ -127,12 +127,7 @@ def group_thread_notification_subscribe(user_id: int, thread_id: int, categories
 
 def group_thread_comment_update(fetched_by: int, thread_id: int, comment_id: int, data):
     thread = get_object(GroupThread, id=thread_id)
-    comment = get_object(Comment, id=comment_id)
-
-    group_user = group_user_permissions(user=fetched_by, group=thread.created_by.group)
-
-    if comment.author.id != fetched_by and not group_user.is_admin:
-        raise ValidationError('Comment is not owned by user.')
+    group_user_permissions(user=fetched_by, group=thread.created_by.group)
 
     return comment_update(fetched_by=fetched_by,
                           comment_section_id=thread.comment_section_id,
@@ -142,16 +137,12 @@ def group_thread_comment_update(fetched_by: int, thread_id: int, comment_id: int
 
 def group_thread_comment_delete(fetched_by: int, thread_id: int, comment_id: int):
     thread = get_object(GroupThread, id=thread_id)
-    comment = get_object(Comment, id=comment_id)
-
     group_user = group_user_permissions(user=fetched_by, group=thread.created_by.group)
-
-    if comment.author.id != fetched_by and not group_user.is_admin:
-        raise ValidationError('Comment is not owned by user.')
 
     return comment_delete(fetched_by=fetched_by,
                           comment_section_id=thread.comment_section_id,
-                          comment_id=comment_id)
+                          comment_id=comment_id,
+                          force=group_user.is_admin or group_user.user.is_superuser)
 
 
 def group_thread_comment_vote(*, user: int, thread_id: int, comment_id: int, vote: bool = None):
