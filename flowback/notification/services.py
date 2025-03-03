@@ -9,57 +9,54 @@ from .models import NotificationChannel, NotificationObject, Notification, Notif
 from flowback.common.services import get_object
 
 
-def notification_load_channel(*,
-                              category: str,
-                              sender_type: str,
-                              sender_id: int,
-                              create_if_not_exist: bool = True) -> NotificationChannel:
-    if create_if_not_exist:
-        channel, created = NotificationChannel.objects.get_or_create(category=category,
-                                                                     sender_type=sender_type,
-                                                                     sender_id=sender_id)
-
-    else:
-        channel = get_object(NotificationChannel, category=category, sender_type=sender_type, sender_id=sender_id)
-
-    return channel
-
-
-def notification_delete_channel(*, sender_type: str, sender_id: int, category: str = None) -> None:
-    channels = NotificationChannel.objects.filter(sender_type=sender_type, sender_id=sender_id,
-                                                  category=category).all()
-    channels.delete()
-    return
-
-
 # tag (Action), sender_type (Name), sender_id (identifier)
 # Notification subscription handled outside, notification management handled inside
-def notification_create(*, action: str, category: str, sender_type: str, sender_id: int,
-                        message: str, timestamp: datetime = None, related_id: int = None,
-                        target_user_id: int = None) -> NotificationObject:
-    channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
-    timestamp = timestamp or timezone.now()
-    notification_object = NotificationObject.objects.create(channel=channel,
-                                                            action=action,
-                                                            message=message,
-                                                            timestamp=timestamp,
-                                                            related_id=related_id)
+def notification_object_create(*,
+                               channel: NotificationChannel | int,
+                               action: NotificationObject.Action,
+                               message: str,
+                               category: str,
+                               timestamp: datetime = None,
+                               data=None) -> NotificationObject:
+    
+    if isinstance(channel, int):
+        channel = NotificationChannel.objects.get(channel=channel)
+        
+    notification_object = NotificationObject(channel=channel,
+                                             action=action,
+                                             message=message,
+                                             category=category,
+                                             timestamp=timestamp,
+                                             data=data)
 
-    if not target_user_id:
-        subscribers = NotificationSubscription.objects.filter(channel=channel).all()
-        Notification.objects.bulk_create([Notification(user=subscriber.user,
-                                                       notification_object=notification_object)
-                                          for subscriber in subscribers])
-
-    else:
-        notification = Notification(user_id=target_user_id,
-                                    notification_object=notification_object)
-        notification.full_clean()
-        notification.save()
-
+    notification_object.full_clean()
+    notification_object.save()
+    
     return notification_object
 
 
+# Deletes notifications based on a set of conditions
+def notification_object_delete(*, channel: NotificationChannel | int,
+                               category: NotificationObject.Action = None,
+                               notification_object_id: int = None,
+                               timestamp__lt: datetime = None,
+                               timestamp__gt: datetime = None,
+                               action: str = None):
+
+    if isinstance(channel, int):
+        channel = NotificationChannel.objects.get(channel=channel)
+        
+    filters = {a: b for a, b in dict(channel=channel, action=action,
+                                     id=notification_object_id,
+                                     category=category,
+                                     timestamp__lt=timestamp__lt,
+                                     timestamp__gt=timestamp__gt).items() if b is not None}
+
+    notifications = NotificationObject.objects.filter(**filters)
+    notifications.delete()
+
+
+# Shifts notification object timestamps within a timeframe based on the delta (in seconds)
 def notification_shift(*, category: str, sender_type: str, sender_id: int,
                        related_id: int = None, timestamp: datetime = None,
                        timestamp__lt: datetime = None, timestamp__gt: datetime = None, action: str = None,
@@ -70,20 +67,6 @@ def notification_shift(*, category: str, sender_type: str, sender_id: int,
                                      timestamp__lt=timestamp__lt, timestamp__gt=timestamp__gt).items() if b is not None}
 
     notifications = NotificationObject.objects.filter(**filters).update(timestamp=F('timestamp') + delta)
-
-
-def notification_delete(*, category: str, sender_type: str, sender_id: int,
-                        related_id: int = None, timestamp: datetime = None,
-                        timestamp__lt: datetime = None, timestamp__gt: datetime = None, action: str = None):
-    channel = notification_load_channel(category=category,
-                                        sender_type=sender_type,
-                                        sender_id=sender_id,
-                                        create_if_not_exist=False)
-    filters = {a: b for a, b in dict(channel=channel, action=action, related_id=related_id, timestamp=timestamp,
-                                     timestamp__lt=timestamp__lt, timestamp__gt=timestamp__gt).items() if b is not None}
-    notifications = NotificationObject.objects.filter(**filters)
-
-    notifications.delete()
 
 
 def notification_mark_read(*, fetched_by: int, notification_ids: list[int], read: bool) -> None:

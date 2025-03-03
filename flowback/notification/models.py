@@ -6,7 +6,7 @@ from flowback.user.models import User
 
 
 class NotificationChannel(BaseModel):
-    category = models.CharField(max_length=255)
+    origin = models.CharField(max_length=255, help_text='Origin of the channel, preferably name of the parent model')
 
 
 # NotificationObject is created containing data for each occurrence
@@ -21,9 +21,17 @@ class NotificationObject(BaseModel):
 
     action = models.CharField(choices=Action.choices)
     message = models.TextField(max_length=2000)
+    category = models.CharField(max_length=255, default='main', help_text='Category of the notification')
     data = models.JSONField(null=True, blank=True)  # Suggested to store relevant data for user
     timestamp = models.DateTimeField(default=timezone.now)
     channel = models.ForeignKey(NotificationChannel, on_delete=models.CASCADE)
+
+    def post_save(self, created, *args, **kwargs):
+        if created:
+            users = NotificationSubscription.objects.filter(channel=self.channel).values('user')
+            notifications = [Notification(user=x, notification_object=self) for x in users]
+            Notification.objects.bulk_create(notifications, ignore_conflicts=True)
+
 
 
 # Notification is created for every user subscribed to a channel,
