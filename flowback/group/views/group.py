@@ -203,6 +203,10 @@ class WorkGroupListAPI(APIView):
         id = serializers.IntegerField(required=False)
         name = serializers.CharField(required=False)
         name__icontains = serializers.CharField(required=False)
+        order_by = serializers.ChoiceField(required=False, choices=['created_at_asc',
+                                                                    'created_at_desc',
+                                                                    'name_asc',
+                                                                    'name_desc'])
 
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
