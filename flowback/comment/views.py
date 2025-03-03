@@ -126,7 +126,7 @@ class CommentDeleteAPI(APIView):
     def post(self, request, *args, **kwargs):
         self.lazy_action.__func__(*args,
                                   **kwargs,
-                                  fetched_by=request.user)
+                                  fetched_by=request.user.id)
 
         return Response(status=status.HTTP_200_OK)
 

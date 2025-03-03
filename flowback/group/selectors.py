@@ -374,8 +374,7 @@ class BaseWorkGroupFilter(django_filters.FilterSet):
     order_by = django_filters.OrderingFilter(fields=(('created_at', 'created_at_asc'),
                                                      ('-created_at', 'created_at_desc'),
                                                      ('name', 'name_asc'),
-                                                     ('-name', 'name_desc'))
-                                             )
+                                                     ('-name', 'name_desc')))
     joined = django_filters.BooleanFilter()
 
     class Meta:
