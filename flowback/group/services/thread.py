@@ -145,11 +145,11 @@ def group_thread_comment_delete(fetched_by: int, thread_id: int, comment_id: int
                           force=group_user.is_admin or group_user.user.is_superuser)
 
 
-def group_thread_comment_vote(*, user: int, thread_id: int, comment_id: int, vote: bool = None):
+def group_thread_comment_vote(*, fetched_by: int, thread_id: int, comment_id: int, vote: bool = None):
     group_thread = GroupThread.objects.get(id=thread_id)
-    group_user_permissions(user=user, group=group_thread.created_by.group)
+    group_user_permissions(user=fetched_by, group=group_thread.created_by.group)
 
-    return comment_vote(fetched_by=user,
+    return comment_vote(fetched_by=fetched_by,
                         comment_section_id=group_thread.comment_section.id,
                         comment_id=comment_id,
                         vote=vote)
