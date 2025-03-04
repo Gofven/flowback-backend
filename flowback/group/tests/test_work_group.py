@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITransactionTestCase
 
 from flowback.common.tests import generate_request
-from flowback.group.models import WorkGroup, WorkGroupUser, WorkGroupUserJoinRequest
+from flowback.group.models import WorkGroup, WorkGroupUser, WorkGroupUserJoinRequest, GroupUser
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, WorkGroupUserFactory, WorkGroupFactory, \
     WorkGroupJoinRequestFactory
 from flowback.group.views.group import WorkGroupCreateAPI, WorkGroupUpdateAPI, \
@@ -16,27 +16,22 @@ from flowback.user.tests.factories import UserFactory
 
 
 class WorkGroupTest(APITransactionTestCase):
-    reset_sequences = True
-
     def setUp(self):
+        groups = [GroupFactory.create(public=True) for x in range(3)]
+
         (self.group_one,
          self.group_two,
-         self.group_three) = [GroupFactory.create(public=True) for x in range(3)]
+         self.group_three) = groups
 
         (self.group_user_creator_one,
          self.group_user_creator_two,
-         self.group_user_creator_three) = [GroupUserFactory.create(group=group, user=group.created_by
-                                                                   ) for group in [self.group_one,
-                                                                                   self.group_two,
-                                                                                   self.group_three]]
+         self.group_user_creator_three) = [GroupUser.objects.get(group_id=x.id) for x in groups]
 
         self.group_no_direct = GroupFactory.create(public=True, direct_join=False)
-        self.group_no_direct_user_creator = GroupUserFactory.create(group=self.group_no_direct,
-                                                                    user=self.group_no_direct.created_by)
+        self.group_no_direct_user_creator = GroupUser.objects.get(group=self.group_no_direct)
 
         self.group_private = GroupFactory.create(public=False)
-        self.group_private_user_creator = GroupUserFactory.create(group=self.group_private,
-                                                                  user=self.group_private.created_by)
+        self.group_private_user_creator = GroupUser.objects.get(group=self.group_private)
 
         self.groupless_user = UserFactory()
 
@@ -44,6 +39,13 @@ class WorkGroupTest(APITransactionTestCase):
     def test_work_group_list(self):
         work_group_one = WorkGroupFactory(group=self.group_user_creator_one.group)
         work_group_two = WorkGroupFactory(group=self.group_user_creator_one.group)
+        
+        work_group_users_one = WorkGroupUserFactory.create_batch(10,
+                                                                 group_user__group=self.group_one,
+                                                                 work_group=work_group_one)
+        work_group_users_two = WorkGroupUserFactory.create_batch(10,
+                                                                 group_user__group=self.group_two,
+                                                                 work_group=work_group_two)
 
         # Irrelevant work group, for testing purpose
         WorkGroupFactory(group=self.group_user_creator_two.group)
@@ -85,7 +87,8 @@ class WorkGroupTest(APITransactionTestCase):
         work_group_one = WorkGroupFactory(group=self.group_user_creator_one.group)
         work_group_two = WorkGroupFactory(group=self.group_user_creator_one.group)
         work_group_user_one = WorkGroupUserFactory(group_user__group=self.group_user_creator_one.group,
-                                                   work_group=work_group_one)
+                                                   work_group=work_group_one,
+                                                   is_moderator=True)
         WorkGroupUserFactory(group_user__group=self.group_user_creator_one.group, work_group=work_group_one)
 
         # Join Request
@@ -100,7 +103,7 @@ class WorkGroupTest(APITransactionTestCase):
                                     user=work_group_user_one.group_user.user,
                                     url_params=dict(work_group_id=work_group_one.id))
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['group_user']['user']['id'],
                          join_request.group_user.user.id)
