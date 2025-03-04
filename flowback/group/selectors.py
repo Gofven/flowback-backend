@@ -389,7 +389,7 @@ def work_group_list(*, group_id: int, fetched_by: User, filters=None):
 
     qs = WorkGroup.objects.filter(group_id=group_id
                                   ).annotate(joined=Q(workgroupuser__group_user__in=[group_user]),
-                                             member_count=Count('workgroupuser'))
+                                             member_count=Count('workgroupuser')).distinct()
 
     return BaseWorkGroupFilter(filters, qs).qs
 
@@ -436,7 +436,10 @@ def work_group_user_join_request_list(*, work_group_id: int, fetched_by: User, f
     work_group = WorkGroup.objects.get(id=work_group_id)
 
     # Won't need to check if group_user is in work_group due to admin/moderator requirement
-    group_user_is_admin = group_user_permissions(user=fetched_by, group=work_group.group, permissions=['admin'])
+    group_user_is_admin = group_user_permissions(user=fetched_by,
+                                                 group=work_group.group,
+                                                 permissions=['admin'],
+                                                 raise_exception=False)
     work_group_user_is_moderator = WorkGroupUser.objects.filter(id=work_group_id,
                                                                 group_user__user__in=[fetched_by],
                                                                 is_moderator=True).exists()
@@ -446,4 +449,4 @@ def work_group_user_join_request_list(*, work_group_id: int, fetched_by: User, f
 
         return BaseWorkGroupFilter(filters, qs).qs
 
-    return PermissionDenied()
+    raise PermissionDenied("Requires admin or work group moderator permission")
