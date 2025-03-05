@@ -47,7 +47,7 @@ services:
     ports:
       - ${PORT:-8000}:${PORT:-8000}
     volumes:
-      - .:/app # For persisting periodic task metadata
+      - .:/app
     depends_on:
       flowback-postgresql:
         condition: service_healthy
