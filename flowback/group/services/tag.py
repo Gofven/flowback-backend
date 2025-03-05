@@ -5,7 +5,7 @@ from flowback.group.models import GroupTags
 from flowback.group.selectors import group_user_permissions
 
 
-def group_tag_create(*, user: int, group: int, name: str, description: str) -> GroupTags:
+def group_tag_create(*, user: int, group: int, name: str, description: str = None) -> GroupTags:
     group_user_permissions(user=user, group=group, permissions=['admin'])
     tag = GroupTags(name=name, description=description, group_id=group)
     tag.full_clean()
