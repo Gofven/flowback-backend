@@ -16,14 +16,12 @@ def group_thread_create(user_id: int,
                         pinned: bool,
                         title: str,
                         description: str = None,
-                        attachments: list = None):
-    group_user = group_user_permissions(user=user_id, group=group_id)
+                        attachments: list = None,
+                        work_group: int = None):
+    group_user = group_user_permissions(user=user_id, group=group_id, work_group=work_group)
 
     if pinned:
         group_user_permissions(user=user_id, group=group_user.group, permissions=['admin'])
-
-    else:
-        group_user_permissions(user=user_id, group=group_user.group)
 
     if attachments:
         attachments = upload_collection(user_id=user_id,
@@ -34,7 +32,8 @@ def group_thread_create(user_id: int,
                          title=title,
                          description=description,
                          pinned=pinned,
-                         attachments=attachments)
+                         attachments=attachments,
+                         work_group=work_group)
 
     thread.full_clean()
     thread.save()

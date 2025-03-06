@@ -15,8 +15,6 @@ import sys
 import environ
 from pathlib import Path
 
-import git
-
 env = environ.Env(DEBUG=(bool, False),
                   LOGGING=(str, 'NONE'),
                   SECURE_PROXY_SSL_HEADERS=(bool, False),
@@ -91,7 +89,7 @@ FLOWBACK_URL = env('FLOWBACK_URL')
 INSTANCE_NAME = env('INSTANCE_NAME')
 PG_SERVICE = env('PG_SERVICE')
 PG_PASS = env('PG_PASS')
-GIT_HASH = git.Repo(search_parent_directories=True).head.object.hexsha
+GIT_HASH = "Unavailable"  # TODO fix or remove, it breaks docker compose backend
 
 ALLOWED_HOSTS = [FLOWBACK_URL or "*"]
 

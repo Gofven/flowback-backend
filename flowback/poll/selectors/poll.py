@@ -1,13 +1,13 @@
 from typing import Union
 
 import django_filters
-from django.db.models import Q, Exists, OuterRef, Count
+from django.db.models import Q, Exists, OuterRef, Count, Subquery
 from django.utils import timezone
 
 from flowback.comment.models import Comment
 from flowback.common.filters import ExistsFilter
 from flowback.group.models import Group
-from flowback.poll.models import Poll, PollPhaseTemplate
+from flowback.poll.models import Poll, PollPhaseTemplate, PollPredictionStatement
 from flowback.user.models import User
 from flowback.group.selectors import group_user_permissions
 
@@ -44,7 +44,9 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
     if group_id:
         group_user_permissions(user=fetched_by, group=group_id)
         qs = Poll.objects.filter(created_by__group_id=group_id) \
-            .annotate(total_comments=Count('comment_section__comment', filters=dict(active=True)),
+            .annotate(total_comments=Subquery(
+            Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
+                'comment_section_id').annotate(total=Count('*')).values('total')[:1]),
                       total_proposals=Count('pollproposal'),
                       total_predictions=Count('pollpredictionstatement')).all()
 
@@ -57,9 +59,13 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
                                   ) & Q(created_by__group__groupuser__active=False)
              ) & Q(start_date__lte=timezone.now())
         ).annotate(group_joined=Exists(joined_groups),
-                   total_comments=Count('comment_section__comment', filters=dict(active=True)),
+                   total_comments=Subquery(
+            Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
+                'comment_section_id').annotate(total=Count('*')).values('total')[:1]),
                    total_proposals=Count('pollproposal'),
-                   total_predictions=Count('pollpredictionstatement')).all()
+                   total_predictions=Subquery(
+                       PollPredictionStatement.objects.filter(poll_id=OuterRef('id')).values('poll_id')
+                       .annotate(total=Count('*')).values('total')[:1])).all()
 
     return BasePollFilter(filters, qs).qs
 
