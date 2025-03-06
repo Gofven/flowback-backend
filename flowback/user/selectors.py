@@ -1,12 +1,13 @@
 import django_filters
 from django.db import models
-from django.db.models import OuterRef, Q, Exists
+from django.db.models import OuterRef, Q, Exists, Subquery, Count
 from django_filters import FilterSet
 from rest_framework.exceptions import ValidationError
 
+from flowback.comment.models import Comment
 from flowback.common.services import get_object
 from flowback.group.models import Group, GroupUser, GroupThread
-from flowback.poll.models import Poll
+from flowback.poll.models import Poll, PollPredictionStatement
 from flowback.schedule.selectors import schedule_event_list
 from flowback.kanban.selectors import kanban_entry_list
 from flowback.user.models import User
@@ -78,14 +79,20 @@ def user_home_feed(*, fetched_by: User, filters=None):
 
     thread_qs = GroupThread.objects.filter(q)
     thread_qs = thread_qs.annotate(related_model=models.Value('group_thread', models.CharField()),
-                                   group_joined=Exists(joined_groups))
+                                   group_joined=Exists(joined_groups),
+                                   total_comments=Subquery(Comment.objects.filter(
+                                       comment_section_id=OuterRef('comment_section_id'), active=True
+                                   ).values('comment_section_id').annotate(total=Count('*')).values('total')[:1]))
     thread_qs = thread_qs.values(*related_fields)
     thread_qs = UserHomeFeedFilter(filters, thread_qs).qs
 
     # Poll
     poll_qs = Poll.objects.filter(q)
     poll_qs = poll_qs.annotate(related_model=models.Value('poll', models.CharField()),
-                               group_joined=Exists(joined_groups))
+                               group_joined=Exists(joined_groups),
+                               total_comments=Subquery(Comment.objects.filter(
+                                   comment_section_id=OuterRef('comment_section_id'), active=True
+                               ).values('comment_section_id').annotate(total=Count('*')).values('total')[:1]))
     poll_qs = poll_qs.values(*related_fields)
     poll_qs = UserHomeFeedFilter(filters, poll_qs).qs
 

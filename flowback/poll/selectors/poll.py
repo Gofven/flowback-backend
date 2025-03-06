@@ -47,9 +47,10 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
             .annotate(total_comments=Subquery(
             Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
                 'comment_section_id').annotate(total=Count('*')).values('total')[:1]),
-                      total_proposals=Count('pollproposal'),
-                      total_predictions=Count('pollpredictionstatement')).all()
-
+                   total_proposals=Count('pollproposal'),
+                   total_predictions=Subquery(
+                       PollPredictionStatement.objects.filter(poll_id=OuterRef('id')).values('poll_id')
+                       .annotate(total=Count('*')).values('total')[:1])).all()
     else:
         joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
         qs = Poll.objects.filter(
