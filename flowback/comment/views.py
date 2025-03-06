@@ -99,7 +99,7 @@ class CommentCreateAPI(APIView):
                                             **kwargs,
                                             **serializer.validated_data)
 
-        return Response(status=status.HTTP_200_OK, data=comment.id)
+        return Response(status=status.HTTP_201_CREATED, data=comment.id)
 
 
 class CommentUpdateAPI(APIView):

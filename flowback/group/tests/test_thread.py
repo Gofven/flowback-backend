@@ -3,11 +3,12 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITestCase
 
 from flowback.common.tests import generate_request
-from flowback.group.models import GroupThreadVote
+from flowback.group.models import GroupThreadVote, GroupThread
 from flowback.group.services.thread import group_thread_comment_create, group_thread_comment_delete
-from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory, GroupThreadVoteFactory
+from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory, GroupThreadVoteFactory, \
+    WorkGroupFactory, WorkGroupUserFactory
 from flowback.group.views.thread import GroupThreadVoteUpdateAPI, GroupThreadListAPI, GroupThreadCommentCreateAPI, \
-    GroupThreadCommentDeleteAPI
+    GroupThreadCommentDeleteAPI, GroupThreadCreateAPI
 from flowback.user.models import User
 
 
@@ -52,6 +53,18 @@ class TestGroupThread(APITestCase):
         for n in [1, 2, 3, 6, 7, 8, 9]:
             self.assertIsNone(response.data['results'][n]['user_vote'])
             self.assertEqual(response.data['results'][n]['score'], 0)
+
+    def test_create(self):
+        work_group_user = WorkGroupUserFactory(group_user=self.group_user, work_group__group=self.group_user.group)
+        response = generate_request(api=GroupThreadCreateAPI,
+                                    data=dict(title="hi",
+                                              work_group_id=work_group_user.work_group.id),
+                                    url_params=dict(group_id=self.group_user.group.id),
+                                    user=self.group_user.user)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(GroupThread.objects.get(id=response.data).work_group, work_group_user.work_group)
+
 
     def test_comment_delete(self):
         response = generate_request(api=GroupThreadCommentCreateAPI,
