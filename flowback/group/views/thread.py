@@ -68,6 +68,7 @@ class GroupThreadCreateAPI(APIView):
         description = serializers.CharField(required=False)
         pinned = serializers.BooleanField(default=False)
         attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
+        work_group_id = serializers.IntegerField(required=False)
 
     def post(self, request, group_id: int):
         serializer = self.InputSerializer(data=request.data)
