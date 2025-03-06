@@ -279,6 +279,7 @@ class GroupThread(BaseModel):
     comment_section = models.ForeignKey(CommentSection, default=comment_section_create, on_delete=models.DO_NOTHING)
     active = models.BooleanField(default=True)
     attachments = models.ForeignKey(FileCollection, on_delete=models.CASCADE, null=True, blank=True)
+    work_group = models.ForeignKey(WorkGroup, on_delete=models.SET_NULL, null=True, blank=True)
 
 
 # Likes and Dislikes for Group Thread
