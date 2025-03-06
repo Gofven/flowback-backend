@@ -17,8 +17,8 @@ def group_thread_create(user_id: int,
                         title: str,
                         description: str = None,
                         attachments: list = None,
-                        work_group: int = None):
-    group_user = group_user_permissions(user=user_id, group=group_id, work_group=work_group)
+                        work_group_id: int = None):
+    group_user = group_user_permissions(user=user_id, group=group_id, work_group=work_group_id)
 
     if pinned:
         group_user_permissions(user=user_id, group=group_user.group, permissions=['admin'])
@@ -33,7 +33,7 @@ def group_thread_create(user_id: int,
                          description=description,
                          pinned=pinned,
                          attachments=attachments,
-                         work_group=work_group)
+                         work_group_id=work_group_id)
 
     thread.full_clean()
     thread.save()
