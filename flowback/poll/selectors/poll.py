@@ -34,7 +34,15 @@ class BasePollFilter(django_filters.FilterSet):
                       poll_type=['exact'],
                       public=['exact'],
                       status=['exact'],
-                      pinned=['exact'])
+                      pinned=['exact'],
+                      start_date=['lt', 'gt'],
+                      area_vote_end_date=['lt', 'gt'],
+                      proposal_end_date=['lt', 'gt'],
+                      prediction_statement_end_date=['lt', 'gt'],
+                      prediction_bet_end_date=['lt', 'gt'],
+                      delegate_vote_end_date=['lt', 'gt'],
+                      vote_end_date=['lt', 'gt'],
+                      end_date=['lt', 'gt'])
 
 
 # TODO order_by(pinned, param)

@@ -41,6 +41,24 @@ class PollListApi(APIView):
         has_attachments = serializers.BooleanField(required=False, allow_null=True, default=None)
         status = serializers.IntegerField(required=False)
 
+        # Blob of gt and lt filter fields
+        start_date__gt = serializers.DateTimeField(required=False)
+        start_date__lt = serializers.DateTimeField(required=False)
+        area_vote_end_date__gt = serializers.DateTimeField(required=False)
+        area_vote_end_date__lt = serializers.DateTimeField(required=False)
+        proposal_end_date__gt = serializers.DateTimeField(required=False)
+        proposal_end_date__lt = serializers.DateTimeField(required=False)
+        prediction_statement_end_date__gt = serializers.DateTimeField(required=False)
+        prediction_statement_end_date__lt = serializers.DateTimeField(required=False)
+        prediction_bet_end_date__gt = serializers.DateTimeField(required=False)
+        prediction_bet_end_date__lt = serializers.DateTimeField(required=False)
+        delegate_vote_end_date__gt = serializers.DateTimeField(required=False)
+        delegate_vote_end_date__lt = serializers.DateTimeField(required=False)
+        vote_end_date__gt = serializers.DateTimeField(required=False)
+        vote_end_date__lt = serializers.DateTimeField(required=False)
+        end_date__gt = serializers.DateTimeField(required=False)
+        end_date__lt = serializers.DateTimeField(required=False)
+
     class OutputSerializer(serializers.ModelSerializer):
         class FileSerializer(serializers.Serializer):
             file = serializers.CharField()
@@ -66,6 +84,7 @@ class PollListApi(APIView):
         delegate_vote_end_date = serializers.DateTimeField(required=False)
         vote_end_date = serializers.DateTimeField(required=False)
         end_date = serializers.DateTimeField(required=False)
+        phase = serializers.SerializerMethodField()
 
         class Meta:
             model = Poll
