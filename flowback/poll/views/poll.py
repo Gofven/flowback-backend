@@ -40,6 +40,7 @@ class PollListApi(APIView):
         tag_name__icontains = serializers.ListField(child=serializers.CharField(), required=False)
         has_attachments = serializers.BooleanField(required=False, allow_null=True, default=None)
         status = serializers.IntegerField(required=False)
+        phase = serializers.CharField(required=False)
 
         # Blob of gt and lt filter fields
         start_date__gt = serializers.DateTimeField(required=False)
@@ -84,7 +85,7 @@ class PollListApi(APIView):
         delegate_vote_end_date = serializers.DateTimeField(required=False)
         vote_end_date = serializers.DateTimeField(required=False)
         end_date = serializers.DateTimeField(required=False)
-        phase = serializers.SerializerMethodField()
+        phase = serializers.CharField()
 
         class Meta:
             model = Poll
@@ -121,7 +122,8 @@ class PollListApi(APIView):
                       'quorum',
                       'status',
                       'status_prediction',
-                      'attachments')
+                      'attachments',
+                      'phase')
 
     def get(self, request, group_id: int = None):
         filter_serializer = self.FilterSerializer(data=request.query_params)
