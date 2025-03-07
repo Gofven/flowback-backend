@@ -5,6 +5,7 @@ from rest_framework.test import APITransactionTestCase, APIRequestFactory, force
 
 from flowback.chat.models import MessageChannel, MessageChannelParticipant
 from flowback.chat.tests.factories import MessageChannelFactory
+from flowback.comment.tests.factories import CommentFactory
 from flowback.common.tests import generate_request
 from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory
 from flowback.poll.tests.factories import PollFactory
@@ -67,7 +68,12 @@ class UserTest(APITransactionTestCase):
         PollFactory.create_batch(size=5, created_by=group_user_two)
         GroupThreadFactory.create_batch(size=5, created_by=group_user_two)
 
-        PollFactory.create_batch(size=5, created_by=group_user_three)
+        polls = PollFactory.create_batch(size=5, created_by=group_user_three)
+        poll_with_comments = polls[0] # Testing total comments aggregate
+        CommentFactory.create_batch(size=5,
+                                    author=group_user_three.user,
+                                    comment_section=poll_with_comments.comment_section)
+
         GroupThreadFactory.create_batch(size=5, created_by=group_user_three)
 
         response = generate_request(api=UserHomeFeedAPI, user=group_user.user)
@@ -78,6 +84,15 @@ class UserTest(APITransactionTestCase):
 
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data['count'], 17)
+
+        # Test total_comments
+        # response = generate_request(api=UserHomeFeedAPI,
+        #                             user=group_user_three.user,
+        #                             data=dict(related_model="poll", id=poll_with_comments.id))
+        #
+        # self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        # self.assertEqual(response.data['count'], 1)
+        # self.assertEqual(response.data['results'][0]['total_comments'], 5)
 
     def test_user_get_chat_channel(self):
         participants = UserFactory.create_batch(25)

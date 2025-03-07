@@ -31,7 +31,6 @@ class UserHomeFeedAPI(APIView):
         related_model = serializers.CharField()
         group_joined = serializers.BooleanField()
         user_vote = serializers.BooleanField(allow_null=True, default=None)
-        total_comments = serializers.IntegerField(allow_null=True)
 
     def get(self, request):
         serializer = self.FilterSerializer(data=request.query_params)
