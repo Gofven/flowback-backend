@@ -58,6 +58,7 @@ class UserHomeFeedFilter(django_filters.FilterSet):
     group_joined = django_filters.BooleanFilter(lookup_expr='exact')
 
 
+# TODO add relevant Count (proposal, prediction, comments) to the home feed if possible
 def user_home_feed(*, fetched_by: User, filters=None):
     filters = filters or {}
     joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
@@ -79,20 +80,14 @@ def user_home_feed(*, fetched_by: User, filters=None):
 
     thread_qs = GroupThread.objects.filter(q)
     thread_qs = thread_qs.annotate(related_model=models.Value('group_thread', models.CharField()),
-                                   group_joined=Exists(joined_groups),
-                                   total_comments=Subquery(Comment.objects.filter(
-                                       comment_section_id=OuterRef('comment_section_id'), active=True
-                                   ).values('comment_section_id').annotate(total=Count('*')).values('total')[:1]))
+                                   group_joined=Exists(joined_groups))
     thread_qs = thread_qs.values(*related_fields)
     thread_qs = UserHomeFeedFilter(filters, thread_qs).qs
 
     # Poll
     poll_qs = Poll.objects.filter(q)
     poll_qs = poll_qs.annotate(related_model=models.Value('poll', models.CharField()),
-                               group_joined=Exists(joined_groups),
-                               total_comments=Subquery(Comment.objects.filter(
-                                   comment_section_id=OuterRef('comment_section_id'), active=True
-                               ).values('comment_section_id').annotate(total=Count('*')).values('total')[:1]))
+                               group_joined=Exists(joined_groups))
     poll_qs = poll_qs.values(*related_fields)
     poll_qs = UserHomeFeedFilter(filters, poll_qs).qs
 
