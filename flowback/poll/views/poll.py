@@ -13,7 +13,7 @@ from flowback.poll.selectors.poll import poll_list, poll_phase_template_list
 from flowback.poll.selectors.proposal import poll_user_schedule_list
 from flowback.poll.selectors.vote import poll_delegates_list
 
-from flowback.poll.services.poll import poll_create, poll_update, poll_delete, poll_refresh_cheap, poll_notification, \
+from flowback.poll.services.poll import poll_create, poll_update, poll_delete, poll_notification, \
     poll_notification_subscribe, poll_fast_forward, poll_phase_template_create, poll_phase_template_update, \
     poll_phase_template_delete
 
@@ -207,7 +207,6 @@ class PollUpdateAPI(APIView):
     def post(self, request, poll: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        poll_refresh_cheap(poll_id=poll)  # TODO get celery
         poll_update(user_id=request.user.id, poll_id=poll, data=serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
@@ -227,7 +226,6 @@ class PollFastForwardAPI(APIView):
 @extend_schema(tags=['poll'])
 class PollDeleteAPI(APIView):
     def post(self, request, poll: int):
-        poll_refresh_cheap(poll_id=poll)  # TODO get celery
         poll_delete(user_id=request.user.id, poll_id=poll)
         return Response(status=status.HTTP_200_OK)
 
@@ -299,7 +297,6 @@ class PollDelegatesListAPI(APIView):
     def get(self, request, poll: int):
         filter_serializer = self.FilterSerializer(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
-        poll_refresh_cheap(poll_id=poll)  # TODO get celery
 
         delegates = poll_delegates_list(fetched_by=request.user, poll_id=poll,
                                         filters=filter_serializer.validated_data)

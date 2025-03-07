@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import Q, F, Count
@@ -188,7 +190,7 @@ class Poll(BaseModel):
 
         return 'waiting'
 
-    def get_phase_start_date(self, phase: str, field_name=False) -> str:
+    def get_phase(self, phase: str, field_name=False) -> datetime | str:
         time_table = self.time_table
 
         for x in reversed(range(len(time_table))):
