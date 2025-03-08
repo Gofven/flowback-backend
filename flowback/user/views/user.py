@@ -8,7 +8,8 @@ from rest_framework.views import APIView
 from flowback.user.models import OnboardUser, User
 from flowback.user.selectors import get_user, user_list
 from flowback.user.services import (user_create, user_create_verify, user_forgot_password,
-                                    user_forgot_password_verify, user_update, user_delete, user_get_chat_channel)
+                                    user_forgot_password_verify, user_update, user_delete, user_get_chat_channel,
+                                    user_chat_invite)
 
 
 class UserCreateApi(APIView):
@@ -88,8 +89,8 @@ class UserListApi(APIView):
     class OutputSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
-            fields = 'id', 'username', 'profile_image', \
-                     'banner_image', 'bio', 'website'
+            fields = ('id', 'username', 'profile_image',
+                      'banner_image', 'bio', 'website', 'direct_message')
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -108,8 +109,9 @@ class UserGetApi(APIView):
     class OutputSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
-            fields = 'id', 'email', 'username', 'profile_image', \
-                     'banner_image', 'bio', 'website', 'dark_theme', 'user_config'
+            fields = ('id', 'email', 'username', 'profile_image',
+                      'banner_image', 'bio', 'website', 'dark_theme',
+                      'user_config', 'direct_message')
 
     def get(self, request):
         user = get_user(request.user.id)
@@ -127,6 +129,7 @@ class UserUpdateApi(APIView):
         dark_theme = serializers.BooleanField(required=False)
         contact_email = serializers.CharField(required=False)
         contact_phone = PhoneNumberField(required=False)
+        direct_message = serializers.BooleanField(required=False)
         user_config = serializers.CharField(required=False)
 
     def post(self, request):
@@ -158,3 +161,18 @@ class UserGetChatChannelAPI(APIView):
         data = user_get_chat_channel(user_id=request.user.id, **serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK, data=self.OutputSerializer(data).data)
+
+
+class UserChatInviteAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        invite_id = serializers.IntegerField()
+        accept = serializers.BooleanField()
+
+    def post(self, request):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_chat_invite(user_id=request.user.id, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+

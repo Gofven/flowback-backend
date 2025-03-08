@@ -60,6 +60,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     profile_image = models.ImageField(null=True, blank=True, upload_to='user/profile_image')
     banner_image = models.ImageField(null=True, blank=True, upload_to='user/banner_image')
     email_notifications = models.BooleanField(default=False)
+    direct_message = models.BooleanField(default=True)
     dark_theme = models.BooleanField(default=False)
 
     user_config = models.TextField(null=True, blank=True)
@@ -132,3 +133,9 @@ class Report(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField()
+
+
+class UserChatInvite(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message_channel = models.ForeignKey('chat.MessageChannel', on_delete=models.CASCADE)
+    rejected = models.BooleanField(default=False)

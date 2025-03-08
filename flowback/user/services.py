@@ -18,7 +18,7 @@ from flowback.common.services import model_update, get_object
 from flowback.kanban.services import KanbanManager
 from flowback.schedule.models import ScheduleEvent
 from flowback.schedule.services import ScheduleManager, unsubscribe_schedule
-from flowback.user.models import User, OnboardUser, PasswordReset, Report
+from flowback.user.models import User, OnboardUser, PasswordReset, Report, UserChatInvite
 
 user_schedule = ScheduleManager(schedule_origin_name='user')
 user_kanban = KanbanManager(origin_type='user')
@@ -115,7 +115,7 @@ def user_forgot_password_verify(*, verification_code: str, password: str):
 
 def user_update(*, user: User, data) -> User:
     non_side_effects_fields = ['username', 'profile_image', 'banner_image', 'bio', 'website', 'email_notifications',
-                               'dark_theme', 'contact_email', 'contact_phone', 'user_config']
+                               'dark_theme', 'contact_email', 'direct_message', 'contact_phone', 'user_config']
 
     user, has_updated = model_update(instance=user,
                                      fields=non_side_effects_fields,
@@ -243,9 +243,25 @@ def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
 
         # In the future, make this a bulk_create statement
         for u in target_users:
-            message_channel_join(user_id=u.id, channel_id=channel.id)
+            if u.direct_message == True or target_users < 3:
+                message_channel_join(user_id=u.id, channel_id=channel.id)
+
+            else:
+                UserChatInvite.objects.create(user_id=u.id, channel_id=channel.id)
 
     return channel
+
+
+def user_chat_invite(user_id: int, invite_id: int, accept: bool = True):
+    user = User.objects.get(id=user_id)
+    invite = UserChatInvite.objects.get(id=invite_id)
+
+    if accept:
+        message_channel_join(user_id=user.id, channel_id=invite.message_channel.id)
+
+    else:
+        invite.rejected = True
+        invite.save()
 
 
 def report_create(*, user_id: int, title: str, description: str):
