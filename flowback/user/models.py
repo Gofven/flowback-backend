@@ -2,14 +2,16 @@ import uuid
 
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.db import models
+from django.db import models, IntegrityError
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db.models.signals import post_save, post_delete
 from django.utils import timezone
 from django.utils.functional import classproperty
 
 from rest_framework.authtoken.models import Token
+from txaio.tx import reject
 
+from flowback.chat.models import MessageChannelParticipant
 from flowback.common.models import BaseModel
 from flowback.kanban.models import Kanban
 from flowback.schedule.models import Schedule
@@ -60,6 +62,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     profile_image = models.ImageField(null=True, blank=True, upload_to='user/profile_image')
     banner_image = models.ImageField(null=True, blank=True, upload_to='user/banner_image')
     email_notifications = models.BooleanField(default=False)
+    direct_message = models.BooleanField(default=True)
     dark_theme = models.BooleanField(default=False)
 
     user_config = models.TextField(null=True, blank=True)
@@ -132,3 +135,25 @@ class Report(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField()
+
+
+class UserChatInvite(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message_channel = models.ForeignKey('chat.MessageChannel', on_delete=models.CASCADE)
+    rejected = models.BooleanField(default=False, null=True, blank=True)
+
+    @classmethod
+    def post_save(cls, instance, created, *args, **kwargs):
+        if created:
+            MessageChannelParticipant.objects.create(user=instance.user, channel=instance.message_channel, active=False)
+            return
+
+        if not instance.rejected:
+            MessageChannelParticipant.objects.update_or_create(user=instance.user, channel=instance.message_channel,
+                                                               defaults=dict(active=True))
+
+    class Meta:
+        unique_together = ('user', 'message_channel')
+
+
+post_save.connect(UserChatInvite.post_save, sender=UserChatInvite)

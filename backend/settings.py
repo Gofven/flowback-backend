@@ -30,11 +30,6 @@ env = environ.Env(DEBUG=(bool, False),
                   FLOWBACK_PSQL_PORT=(str, None),
                   FLOWBACK_REDIS_HOST=(str, 'localhost'),
                   FLOWBACK_REDIS_PORT=(str, '6379'),
-                  FLOWBACK_RABBITMQ_HOST=(str, 'localhost'), # RABBITMQ_BROKER_URL
-                  FLOWBACK_RABBITMQ_PORT=(str, '5672'),
-                  FLOWBACK_RABBITMQ_USER=(str, 'flowback'),
-                  FLOWBACK_RABBITMQ_PASSWORD=(str, 'flowback'),
-                  FLOWBACK_RABBITMQ_VHOST=(str, 'flowback'),
                   URL_SUBPATH=(str, ''),
                   AWS_S3_ENDPOINT_URL=(str, None),
                   AWS_S3_ACCESS_KEY_ID=(str, None),
@@ -139,9 +134,7 @@ INSTALLED_APPS = [
     ] + env('INTEGRATIONS')
 
 
-CELERY_BROKER_URL = (f'amqp://{env("FLOWBACK_RABBITMQ_USER")}:{env("FLOWBACK_RABBITMQ_PASSWORD")}'
-                     f'@{env("FLOWBACK_RABBITMQ_HOST")}:{env("FLOWBACK_RABBITMQ_PORT")}'
-                     f'/{env("FLOWBACK_RABBITMQ_VHOST")}')
+CELERY_BROKER_URL = f"redis://{env('FLOWBACK_REDIS_HOST')}:{env('FLOWBACK_REDIS_PORT')}/0"
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'flowback.common.documentation.CustomAutoSchema',
@@ -246,7 +239,10 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(env('FLOWBACK_REDIS_HOST'), env('FLOWBACK_REDIS_PORT'))],
+            "hosts": [{
+                "address": f"redis://{env('FLOWBACK_REDIS_HOST')}:{env('FLOWBACK_REDIS_PORT')}/1",  # "REDIS_TLS_URL"
+                "ssl_cert_reqs": None,
+            }],
         },
     },
 }

@@ -1,14 +1,18 @@
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
+from tutorial.quickstart.serializers import UserSerializer
+
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from flowback.user.models import OnboardUser, User
-from flowback.user.selectors import get_user, user_list
+from flowback.user.selectors import get_user, user_list, user_chat_invite_list
+from flowback.user.serializers import BasicUserSerializer
 from flowback.user.services import (user_create, user_create_verify, user_forgot_password,
-                                    user_forgot_password_verify, user_update, user_delete, user_get_chat_channel)
+                                    user_forgot_password_verify, user_update, user_delete, user_get_chat_channel,
+                                    user_chat_invite)
 
 
 class UserCreateApi(APIView):
@@ -88,8 +92,8 @@ class UserListApi(APIView):
     class OutputSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
-            fields = 'id', 'username', 'profile_image', \
-                     'banner_image', 'bio', 'website'
+            fields = ('id', 'username', 'profile_image',
+                      'banner_image', 'bio', 'website', 'direct_message')
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -108,8 +112,9 @@ class UserGetApi(APIView):
     class OutputSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
-            fields = 'id', 'email', 'username', 'profile_image', \
-                     'banner_image', 'bio', 'website', 'dark_theme', 'user_config', 'contact_phone', 'contact_email'
+            fields = ('id', 'email', 'username', 'profile_image',
+                      'banner_image', 'bio', 'website', 'dark_theme',
+                      'user_config', 'direct_message')
 
     def get(self, request):
         user = get_user(request.user.id)
@@ -127,6 +132,7 @@ class UserUpdateApi(APIView):
         dark_theme = serializers.BooleanField(required=False)
         contact_email = serializers.CharField(required=False)
         contact_phone = PhoneNumberField(required=False)
+        direct_message = serializers.BooleanField(required=False)
         user_config = serializers.CharField(required=False)
 
     def post(self, request):
@@ -158,3 +164,45 @@ class UserGetChatChannelAPI(APIView):
         data = user_get_chat_channel(user_id=request.user.id, **serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK, data=self.OutputSerializer(data).data)
+
+
+class UserChatInviteAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        invite_id = serializers.IntegerField()
+        accept = serializers.BooleanField()
+
+    def post(self, request):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_chat_invite(user_id=request.user.id, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class UserChatInviteListAPI(APIView):
+    class Pagination(LimitOffsetPagination):
+        max_limit = 100
+
+    class FilterSerializer(serializers.Serializer):
+        user_id = serializers.IntegerField(required=False)
+        message_channel_id = serializers.IntegerField(required=False)
+        rejected = serializers.BooleanField(required=False)
+        rejected__isnull = serializers.BooleanField(required=False)
+
+    class OutputSerializer(serializers.Serializer):
+        user = BasicUserSerializer()
+        message_channel_id = serializers.IntegerField()
+        rejected = serializers.BooleanField(allow_null=True, default=None)
+
+    def get(self, request):
+        serializer = self.FilterSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        qs = user_chat_invite_list(fetched_by=request.user, filters=serializer.validated_data)
+
+        return get_paginated_response(pagination_class=self.Pagination,
+                                      serializer_class=self.OutputSerializer,
+                                      queryset=qs,
+                                      request=self.request,
+                                      view=self)

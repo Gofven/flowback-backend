@@ -26,18 +26,6 @@ services:
 #    ports:
 #      - "6379:6379"
 
-  flowback-rabbitmq:
-    image: rabbitmq:3.13
-    hostname: flowback
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: flowback
-      RABBITMQ_DEFAULT_PASS: flowback
-      RABBITMQ_DEFAULT_VHOST: flowback
-#    ports:
-#      - "5672:5672"
-#      - "15672:15672"
-
   flowback-backend:
     build: .
     command: >
@@ -58,7 +46,6 @@ services:
       FLOWBACK_PSQL_HOST: ${POSTGRES_HOST:-flowback-postgresql}
       FLOWBACK_PSQL_PORT: ${POSTGRES_PORT:-5432}
       FLOWBACK_REDIS_HOST: ${REDIS_HOST:-flowback-redis}
-      FLOWBACK_RABBITMQ_HOST: ${RABBITMQ_HOST:-flowback-rabbitmq}
     env_file:
       - path: ./.env
         required: false
@@ -69,7 +56,6 @@ services:
     depends_on:
       - flowback-backend
       - flowback-redis
-      - flowback-rabbitmq
     environment:
       FLOWBACK_PSQL_NAME: ${POSTGRES_DB:-flowback}
       FLOWBACK_PSQL_USER: ${POSTGRES_USER:-flowback}
@@ -77,7 +63,6 @@ services:
       FLOWBACK_PSQL_HOST: ${POSTGRES_HOST:-flowback-postgresql}
       FLOWBACK_PSQL_PORT: ${POSTGRES_PORT:-5432}
       FLOWBACK_REDIS_HOST: ${REDIS_HOST:-flowback-redis}
-      FLOWBACK_RABBITMQ_HOST: ${RABBITMQ_HOST:-flowback-rabbitmq}
     env_file:
       - path: ./.env
         required: false
@@ -88,7 +73,6 @@ services:
     depends_on:
       - flowback-backend
       - flowback-redis
-      - flowback-rabbitmq
     volumes:
       - .:/app # For persisting periodic task metadata
     environment:
@@ -98,7 +82,6 @@ services:
       FLOWBACK_PSQL_HOST: ${POSTGRES_HOST:-flowback-postgresql}
       FLOWBACK_PSQL_PORT: ${POSTGRES_PORT:-5432}
       FLOWBACK_REDIS_HOST: ${REDIS_HOST:-flowback-redis}
-      FLOWBACK_RABBITMQ_HOST: ${RABBITMQ_HOST:-flowback-rabbitmq}
     env_file:
       - path: ./.env
         required: false

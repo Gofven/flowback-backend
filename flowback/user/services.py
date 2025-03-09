@@ -18,7 +18,7 @@ from flowback.common.services import model_update, get_object
 from flowback.kanban.services import KanbanManager
 from flowback.schedule.models import ScheduleEvent
 from flowback.schedule.services import ScheduleManager, unsubscribe_schedule
-from flowback.user.models import User, OnboardUser, PasswordReset, Report
+from flowback.user.models import User, OnboardUser, PasswordReset, Report, UserChatInvite
 
 user_schedule = ScheduleManager(schedule_origin_name='user')
 user_kanban = KanbanManager(origin_type='user')
@@ -115,7 +115,7 @@ def user_forgot_password_verify(*, verification_code: str, password: str):
 
 def user_update(*, user: User, data) -> User:
     non_side_effects_fields = ['username', 'profile_image', 'banner_image', 'bio', 'website', 'email_notifications',
-                               'dark_theme', 'contact_email', 'contact_phone', 'user_config']
+                               'dark_theme', 'contact_email', 'direct_message', 'contact_phone', 'user_config']
 
     user, has_updated = model_update(instance=user,
                                      fields=non_side_effects_fields,
@@ -223,6 +223,9 @@ def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
     if not len(target_users) == len(target_user_ids):
         raise ValidationError("Not every user requested do exist")
 
+    if len(target_user_ids) == 1 and user_id == target_user_ids[0]:
+        raise ValidationError("Cannot create a chat with yourself")
+
     try:
         # Find a channel where all users are in the same chat
         channel = MessageChannel.objects.annotate(count=Count('users')).filter(
@@ -243,9 +246,28 @@ def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
 
         # In the future, make this a bulk_create statement
         for u in target_users:
-            message_channel_join(user_id=u.id, channel_id=channel.id)
+            if (u.direct_message == True and len(target_users) <= 2) or u.id == user_id:
+                message_channel_join(user_id=u.id, channel_id=channel.id)
+
+            else:
+                if not channel.messagechannelparticipant_set.filter(user_id=u.id).exists():
+                    UserChatInvite.objects.update_or_create(user_id=u.id,
+                                                            message_channel_id=channel.id,
+                                                            rejected=False,
+                                                            defaults=dict(rejected=None))
 
     return channel
+
+
+def user_chat_invite(user_id: int, invite_id: int, accept: bool = True):
+    user = User.objects.get(id=user_id)
+    invite = UserChatInvite.objects.get(id=invite_id)
+
+    if not invite.user == user:
+        raise ValidationError("You cannot accept an invite for someone else")
+
+    invite.rejected = not accept
+    invite.save()
 
 
 def report_create(*, user_id: int, title: str, description: str):

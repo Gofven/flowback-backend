@@ -112,10 +112,11 @@ def poll_prediction_bet_count(poll_id: int):
     # Calculation below
     for i, statement in enumerate(poll_statements):
         predictor_errors = []
+        main_bets = [bets[i] for bets in current_bets if bets[i] is not None]
 
         # If there's no previous bets then do nothing
         if len(previous_bets) == 0 or len(previous_bets[0]) == 0:
-            result = None if len(current_bets) == 0 else (sum(bets[i] for bets in current_bets)) / len(current_bets)
+            result = None if all(bets[i] is not None for bets in current_bets) else (sum(main_bets)) / len(main_bets)
             print(f"No previous bets found, returning {result}")
             statement.combined_bet = result
             statement.save()
@@ -126,8 +127,8 @@ def poll_prediction_bet_count(poll_id: int):
         if all(x[i] is None for x in current_bets):
             continue
 
-
-        for bets in previous_bets:
+        previous_bets_trimmed = [previous_bets[j] for j in range(len(previous_bets)) if current_bets[j][i] is not None]
+        for bets in previous_bets_trimmed:
             bets_trimmed = [i for i in bets if i is not None]
             bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (sum(bets_trimmed) /
                                                                                      len(bets_trimmed)))
@@ -197,8 +198,8 @@ def poll_prediction_bet_count(poll_id: int):
         transposed_bet_weights = np.transpose(bet_weights)
 
         combined_bet = float(np.matmul(transposed_bet_weights,
-                                       [bet[i] + bias_adjustments[i] for bet in current_bets])[0])
-        print(np.matmul(transposed_bet_weights, [bet[i] + bias_adjustments[i] for bet in current_bets])[0])
+                                       [bet + bias_adjustments[i] for bet in main_bets])[0])
+        print(np.matmul(transposed_bet_weights, [bet + bias_adjustments[i] for bet in main_bets])[0])
 
         # Sanity check
         check = np.matmul(transposed_bet_weights, row_one_vector)
