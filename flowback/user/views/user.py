@@ -109,7 +109,7 @@ class UserGetApi(APIView):
         class Meta:
             model = User
             fields = 'id', 'email', 'username', 'profile_image', \
-                     'banner_image', 'bio', 'website', 'dark_theme', 'user_config'
+                     'banner_image', 'bio', 'website', 'dark_theme', 'user_config', 'contact_phone', 'contact_email'
 
     def get(self, request):
         user = get_user(request.user.id)
