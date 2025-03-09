@@ -223,6 +223,9 @@ def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
     if not len(target_users) == len(target_user_ids):
         raise ValidationError("Not every user requested do exist")
 
+    if len(target_user_ids) == 1 and user_id == target_user_ids[0]:
+        raise ValidationError("Cannot create a chat with yourself")
+
     try:
         # Find a channel where all users are in the same chat
         channel = MessageChannel.objects.annotate(count=Count('users')).filter(
@@ -243,11 +246,15 @@ def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
 
         # In the future, make this a bulk_create statement
         for u in target_users:
-            if u.direct_message == True or target_users < 3:
+            if (u.direct_message == True and len(target_users) <= 2) or u.id == user_id:
                 message_channel_join(user_id=u.id, channel_id=channel.id)
 
             else:
-                UserChatInvite.objects.create(user_id=u.id, channel_id=channel.id)
+                if not channel.messagechannelparticipant_set.filter(user_id=u.id).exists():
+                    UserChatInvite.objects.update_or_create(user_id=u.id,
+                                                            message_channel_id=channel.id,
+                                                            rejected=False,
+                                                            defaults=dict(rejected=None))
 
     return channel
 
@@ -256,12 +263,11 @@ def user_chat_invite(user_id: int, invite_id: int, accept: bool = True):
     user = User.objects.get(id=user_id)
     invite = UserChatInvite.objects.get(id=invite_id)
 
-    if accept:
-        message_channel_join(user_id=user.id, channel_id=invite.message_channel.id)
+    if not invite.user == user:
+        raise ValidationError("You cannot accept an invite for someone else")
 
-    else:
-        invite.rejected = True
-        invite.save()
+    invite.rejected = not accept
+    invite.save()
 
 
 def report_create(*, user_id: int, title: str, description: str):

@@ -10,7 +10,7 @@ from flowback.group.models import Group, GroupUser, GroupThread
 from flowback.poll.models import Poll, PollPredictionStatement
 from flowback.schedule.selectors import schedule_event_list
 from flowback.kanban.selectors import kanban_entry_list
-from flowback.user.models import User
+from flowback.user.models import User, UserChatInvite
 from backend.settings import env
 
 
@@ -94,3 +94,23 @@ def user_home_feed(*, fetched_by: User, filters=None):
     qs = thread_qs.union(poll_qs).order_by('-created_at')
 
     return qs
+
+
+class UserChatInviteFilter(django_filters.FilterSet):
+    user_id = django_filters.NumberFilter(field_name="user_id", lookup_expr="exact")
+    message_channel_id = django_filters.NumberFilter(field_name="message_channel_id", lookup_expr="exact")
+    rejected = django_filters.BooleanFilter(field_name="rejected", lookup_expr="exact")
+    rejected__isnull = django_filters.BooleanFilter(field_name="rejected", lookup_expr="isnull")
+
+
+    class Meta:
+        model = UserChatInvite
+        fields = ['user_id', 'message_channel_id', 'rejected', 'rejected__isnull']
+
+
+def user_chat_invite_list(*, fetched_by: User, filters=None):
+    filters = filters or {}
+
+    qs = UserChatInvite.objects.filter(message_channel__messagechannelparticipant__user=fetched_by).all()
+
+    return UserChatInviteFilter(filters, qs).qs

@@ -9,11 +9,11 @@ from flowback.comment.tests.factories import CommentFactory
 from flowback.common.tests import generate_request
 from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory
 from flowback.poll.tests.factories import PollFactory
-from flowback.user.models import User
+from flowback.user.models import User, UserChatInvite
 from flowback.user.services import user_create, user_create_verify
 from flowback.user.tests.factories import UserFactory
 from flowback.user.views.home import UserHomeFeedAPI
-from flowback.user.views.user import UserDeleteAPI, UserGetChatChannelAPI, UserUpdateApi
+from flowback.user.views.user import UserDeleteAPI, UserGetChatChannelAPI, UserUpdateApi, UserChatInviteAPI
 
 
 class UserTest(APITransactionTestCase):
@@ -114,3 +114,35 @@ class UserTest(APITransactionTestCase):
 
         # Count all participants + the user itself
         self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=response.data['id']).count(), 26)
+
+    def test_user_get_chat_channel_invite(self):
+        participants = UserFactory.create_batch(25, direct_message=False)
+
+        response = generate_request(api=UserGetChatChannelAPI,
+                                    data=dict(target_user_ids=[u.id for u in participants]),
+                                    user=self.user_one)
+
+        channel_id = response.data['id']
+        self.assertEqual(UserChatInvite.objects.all().count(), 25)
+        self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=channel_id, active=True).count(),
+                         1)
+
+        for i, user in enumerate(participants):
+            response = generate_request(api=UserChatInviteAPI,
+                                        data=dict(invite_id=UserChatInvite.objects.get(user=user).id,
+                                                  accept=True if i <= 9 else False),
+                                        user=user)
+
+            self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+
+        self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=channel_id, active=True).count(), 11)
+        self.assertEqual(UserChatInvite.objects.filter(rejected=True).count(), 15)
+
+        response = generate_request(api=UserGetChatChannelAPI,
+                                    data=dict(target_user_ids=[u.id for u in participants]),
+                                    user=self.user_one)
+
+        self.assertEqual(response.data['id'], channel_id, "Channel ID should not have changed")
+
+        self.assertEqual(UserChatInvite.objects.all().count(), 25)
+        self.assertEqual(UserChatInvite.objects.filter(rejected=True).count(), 0)
