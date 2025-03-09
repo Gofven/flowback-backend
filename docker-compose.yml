@@ -56,7 +56,6 @@ services:
     depends_on:
       - flowback-backend
       - flowback-redis
-      - flowback-rabbitmq
     environment:
       FLOWBACK_PSQL_NAME: ${POSTGRES_DB:-flowback}
       FLOWBACK_PSQL_USER: ${POSTGRES_USER:-flowback}
@@ -74,7 +73,6 @@ services:
     depends_on:
       - flowback-backend
       - flowback-redis
-      - flowback-rabbitmq
     volumes:
       - .:/app # For persisting periodic task metadata
     environment:
