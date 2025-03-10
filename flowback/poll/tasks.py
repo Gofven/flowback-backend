@@ -45,13 +45,12 @@ def poll_prediction_bet_count(poll_id: int):
     poll = Poll.objects.get(id=poll_id)
     poll.status_prediction = 2
     poll.save()
-    predictors = GroupUser.objects.filter(pollpredictionbet__prediction_statement__poll=poll).all()
 
     # Get list of previous outcomes in a given area (poll)
     statements = PollPredictionStatement.objects.filter(
-        Q(poll__tag=poll.tag,
-          poll__end_date__lte=timestamp,
-          created_at__lte=timestamp) | Q(poll=poll)
+        Q(Q(poll__tag=poll.tag,
+            poll__end_date__lte=timestamp,
+            created_at__lte=timestamp) & ~Q(poll=poll)) | Q(poll=poll)
     ).annotate(
         outcome_sum=Sum(Case(When(pollpredictionstatementvote__vote=True, then=1),
                              When(pollpredictionstatementvote__vote=False, then=-1),
@@ -69,20 +68,22 @@ def poll_prediction_bet_count(poll_id: int):
 
     current_bets = []
     previous_bets = []
+
+    # Get group users associated with the relevant poll
+    predictors = GroupUser.objects.filter(pollpredictionbet__prediction_statement__poll=poll).all().distinct()
+
     for predictor in predictors:
-        # get each bet predictor does, order by previous_outcomes
-        bet_subquery = PollPredictionBet.objects.filter(prediction_statement=OuterRef('id'),
-                                                        created_by=predictor
-                                                        ).annotate(
-            real_score=Cast(F('score'), models.FloatField()) / 5).values('real_score')
-        bets = statements.annotate(user_bets=Subquery(bet_subquery)).all()
+        current_bets.append(list(PollPredictionBet.objects.filter(
+            created_by=predictor,
+            prediction_statement__in=statements,
+            prediction_statement__poll=poll).order_by('-prediction_statement__poll__created_at').annotate(
+            real_score=Cast(F('score'), models.FloatField()) / 5).values_list('real_score', flat=True)))
 
-        current_bets.append(list(bets.filter(poll=poll).values_list('user_bets', flat=True)))
-        previous_bets.append(list(bets.filter(~Q(poll=poll)).values_list('user_bets', flat=True)))
-
-    #     # TODO get all current_bets for every statement in poll, bets needs to be counted once
-    #
-    #     predictor_bets.append(bets)
+        previous_bets.append(list(PollPredictionBet.objects.filter(
+            Q(created_by=predictor,
+            prediction_statement__in=statements)
+            & ~Q(prediction_statement__poll=poll)).order_by('-prediction_statement__poll__created_at').annotate(
+            real_score=Cast(F('score'), models.FloatField()) / 5).values_list('real_score', flat=True)))
 
     # Get bets
 
@@ -103,14 +104,16 @@ def poll_prediction_bet_count(poll_id: int):
     # If the determinant of a predictor bets list is zero then set the first value to the smallest non zero value
     # TODO future test combinations of values
     # previous_bets = [[0, 1, 0.7, 0, 1], [0, 0.2, 1, 0, 0.8]]
-    print(current_bets)
-    print(previous_outcomes)
-    print(previous_bets)
+    print("\n\n" + "#" * 50)
 
-    bias_adjustments = []  # Assume previous_bets matches order of current_bets
+    # Assume previous_bets matches order of current_bets
+    print("Current Bets:", current_bets)
+    print("Previous Outcomes:", previous_outcomes)
+    print("Previous Bets:", previous_bets)
 
     # Calculation below
     for i, statement in enumerate(poll_statements):
+        bias_adjustments = []
         predictor_errors = []
         main_bets = [bets[i] for bets in current_bets if bets[i] is not None]
 
@@ -128,6 +131,7 @@ def poll_prediction_bet_count(poll_id: int):
             continue
 
         previous_bets_trimmed = [previous_bets[j] for j in range(len(previous_bets)) if current_bets[j][i] is not None]
+        print("Previous Bets Trimmed:", previous_bets_trimmed)
         for bets in previous_bets_trimmed:
             bets_trimmed = [i for i in bets if i is not None]
             bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (sum(bets_trimmed) /
@@ -194,6 +198,9 @@ def poll_prediction_bet_count(poll_id: int):
         denominator_vector = np.matmul(inverse_covariance_matrix, row_one_vector)
         denominator = np.matmul(row_one_vector, denominator_vector)
 
+        if denominator == 0:
+            denominator = small_decimal
+
         bet_weights = nominator * (1 / denominator)
         transposed_bet_weights = np.transpose(bet_weights)
 
@@ -207,9 +214,9 @@ def poll_prediction_bet_count(poll_id: int):
         bias_adjusted_bet = [bet + bias_adjustments[i] for bet in main_bets]
         for j in range(len(bias_adjusted_bet)):
             if bias_adjusted_bet[j] < 0:
-                bias_adjusted_bet[j] = 0
+                bias_adjusted_bet[j] = 0.0
             elif bias_adjusted_bet[j] > 1:
-                bias_adjusted_bet[j] = 1
+                bias_adjusted_bet[j] = 1.0
 
         combined_bet = float(np.matmul(transposed_bet_weights, bias_adjusted_bet)[0])
 
