@@ -53,12 +53,13 @@ class WorkGroupTest(APITransactionTestCase):
 
         response = generate_request(api=WorkGroupListAPI,
                                     user=self.group_user_creator_one.user,
-                                    url_params=dict(group_id=self.group_user_creator_one.group.id))
+                                    url_params=dict(group_id=self.group_user_creator_one.group.id),
+                                    data=dict(order_by="-created_at"))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 2)
-        self.assertEqual(response.data['results'][0]['id'], work_group_one.id)
-        self.assertEqual(response.data['results'][1]['id'], work_group_two.id)
+        self.assertEqual(response.data['results'][0]['id'], work_group_two.id)
+        self.assertEqual(response.data['results'][1]['id'], work_group_one.id)
 
 
     def test_work_group_user_list(self):

@@ -390,9 +390,10 @@ def work_group_list(*, group_id: int, fetched_by: User, filters=None):
     filters = filters or {}
     group_user = group_user_permissions(user=fetched_by, group=group_id)
 
-    qs = WorkGroup.objects.filter(group_id=group_id
-                                  ).annotate(joined=Q(workgroupuser__group_user__in=[group_user]),
-                                             member_count=Count('workgroupuser')).distinct()
+    qs = WorkGroup.objects.filter(group_id=group_id).annotate(
+        joined=Q(workgroupuser__group_user__in=[group_user]),
+        requested_access=Q(workgroupuserjoinrequest__group_user__in=[group_user]),
+        member_count=Count('workgroupuser')).distinct()
 
     return BaseWorkGroupFilter(filters, qs).qs
 
