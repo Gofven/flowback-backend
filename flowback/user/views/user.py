@@ -114,7 +114,8 @@ class UserGetApi(APIView):
             model = User
             fields = ('id', 'email', 'username', 'profile_image',
                       'banner_image', 'bio', 'website', 'dark_theme',
-                      'user_config', 'direct_message')
+                      'user_config', 'direct_message', 'contact_email',
+                      'contact_phone')
 
     def get(self, request):
         user = get_user(request.user.id)
