@@ -2,6 +2,7 @@ from typing import Union
 
 import django_filters
 from django.db.models import Q, Exists, OuterRef, Count, Subquery, Case, When, Value, CharField
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from flowback.comment.models import Comment
@@ -79,13 +80,13 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
         group_user_permissions(user=fetched_by, group=group_id)
         qs = Poll.objects.filter(created_by__group_id=group_id) \
             .annotate(phase=poll_phase,
-                      total_comments=Subquery(
+                      total_comments=Coalesce(Subquery(
                           Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
-                              'comment_section_id').annotate(total=Count('*')).values('total')[:1]),
+                              'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0),
                       total_proposals=Count('pollproposal'),
-                      total_predictions=Subquery(
+                      total_predictions=Coalesce(Subquery(
                           PollPredictionStatement.objects.filter(poll_id=OuterRef('id')).values('poll_id')
-                          .annotate(total=Count('*')).values('total')[:1])).all()
+                          .annotate(total=Count('*')).values('total')[:1]), 0)).all()
 
     else:
         joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
@@ -97,13 +98,13 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
              ) & Q(start_date__lte=timezone.now())
         ).annotate(phase=poll_phase,
                    group_joined=Exists(joined_groups),
-                   total_comments=Subquery(
+                   total_comments=Coalesce(Subquery(
                        Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
-                           'comment_section_id').annotate(total=Count('*')).values('total')[:1]),
+                           'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0),
                    total_proposals=Count('pollproposal'),
-                   total_predictions=Subquery(
+                   total_predictions=Coalesce(Subquery(
                        PollPredictionStatement.objects.filter(poll_id=OuterRef('id')).values('poll_id')
-                       .annotate(total=Count('*')).values('total')[:1])).all()
+                       .annotate(total=Count('*')).values('total')[:1]), 0)).all()
 
     return BasePollFilter(filters, qs).qs
 
