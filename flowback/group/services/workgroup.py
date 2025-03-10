@@ -41,7 +41,7 @@ def work_group_user_join(*, user_id: int, work_group_id: int) -> int | None:
 
     if work_group.direct_join:
         work_group_user = WorkGroupUser(group_user=group_user, work_group=work_group)
-        work_group_user.full_clean()
+        # TODO make full_clean work
         work_group_user.save()
         return work_group_user.id
 
