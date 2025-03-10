@@ -197,9 +197,26 @@ def poll_prediction_bet_count(poll_id: int):
         bet_weights = nominator * (1 / denominator)
         transposed_bet_weights = np.transpose(bet_weights)
 
-        combined_bet = float(np.matmul(transposed_bet_weights,
-                                       [bet + bias_adjustments[i] for bet in main_bets])[0])
-        print(np.matmul(transposed_bet_weights, [bet + bias_adjustments[i] for bet in main_bets])[0])
+        print("Transposed_bet_weights:", transposed_bet_weights)
+        print("Main bets:", main_bets)
+        print("Bias_adjustments:", bias_adjustments)
+
+        # I am unsure if I should limit the bias adjusted bets or only limit the combined bet in the end,
+        # I think this might make more sense but I have to think about this more
+        # TODO: think about this more
+        bias_adjusted_bet = [bet + bias_adjustments[i] for bet in main_bets]
+        for j in range(len(bias_adjusted_bet)):
+            if bias_adjusted_bet[j] < 0:
+                bias_adjusted_bet[j] = 0
+            elif bias_adjusted_bet[j] > 1:
+                bias_adjusted_bet[j] = 1
+
+        combined_bet = float(np.matmul(transposed_bet_weights, bias_adjusted_bet)[0])
+
+        if combined_bet < 0:
+            combined_bet = 0
+        elif combined_bet > 1:
+            combined_bet = 1
 
         # Sanity check
         check = np.matmul(transposed_bet_weights, row_one_vector)
