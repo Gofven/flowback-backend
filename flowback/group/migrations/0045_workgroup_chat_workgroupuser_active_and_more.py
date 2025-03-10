@@ -35,11 +35,6 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='chat.messagechannel', null=True)
         ),
         migrations.RunPython(pre_populate_fields),
-        migrations.AlterField(
-            model_name='workgroup',
-            name='chat',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='chat.messagechannel')
-        ),
         migrations.AddField(
             model_name='workgroupuser',
             name='chat_participant',
@@ -51,10 +46,5 @@ class Migration(migrations.Migration):
             model_name='workgroupuser',
             name='active',
             field=models.BooleanField(default=True),
-        ),
-        migrations.AlterField(
-            model_name='workgroupuser',
-            name='chat_participant',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='chat.messagechannelparticipant')
         )
     ]
