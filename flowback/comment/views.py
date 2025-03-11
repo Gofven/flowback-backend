@@ -141,9 +141,16 @@ class CommentVoteAPI(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        self.lazy_action.__func__(*args,
-                                  **kwargs,
-                                  **serializer.validated_data,
-                                  fetched_by=request.user.id)
+        # Check if request path contains delegate/pool
+        if 'delegate/pool' in request.path:
+            self.lazy_action.__func__(*args,
+                                     **kwargs,
+                                     **serializer.validated_data,
+                                     user=request.user.id)
+        else:
+            self.lazy_action.__func__(*args,
+                                     **kwargs,
+                                     **serializer.validated_data,
+                                     fetched_by=request.user.id)
 
         return Response(status=status.HTTP_200_OK)
