@@ -131,6 +131,7 @@ def group_thread_comment_update(fetched_by: int, thread_id: int, comment_id: int
     return comment_update(fetched_by=fetched_by,
                           comment_section_id=thread.comment_section_id,
                           comment_id=comment_id,
+                          attachment_upload_to="group/thread/attachments",
                           data=data)
 
 

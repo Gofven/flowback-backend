@@ -107,6 +107,7 @@ class CommentUpdateAPI(APIView):
 
     class InputSerializer(serializers.Serializer):
         message = serializers.CharField()
+        attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
     def post(self, request, *args, **kwargs):
         serializer = self.InputSerializer(data=request.data)

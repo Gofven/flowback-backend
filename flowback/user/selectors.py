@@ -22,8 +22,33 @@ class UserFilter(FilterSet):
                   }
 
 
-def get_user(user: int):
-    return get_object(User, id=user)
+def get_user(fetched_by: User, user_id: int = None):
+    def user_to_dict(u, fields):
+        return {field: getattr(user, field, None) for field in fields}
+
+    if user_id:
+        user = User.objects.get(id=user_id)
+
+    else:
+        user = fetched_by
+
+    share_groups = User.objects.filter(group__groupuser__user__in=[fetched_by, user]).exists()
+
+    if fetched_by == user:
+        return user
+
+    elif (user.public_status == User.PublicStatus.PUBLIC
+          or (share_groups and user.public_status == User.PublicStatus.GROUP_ONLY)):
+        return user_to_dict(user, ('id', 'username',
+                           'profile_image', 'banner_image',
+                           'direct_message', 'public_status',
+                           'bio', 'website', 'contact_email', 'contact_phone',
+                           'public_status'))
+
+    else:
+        return user_to_dict(user, ('id', 'username', 'profile_image',
+                                   'banner_image', 'direct_message', 'public_status'))
+
 
 
 def user_schedule_event_list(*, fetched_by: User, filters=None):

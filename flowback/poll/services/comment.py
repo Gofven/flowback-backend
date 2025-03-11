@@ -44,6 +44,7 @@ def poll_comment_update(*, fetched_by: int, poll_id: int, comment_id: int, data)
     return comment_update(fetched_by=fetched_by,
                           comment_section_id=poll.comment_section.id,
                           comment_id=comment_id,
+                          attachment_upload_to="group/poll/comment/attachments",
                           data=data)
 
 

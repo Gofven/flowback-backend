@@ -67,6 +67,7 @@ class KanbanEntryCreateAPI(APIView):
 class KanbanEntryUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         entry_id = serializers.IntegerField()
+        work_group_id = serializers.IntegerField(required=False)
         assignee_id = serializers.IntegerField(required=False)
         title = serializers.CharField(required=False)
         description = serializers.CharField(required=False, allow_null=True, allow_blank=True)

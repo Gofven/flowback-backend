@@ -5,6 +5,7 @@ from pprint import pprint
 from rest_framework import status
 from rest_framework.test import APITransactionTestCase
 
+from flowback.chat.models import MessageChannel, MessageChannelParticipant
 from flowback.common.tests import generate_request
 from flowback.group.models import WorkGroup, WorkGroupUser, WorkGroupUserJoinRequest, GroupUser
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, WorkGroupUserFactory, WorkGroupFactory, \
@@ -52,12 +53,13 @@ class WorkGroupTest(APITransactionTestCase):
 
         response = generate_request(api=WorkGroupListAPI,
                                     user=self.group_user_creator_one.user,
-                                    url_params=dict(group_id=self.group_user_creator_one.group.id))
+                                    url_params=dict(group_id=self.group_user_creator_one.group.id),
+                                    data=dict(order_by="-created_at"))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 2)
-        self.assertEqual(response.data['results'][0]['id'], work_group_one.id)
-        self.assertEqual(response.data['results'][1]['id'], work_group_two.id)
+        self.assertEqual(response.data['results'][0]['id'], work_group_two.id)
+        self.assertEqual(response.data['results'][1]['id'], work_group_one.id)
 
 
     def test_work_group_user_list(self):
@@ -158,8 +160,11 @@ class WorkGroupTest(APITransactionTestCase):
                                     url_params=dict(work_group_id=work_group.id),
                                     user=self.group_user_creator_one.user)
 
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT, response.data)
         self.assertTrue(WorkGroupUser.objects.filter(id=work_group.id).exists())
+        self.assertFalse(WorkGroupUserJoinRequest.objects.filter(id=work_group.id).exists())
+        self.assertTrue(MessageChannelParticipant.objects.filter(channel=work_group.chat,
+                                                                 user=self.group_user_creator_one.user).exists())
 
 
     def test_work_group_user_leave(self):

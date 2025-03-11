@@ -114,8 +114,12 @@ def user_forgot_password_verify(*, verification_code: str, password: str):
 
 
 def user_update(*, user: User, data) -> User:
-    non_side_effects_fields = ['username', 'profile_image', 'banner_image', 'bio', 'website', 'email_notifications',
-                               'dark_theme', 'contact_email', 'direct_message', 'contact_phone', 'user_config']
+    non_side_effects_fields = ['username', 'profile_image',
+                               'banner_image', 'bio',
+                               'website', 'email_notifications',
+                               'dark_theme', 'contact_email',
+                               'direct_message', 'contact_phone',
+                               'user_config', 'public_status']
 
     user, has_updated = model_update(instance=user,
                                      fields=non_side_effects_fields,
@@ -211,19 +215,19 @@ def user_kanban_entry_delete(*, user_id: int, entry_id: int):
                                            entry_id=entry_id)
 
 
-def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
+def user_get_chat_channel(fetched_by: User, target_user_ids: int | list[int]):
     if isinstance(target_user_ids, int):
         target_user_ids = [target_user_ids]
 
-    if user_id not in target_user_ids:
-        target_user_ids.append(user_id)
+    if fetched_by.id not in target_user_ids:
+        target_user_ids.append(fetched_by.id)
 
     target_users = User.objects.filter(id__in=target_user_ids, is_active=True)
 
     if not len(target_users) == len(target_user_ids):
         raise ValidationError("Not every user requested do exist")
 
-    if len(target_user_ids) == 1 and user_id == target_user_ids[0]:
+    if len(target_user_ids) == 1 and fetched_by.id == target_user_ids[0]:
         raise ValidationError("Cannot create a chat with yourself")
 
     try:
@@ -231,8 +235,8 @@ def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
         channel = MessageChannel.objects.annotate(count=Count('users')).filter(
             count=target_users.count())
 
-        for user in target_users.all():
-            channel = channel.filter(users=user.id)
+        for u in target_users.all():
+            channel = channel.filter(users=u.id)
 
         channel = channel.first()
 
@@ -246,7 +250,9 @@ def user_get_chat_channel(user_id: int, target_user_ids: int | list[int]):
 
         # In the future, make this a bulk_create statement
         for u in target_users:
-            if (u.direct_message == True and len(target_users) <= 2) or u.id == user_id:
+            if ((u.direct_message == True and len(target_users) <= 2)
+                    or u.id == fetched_by.id
+                    or fetched_by.is_superuser == True):
                 message_channel_join(user_id=u.id, channel_id=channel.id)
 
             else:

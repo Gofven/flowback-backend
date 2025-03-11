@@ -336,10 +336,15 @@ def group_thread_list(*, group_id: int, fetched_by: User, filters=None):
 
     sq_user_vote = GroupThreadVote.objects.filter(thread_id=OuterRef('id'), created_by=group_user).values('vote')
 
-    qs = (GroupThread.objects.filter(Q(created_by__group_id=group_id, work_group__isnull=True)
-                                     | Q(work_group__isnull=False,
-                                         work_group__workgroupuser__group_user__in=[group_user]))
-          .annotate(total_comments=Count('comment_section__comment',
+    if not group_user_permissions(group_user=group_user, permissions=['admin'], raise_exception=False):
+        threads = GroupThread.objects.filter(Q(created_by__group_id=group_id, work_group__isnull=True)
+                                         | Q(work_group__isnull=False) &
+                                           Q(work_group__workgroupuser__group_user__in=[group_user]))
+
+    else:
+        threads = GroupThread.objects.filter(created_by__group_id=group_id)
+
+    qs = (threads.annotate(total_comments=Count('comment_section__comment',
                                          filter=Q(comment_section__comment__active=True)),
                     user_vote=Subquery(sq_user_vote),
                     score=Count('groupthreadvote', filter=Q(groupthreadvote__vote=True)) -
@@ -390,9 +395,10 @@ def work_group_list(*, group_id: int, fetched_by: User, filters=None):
     filters = filters or {}
     group_user = group_user_permissions(user=fetched_by, group=group_id)
 
-    qs = WorkGroup.objects.filter(group_id=group_id
-                                  ).annotate(joined=Q(workgroupuser__group_user__in=[group_user]),
-                                             member_count=Count('workgroupuser')).distinct()
+    qs = WorkGroup.objects.filter(group_id=group_id).annotate(
+        joined=Q(workgroupuser__group_user__in=[group_user]),
+        requested_access=Q(workgroupuserjoinrequest__group_user__in=[group_user]),
+        member_count=Count('workgroupuser')).distinct()
 
     return BaseWorkGroupFilter(filters, qs).qs
 

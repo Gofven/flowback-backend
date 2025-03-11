@@ -214,6 +214,8 @@ class WorkGroupListAPI(APIView):
         member_count = serializers.IntegerField()
         direct_join = serializers.BooleanField()
         joined = serializers.BooleanField()
+        chat_id = serializers.IntegerField()
+        requested_access = serializers.BooleanField()
 
     def get(self, request, group_id: int):
         serializer = self.FilterSerializer(data=request.query_params)

@@ -93,7 +93,7 @@ class UserListApi(APIView):
         class Meta:
             model = User
             fields = ('id', 'username', 'profile_image',
-                      'banner_image', 'bio', 'website', 'direct_message')
+                      'banner_image', 'direct_message')
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -109,16 +109,32 @@ class UserListApi(APIView):
 
 
 class UserGetApi(APIView):
-    class OutputSerializer(serializers.ModelSerializer):
-        class Meta:
-            model = User
-            fields = ('id', 'email', 'username', 'profile_image',
-                      'banner_image', 'bio', 'website', 'dark_theme',
-                      'user_config', 'direct_message', 'contact_email',
-                      'contact_phone')
+    class FilterSerializer(serializers.Serializer):
+        user_id = serializers.IntegerField(required=False)
+
+    class OutputSerializer(serializers.Serializer):
+        id = serializers.IntegerField()
+        username = serializers.CharField()
+        profile_image = serializers.ImageField()
+        banner_image = serializers.ImageField()
+
+        bio = serializers.CharField(required=False)
+        website = serializers.CharField(required=False)
+        contact_email = serializers.CharField(required=False)
+        contact_phone = PhoneNumberField(required=False)
+        direct_message = serializers.BooleanField(required=False)
+        public_status = serializers.BooleanField(required=False)
+
+        email = serializers.CharField(required=False)
+        dark_theme = serializers.BooleanField(required=False)
+        user_config = serializers.CharField(required=False)
 
     def get(self, request):
-        user = get_user(request.user.id)
+        serializer = self.FilterSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        user = get_user(fetched_by=request.user, **serializer.validated_data)
+
         serializer = self.OutputSerializer(user)
         return Response(serializer.data)
 
@@ -134,6 +150,7 @@ class UserUpdateApi(APIView):
         contact_email = serializers.CharField(required=False)
         contact_phone = PhoneNumberField(required=False)
         direct_message = serializers.BooleanField(required=False)
+        public_status = serializers.BooleanField(required=False)
         user_config = serializers.CharField(required=False)
 
     def post(self, request):
@@ -162,7 +179,7 @@ class UserGetChatChannelAPI(APIView):
     def get(self, request):
         serializer = self.FilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
-        data = user_get_chat_channel(user_id=request.user.id, **serializer.validated_data)
+        data = user_get_chat_channel(fetched_by=request.user, **serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK, data=self.OutputSerializer(data).data)
 

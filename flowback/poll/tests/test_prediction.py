@@ -299,10 +299,10 @@ class PollPredictionStatementTest(APITransactionTestCase):
                                       score=0,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_two,
-                                      score=0,
+                                      score=1,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_three,
-                                      score=0,
+                                      score=5,
                                       vote=True)]
 
         poll = PollFactory(created_by=self.user_group_creator,
@@ -312,13 +312,13 @@ class PollPredictionStatementTest(APITransactionTestCase):
         poll_prediction_bet_count(poll_id=poll.id)
 
         poll_two_bets = [self.BetUser(group_user=self.user_prediction_caster_one,
-                                      score=0,
+                                      score=1,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_two,
                                       score=0,
                                       vote=True),
                          self.BetUser(group_user=self.user_prediction_caster_three,
-                                      score=0,
+                                      score=5,
                                       vote=True)]
 
         poll_two_bets_two = [self.BetUser(group_user=self.user_prediction_caster_two,
@@ -326,6 +326,9 @@ class PollPredictionStatementTest(APITransactionTestCase):
                                           vote=True),
                              self.BetUser(group_user=self.user_prediction_caster_three,
                                           score=0,
+                                          vote=True),
+                             self.BetUser(group_user=self.user_prediction_caster_one,
+                                          score=1,
                                           vote=True)]
 
         poll = PollFactory(created_by=self.user_group_creator,
@@ -364,7 +367,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
 
         poll_prediction_bet_count(poll_id=self.poll.id)
         print(self.poll.tag, self.prediction_statement.combined_bet)
-        print([i.combined_bet for i in PollPredictionStatement.objects.all()])
+        print("Combined bet: ", [i.combined_bet for i in PollPredictionStatement.objects.all()])
 
         # Query Test
         qs = PollPredictionStatement.objects.filter(poll__tag=self.poll.tag, pollpredictionstatementvote__isnull=False)
