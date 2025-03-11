@@ -179,7 +179,7 @@ class UserGetChatChannelAPI(APIView):
     def get(self, request):
         serializer = self.FilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
-        data = user_get_chat_channel(user_id=request.user.id, **serializer.validated_data)
+        data = user_get_chat_channel(fetched_by=request.user, **serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK, data=self.OutputSerializer(data).data)
 
