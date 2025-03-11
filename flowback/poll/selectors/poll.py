@@ -83,7 +83,7 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
                       total_comments=Coalesce(Subquery(
                           Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
                               'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0),
-                      total_proposals=Count('pollproposal'),
+                      total_proposals=Count('pollproposal', distinct=True),
                       total_predictions=Coalesce(Subquery(
                           PollPredictionStatement.objects.filter(poll_id=OuterRef('id')).values('poll_id')
                           .annotate(total=Count('*')).values('total')[:1]), 0)).all()
@@ -101,7 +101,7 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
                    total_comments=Coalesce(Subquery(
                        Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
                            'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0),
-                   total_proposals=Count('pollproposal'),
+                   total_proposals=Count('pollproposal', distinct=True),
                    total_predictions=Coalesce(Subquery(
                        PollPredictionStatement.objects.filter(poll_id=OuterRef('id')).values('poll_id')
                        .annotate(total=Count('*')).values('total')[:1]), 0)).all()

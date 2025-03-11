@@ -42,6 +42,7 @@ class PollTest(APITransactionTestCase):
 
         CommentFactory.create_batch(17, comment_section=self.poll_one.comment_section)
         PollProposalFactory.create_batch(12, poll=self.poll_one)
+        PollProposalFactory.create_batch(12, poll=self.poll_two)
         PollPredictionStatementFactory.create_batch(15, poll=self.poll_one)
 
         response = generate_request(api=PollListApi,
