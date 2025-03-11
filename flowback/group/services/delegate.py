@@ -168,11 +168,11 @@ def group_delegate_pool_comment_delete(*,
                           force=force)
 
 
-def group_delegate_pool_comment_vote(*, user: int, delegate_pool_id: int, comment_id: int, vote: bool):
+def group_delegate_pool_comment_vote(*, fetched_by: int, delegate_pool_id: int, comment_id: int, vote: bool):
     delegate_pool = GroupUserDelegatePool.objects.get(id=delegate_pool_id)
-    group_user_permissions(user=user, group=delegate_pool.group)
+    group_user_permissions(user=fetched_by, group=delegate_pool.group)
 
-    return comment_vote(fetched_by=user,
+    return comment_vote(fetched_by=fetched_by,
                         comment_section_id=delegate_pool.comment_section.id,
                         comment_id=comment_id,
                         vote=vote)
