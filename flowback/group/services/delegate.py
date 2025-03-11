@@ -148,6 +148,7 @@ def group_delegate_pool_comment_update(*,
     return comment_update(fetched_by=fetched_by,
                           comment_section_id=delegate_pool.comment_section.id,
                           comment_id=comment_id,
+                          attachment_upload_to="group/delegate_pool/comment/attachments",
                           data=data)
 
 
