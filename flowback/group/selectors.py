@@ -449,6 +449,7 @@ def work_group_user_join_request_list(*, work_group_id: int, fetched_by: User, f
                                                  group=work_group.group,
                                                  permissions=['admin'],
                                                  raise_exception=False)
+
     work_group_user_is_moderator = WorkGroupUser.objects.filter(id=work_group_id,
                                                                 group_user__user__in=[fetched_by],
                                                                 is_moderator=True).exists()
