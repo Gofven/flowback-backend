@@ -7,13 +7,13 @@ from flowback.chat.models import MessageChannel, MessageChannelParticipant
 from flowback.chat.tests.factories import MessageChannelFactory
 from flowback.comment.tests.factories import CommentFactory
 from flowback.common.tests import generate_request
-from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory
+from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory, GroupFactory
 from flowback.poll.tests.factories import PollFactory
 from flowback.user.models import User, UserChatInvite
 from flowback.user.services import user_create, user_create_verify
 from flowback.user.tests.factories import UserFactory
 from flowback.user.views.home import UserHomeFeedAPI
-from flowback.user.views.user import UserDeleteAPI, UserGetChatChannelAPI, UserUpdateApi, UserChatInviteAPI
+from flowback.user.views.user import UserDeleteAPI, UserGetChatChannelAPI, UserUpdateApi, UserChatInviteAPI, UserGetApi
 
 
 class UserTest(APITransactionTestCase):
@@ -57,6 +57,41 @@ class UserTest(APITransactionTestCase):
                          user=user)
 
         self.assertEqual(User.objects.get(id=user.id).contact_phone, "+46701234567")
+
+    def test_user_get(self):
+        user = UserFactory(public_status=User.PublicStatus.PRIVATE,
+                           dark_theme=True)
+        user_two = UserFactory(public_status=User.PublicStatus.PUBLIC,
+                               bio='test_bio',
+                               dark_theme=True)
+        user_three = UserFactory(public_status=User.PublicStatus.GROUP_ONLY,
+                                 bio='test_bio',
+                                 dark_theme=True)
+
+        group = GroupFactory(created_by=user_three)
+        GroupUserFactory(group=group, user=user_two)
+        GroupUserFactory(group=group, user=user)
+
+        response = generate_request(UserGetApi, user=user)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['dark_theme'], True)
+
+        response = generate_request(UserGetApi, user=user, data=dict(user_id=user_two.id))
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertNotIn('dark_theme', response.data.keys())
+        self.assertIn('bio', response.data.keys())
+
+        response = generate_request(UserGetApi, user=user, data=dict(user_id=user_three.id))
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertNotIn('dark_theme', response.data.keys())
+        self.assertIn('bio', response.data.keys())
+
+        response = generate_request(UserGetApi, user=user_three, data=dict(user_id=user.id))
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertNotIn('dark_theme', response.data.keys())
+        self.assertNotIn('bio', response.data.keys())
+        self.assertIn('username', response.data.keys())
+
 
     def test_user_home_feed(self):
         group_user, group_user_three = GroupUserFactory.create_batch(size=2, group__public=False)

@@ -2,15 +2,14 @@ import uuid
 
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.db import models, IntegrityError
+from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db.models.signals import post_save, post_delete
 from django.utils import timezone
 from django.utils.functional import classproperty
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework.authtoken.models import Token
-from txaio.tx import reject
-
 from flowback.chat.models import MessageChannelParticipant
 from flowback.common.models import BaseModel
 from flowback.kanban.models import Kanban
@@ -53,6 +52,11 @@ class CustomUserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    class PublicStatus(models.TextChoices):
+        PUBLIC = 'public', _('Public')
+        GROUP_ONLY = 'group_only', _('Group Only')
+        PRIVATE = 'private', _('Private')
+
     email = models.EmailField(max_length=120, unique=True)
 
     is_staff = models.BooleanField(default=False)
@@ -64,13 +68,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     email_notifications = models.BooleanField(default=False)
     direct_message = models.BooleanField(default=True)
     dark_theme = models.BooleanField(default=False)
-
     user_config = models.TextField(null=True, blank=True)
 
     bio = models.TextField(null=True, blank=True)
     website = models.TextField(null=True, blank=True)
     contact_email = models.EmailField(null=True, blank=True)
     contact_phone = models.CharField(max_length=20, null=True, blank=True)
+    public_status = models.CharField(choices=PublicStatus.choices, default=PublicStatus.PRIVATE)
 
     schedule = models.ForeignKey('schedule.Schedule', on_delete=models.SET_NULL, null=True, blank=True)
     kanban = models.ForeignKey('kanban.Kanban', on_delete=models.SET_NULL, null=True, blank=True)
