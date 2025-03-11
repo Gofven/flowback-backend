@@ -114,12 +114,12 @@ def user_forgot_password_verify(*, verification_code: str, password: str):
 
 
 def user_update(*, user: User, data) -> User:
-    non_side_effects_fields = ['username', 'profile_image',
-                               'banner_image', 'bio',
+    non_side_effects_fields = ['username', 'email',
+                               'profile_image', 'banner_image', 'bio',
                                'website', 'email_notifications',
                                'dark_theme', 'contact_email',
-                               'direct_message', 'contact_phone',
-                               'user_config', 'public_status']
+                               'contact_phone',
+                               'user_config', 'public_status', 'chat_status']
 
     user, has_updated = model_update(instance=user,
                                      fields=non_side_effects_fields,
@@ -243,14 +243,25 @@ def user_get_chat_channel(fetched_by: User, target_user_ids: int | list[int]):
         if not channel:
             raise MessageChannel.DoesNotExist
 
+        for u in target_users.all():
+            UserChatInvite.objects.filter(user=u, message_channel=channel, rejected=True).update(rejected=None)
+
     except MessageChannel.DoesNotExist:
         title = f"{', '.join([u.username for u in target_users])}"
         channel = message_channel_create(origin_name=User.message_channel_origin,
                                          title=title if len(target_users) > 1 else None)
 
         # In the future, make this a bulk_create statement
+        share_groups = False
+
+        if len(target_users) <= 2:
+            share_groups = User.objects.filter(group__groupuser__user__in=target_users).exists()
+
         for u in target_users:
-            if ((u.direct_message == True and len(target_users) <= 2)
+            u_is_public = u.chat_status == User.PublicStatus.PUBLIC
+            u_is_group_only = u.chat_status == User.PublicStatus.GROUP_ONLY
+
+            if (((u_is_public or (u_is_group_only and share_groups)) and len(target_users) <= 2)
                     or u.id == fetched_by.id
                     or fetched_by.is_superuser == True):
                 message_channel_join(user_id=u.id, channel_id=channel.id)

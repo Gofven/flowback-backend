@@ -53,9 +53,9 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     class PublicStatus(models.TextChoices):
-        PUBLIC = 'public', _('Public')
-        GROUP_ONLY = 'group_only', _('Group Only')
-        PRIVATE = 'private', _('Private')
+        PUBLIC = 'public', _('Public')  # Everyone can see/access
+        GROUP_ONLY = 'group_only', _('Group Only')  # Only users in the same group can see/access
+        PRIVATE = 'private', _('Private')  # Only admins can see/access (._.?)
 
     email = models.EmailField(max_length=120, unique=True)
 
@@ -66,7 +66,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     profile_image = models.ImageField(null=True, blank=True, upload_to='user/profile_image')
     banner_image = models.ImageField(null=True, blank=True, upload_to='user/banner_image')
     email_notifications = models.BooleanField(default=False)
-    direct_message = models.BooleanField(default=True)
     dark_theme = models.BooleanField(default=False)
     user_config = models.TextField(null=True, blank=True)
 
@@ -75,6 +74,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     contact_email = models.EmailField(null=True, blank=True)
     contact_phone = models.CharField(max_length=20, null=True, blank=True)
     public_status = models.CharField(choices=PublicStatus.choices, default=PublicStatus.PRIVATE)
+    chat_status = models.CharField(choices=PublicStatus.choices, default=PublicStatus.PRIVATE)
 
     schedule = models.ForeignKey('schedule.Schedule', on_delete=models.SET_NULL, null=True, blank=True)
     kanban = models.ForeignKey('kanban.Kanban', on_delete=models.SET_NULL, null=True, blank=True)
@@ -157,7 +157,7 @@ class UserChatInvite(BaseModel):
                                                                defaults=dict(active=True))
 
     class Meta:
-        unique_together = ('user', 'message_channel')
+        constraints = [models.UniqueConstraint(fields=['user', 'message_channel'], name='unique_user_invite')]
 
 
 post_save.connect(UserChatInvite.post_save, sender=UserChatInvite)

@@ -41,13 +41,13 @@ def get_user(fetched_by: User, user_id: int = None):
           or (share_groups and user.public_status == User.PublicStatus.GROUP_ONLY)):
         return user_to_dict(user, ('id', 'username',
                            'profile_image', 'banner_image',
-                           'direct_message', 'public_status',
+                           'public_status', 'chat_status',
                            'bio', 'website', 'contact_email', 'contact_phone',
                            'public_status'))
 
     else:
         return user_to_dict(user, ('id', 'username', 'profile_image',
-                                   'banner_image', 'direct_message', 'public_status'))
+                                   'banner_image', 'public_status', 'chat_status'))
 
 
 

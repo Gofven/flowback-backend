@@ -93,7 +93,7 @@ class UserListApi(APIView):
         class Meta:
             model = User
             fields = ('id', 'username', 'profile_image',
-                      'banner_image', 'direct_message')
+                      'banner_image', 'public_status', 'chat_status')
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -122,8 +122,8 @@ class UserGetApi(APIView):
         website = serializers.CharField(required=False)
         contact_email = serializers.CharField(required=False)
         contact_phone = PhoneNumberField(required=False)
-        direct_message = serializers.BooleanField(required=False)
         public_status = serializers.BooleanField(required=False)
+        chat_status = serializers.BooleanField(required=False)
 
         email = serializers.CharField(required=False)
         dark_theme = serializers.BooleanField(required=False)
@@ -149,8 +149,9 @@ class UserUpdateApi(APIView):
         dark_theme = serializers.BooleanField(required=False)
         contact_email = serializers.CharField(required=False)
         contact_phone = PhoneNumberField(required=False)
-        direct_message = serializers.BooleanField(required=False)
-        public_status = serializers.BooleanField(required=False)
+        public_status = serializers.ChoiceField(required=False, choices=User.PublicStatus.choices)
+        chat_status = serializers.ChoiceField(required=False, choices=User.PublicStatus.choices)
+        email = serializers.CharField(required=False)
         user_config = serializers.CharField(required=False)
 
     def post(self, request):

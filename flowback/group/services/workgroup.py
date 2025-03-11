@@ -9,7 +9,6 @@ def work_group_create(*, user_id: int, group_id: int, name: str, direct_join: bo
     group_user = group_user_permissions(user=user_id, group=group_id, permissions=['admin'])
 
     work_group = WorkGroup(name=name, direct_join=direct_join, group=group_user.group)
-    work_group.full_clean()
     work_group.save()
 
     return work_group

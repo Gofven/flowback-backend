@@ -148,10 +148,14 @@ class UserTest(APITransactionTestCase):
         self.assertTrue(MessageChannel.objects.filter(id=response.data['id']).exists())
 
         # Count all participants + the user itself
-        self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=response.data['id']).count(), 26)
+        self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=response.data['id'],
+                                                                  active=False).count(), 25)
+        self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=response.data['id'],
+                                                                  active=True).count(), 1)
+
 
     def test_user_get_chat_channel_invite(self):
-        participants = UserFactory.create_batch(25, direct_message=False)
+        participants = UserFactory.create_batch(25)
 
         response = generate_request(api=UserGetChatChannelAPI,
                                     data=dict(target_user_ids=[u.id for u in participants]),
@@ -173,6 +177,7 @@ class UserTest(APITransactionTestCase):
         self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=channel_id, active=True).count(), 11)
         self.assertEqual(UserChatInvite.objects.filter(rejected=True).count(), 15)
 
+        print("Two")
         response = generate_request(api=UserGetChatChannelAPI,
                                     data=dict(target_user_ids=[u.id for u in participants]),
                                     user=self.user_one)
