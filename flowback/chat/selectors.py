@@ -104,18 +104,20 @@ class MessageChannelParticipantFilter(django_filters.FilterSet):
     class Meta:
         model = MessageChannelParticipant
         fields = dict(id=['exact'],
-                      user_id=['exact'])
+                      user_id=['exact'],
+                      active=['exact'])
 
 
 def message_channel_participant_list(*, user: User, channel_id: int, filters=None):
     filters = filters or {}
 
     try:
-        participant = MessageChannelParticipant.objects.get(user=user, channel_id=channel_id, active=True)
+        participant = MessageChannelParticipant.objects.get(user=user, channel_id=channel_id)
 
     except MessageChannelParticipant.DoesNotExist:
         raise PermissionDenied("User is not a participant of this channel")
 
-    qs = MessageChannelParticipant.objects.filter(channel=participant.channel, active=True).all()
+    qs = MessageChannelParticipant.objects.filter(channel=participant.channel
+                                                  ).all().order_by('active', '-user__username')
 
     return BaseMessageChannelPreviewFilter(filters, qs).qs
