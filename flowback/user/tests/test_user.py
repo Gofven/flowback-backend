@@ -1,4 +1,5 @@
 import json
+import math
 
 from rest_framework import status
 from rest_framework.test import APITransactionTestCase, APIRequestFactory, force_authenticate
@@ -153,36 +154,50 @@ class UserTest(APITransactionTestCase):
         self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=response.data['id'],
                                                                   active=True).count(), 1)
 
+    def user_get_chat_channel_invite(self, participants: int = 1):
+        participants = UserFactory.create_batch(participants)
 
-    def test_user_get_chat_channel_invite(self):
-        participants = UserFactory.create_batch(25)
+        if len(participants) <= 0:
+            raise Exception("Can't run test with no participants")
 
         response = generate_request(api=UserGetChatChannelAPI,
                                     data=dict(target_user_ids=[u.id for u in participants]),
                                     user=self.user_one)
 
         channel_id = response.data['id']
-        self.assertEqual(UserChatInvite.objects.all().count(), 25)
+        self.assertEqual(UserChatInvite.objects.all().count(), len(participants))
         self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=channel_id, active=True).count(),
                          1)
 
+        acceptors = 0
         for i, user in enumerate(participants):
+            accept = True if i <= math.floor(len(participants) / 2) else False
+            acceptors += int(accept)
+
             response = generate_request(api=UserChatInviteAPI,
                                         data=dict(invite_id=UserChatInvite.objects.get(user=user).id,
-                                                  accept=True if i <= 9 else False),
+                                                  accept=accept),
                                         user=user)
 
             self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
 
-        self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=channel_id, active=True).count(), 11)
-        self.assertEqual(UserChatInvite.objects.filter(rejected=True).count(), 15)
+        self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=channel_id, active=True).count(),
+                         acceptors + 1)
 
-        print("Two")
+        self.assertEqual(UserChatInvite.objects.filter(rejected=True).count(),
+                         len(participants) - acceptors)
+
         response = generate_request(api=UserGetChatChannelAPI,
                                     data=dict(target_user_ids=[u.id for u in participants]),
                                     user=self.user_one)
 
         self.assertEqual(response.data['id'], channel_id, "Channel ID should not have changed")
 
-        self.assertEqual(UserChatInvite.objects.all().count(), 25)
+        self.assertEqual(UserChatInvite.objects.all().count(), len(participants))
         self.assertEqual(UserChatInvite.objects.filter(rejected=True).count(), 0)
+
+    def test_user_get_chat_channel_invite_duo(self):
+        self.user_get_chat_channel_invite(participants=1)
+
+    def test_user_get_chat_channel_invite_group(self):
+        self.user_get_chat_channel_invite(participants=25)
