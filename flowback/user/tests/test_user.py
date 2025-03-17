@@ -190,6 +190,10 @@ class UserTest(APITransactionTestCase):
         self.assertEqual(UserChatInvite.objects.filter(rejected=True).count(),
                          len(participants) - acceptors)
 
+        self.assertEqual(UserChatInvite.objects.filter(rejected=False).count(), acceptors)
+
+        self.assertEqual(UserChatInvite.objects.filter(rejected=None).count(), 0)
+
         response = generate_request(api=UserGetChatChannelAPI,
                                     data=dict(target_user_ids=[u.id for u in participants]),
                                     user=self.user_one)
