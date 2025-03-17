@@ -106,7 +106,7 @@ class CommentUpdateAPI(APIView):
     lazy_action = comment_update
 
     class InputSerializer(serializers.Serializer):
-        message = serializers.CharField()
+        message = serializers.CharField(required=False)
         attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
     def post(self, request, *args, **kwargs):
