@@ -37,7 +37,7 @@ def notification_object_create(*,
 
 # Deletes notifications based on a set of conditions
 def notification_object_delete(*, channel: NotificationChannel | int,
-                               category: NotificationObject.Action = None,
+                               category: str = None,
                                notification_object_id: int = None,
                                timestamp__lt: datetime = None,
                                timestamp__gt: datetime = None,

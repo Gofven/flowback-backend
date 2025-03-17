@@ -6,6 +6,7 @@ from flowback.user.models import User
 
 
 class NotificationChannel(BaseModel):
+    users = models.ManyToManyField(User, through='notification.NotificationSubscription')
     origin = models.CharField(max_length=255, help_text='Origin of the channel, preferably name of the parent model')
 
 
@@ -26,12 +27,13 @@ class NotificationObject(BaseModel):
     timestamp = models.DateTimeField(default=timezone.now)
     channel = models.ForeignKey(NotificationChannel, on_delete=models.CASCADE)
 
+    notifications = models.ManyToManyField(User, through='notification.Notification')
+
     def post_save(self, created, *args, **kwargs):
         if created:
             users = NotificationSubscription.objects.filter(channel=self.channel).values('user')
             notifications = [Notification(user=x, notification_object=self) for x in users]
             Notification.objects.bulk_create(notifications, ignore_conflicts=True)
-
 
 
 # Notification is created for every user subscribed to a channel,
@@ -52,6 +54,3 @@ class NotificationSubscription(BaseModel):
 
     class Meta:
         unique_together = ('user', 'channel')
-
-
-
