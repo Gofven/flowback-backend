@@ -169,6 +169,9 @@ class UserTest(APITransactionTestCase):
         self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=channel_id, active=True).count(),
                          1)
 
+        self.assertEqual(MessageChannelParticipant.objects.filter(channel_id=channel_id, active=False).count(),
+                         len(participants))
+
         acceptors = 0
         for i, user in enumerate(participants):
             accept = True if i <= math.floor(len(participants) / 2) else False
