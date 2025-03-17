@@ -212,7 +212,7 @@ class UserChatInviteListAPI(APIView):
         id = serializers.IntegerField()
         message_channel_name = serializers.CharField(source='message_channel.title')
         message_channel_id = serializers.IntegerField()
-        rejected = serializers.BooleanField(allow_null=True, default=None)
+        rejected = serializers.BooleanField(allow_null=True)
 
     def get(self, request):
         serializer = self.FilterSerializer(data=request.query_params)
