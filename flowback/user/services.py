@@ -278,7 +278,7 @@ def user_get_chat_channel(fetched_by: User, target_user_ids: int | list[int]):
 
 def user_chat_invite(user_id: int, invite_id: int, accept: bool = True):
     user = User.objects.get(id=user_id)
-    invite = UserChatInvite.objects.get(id=invite_id)
+    invite = UserChatInvite.objects.get(id=invite_id, rejected=None)
 
     if not invite.user == user:
         raise ValidationError("You cannot accept an invite for someone else")
