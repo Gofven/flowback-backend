@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
@@ -168,11 +169,16 @@ class UserDeleteAPI(APIView):
 
         return Response(status=status.HTTP_200_OK)
 
-
+@extend_schema(summary="Get/creates a message channel between user(s)",
+               description="If there are more than two target_user_ids or the target_user_id has direct_message turned "
+                           "into private/(protected and not in same group(s)), it'll create a MessageChannel,"
+                           " send/update UserChatInvite(s) to respective users, create/update their "
+                           "MessageChannelParticipant active field to False.")
 class UserGetChatChannelAPI(APIView):
     class FilterSerializer(serializers.Serializer):
         target_user_ids = serializers.ListField(child=serializers.IntegerField())
-        preview = serializers.BooleanField(default=False)
+        preview = serializers.BooleanField(default=False, help_text="Disabling preview will return 400 if there's no"
+                                                                    " MessageChannel found between the users.")
 
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
