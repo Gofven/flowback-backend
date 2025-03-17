@@ -215,7 +215,7 @@ def user_kanban_entry_delete(*, user_id: int, entry_id: int):
                                            entry_id=entry_id)
 
 
-def user_get_chat_channel(fetched_by: User, target_user_ids: int | list[int]):
+def user_get_chat_channel(fetched_by: User, target_user_ids: int | list[int], preview: bool = False) -> MessageChannel:
     if isinstance(target_user_ids, int):
         target_user_ids = [target_user_ids]
 
@@ -247,6 +247,9 @@ def user_get_chat_channel(fetched_by: User, target_user_ids: int | list[int]):
             UserChatInvite.objects.filter(user=u, message_channel=channel, rejected=True).update(rejected=None)
 
     except MessageChannel.DoesNotExist:
+        if preview:
+            raise ValidationError("MessageChannel does not exist between the participants")
+
         title = f"{', '.join([u.username for u in target_users])}"
         channel = message_channel_create(origin_name=User.message_channel_origin,
                                          title=title if len(target_users) > 1 else None)

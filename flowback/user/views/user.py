@@ -172,6 +172,7 @@ class UserDeleteAPI(APIView):
 class UserGetChatChannelAPI(APIView):
     class FilterSerializer(serializers.Serializer):
         target_user_ids = serializers.ListField(child=serializers.IntegerField())
+        preview = serializers.BooleanField(default=False)
 
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
