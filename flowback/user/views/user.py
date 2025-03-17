@@ -209,6 +209,7 @@ class UserChatInviteListAPI(APIView):
         rejected__isnull = serializers.BooleanField(required=False, allow_null=True)
 
     class OutputSerializer(serializers.Serializer):
+        id = serializers.IntegerField()
         message_channel_id = serializers.IntegerField()
         rejected = serializers.BooleanField(allow_null=True, default=None)
 
