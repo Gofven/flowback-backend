@@ -169,10 +169,10 @@ class UserDeleteAPI(APIView):
 
         return Response(status=status.HTTP_200_OK)
 
-@extend_schema(summary="Get/creates a message channel between user(s)",
-               description="If there are more than two target_user_ids or the target_user_id has direct_message turned "
-                           "into private/(protected and not in same group(s)), it'll create a MessageChannel,"
-                           " send/update UserChatInvite(s) to respective users, create/update their "
+@extend_schema(description="Get/creates a message channel between user(s). "
+                           "If there are more than two target_user_ids or the target_user_id has direct_message turned "
+                           "into private/(protected and not in same group(s)), it'll create a MessageChannel, "
+                           "send/update UserChatInvite(s) to respective users, create/update their "
                            "MessageChannelParticipant active field to False.")
 class UserGetChatChannelAPI(APIView):
     class FilterSerializer(serializers.Serializer):
