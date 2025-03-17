@@ -155,7 +155,6 @@ class UserChatInvite(BaseModel):
         if not instance.rejected:
             MessageChannelParticipant.objects.update_or_create(user=instance.user, channel=instance.message_channel,
                                                                defaults=dict(active=True))
-            instance.delete()
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['user', 'message_channel'], name='unique_user_invite')]
