@@ -99,7 +99,7 @@ def message_channel_participant_list(*, user: User, channel_id: int, filters=Non
     filters = filters or {}
 
     try:
-        participant = MessageChannelParticipant.objects.get(user=user, channel_id=channel_id, active=True)
+        participant = MessageChannelParticipant.objects.get(user=user, channel_id=channel_id)
 
     except MessageChannelParticipant.DoesNotExist:
         raise PermissionDenied("User is not a participant of this channel")
