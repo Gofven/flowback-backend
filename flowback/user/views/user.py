@@ -204,13 +204,11 @@ class UserChatInviteListAPI(APIView):
         max_limit = 100
 
     class FilterSerializer(serializers.Serializer):
-        user_id = serializers.IntegerField(required=False)
         message_channel_id = serializers.IntegerField(required=False)
         rejected = serializers.BooleanField(required=False, allow_null=True)
         rejected__isnull = serializers.BooleanField(required=False, allow_null=True)
 
     class OutputSerializer(serializers.Serializer):
-        user = BasicUserSerializer()
         message_channel_id = serializers.IntegerField()
         rejected = serializers.BooleanField(allow_null=True, default=None)
 

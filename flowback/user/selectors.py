@@ -136,6 +136,6 @@ class UserChatInviteFilter(django_filters.FilterSet):
 def user_chat_invite_list(*, fetched_by: User, filters=None):
     filters = filters or {}
 
-    qs = UserChatInvite.objects.filter(message_channel__messagechannelparticipant__user=fetched_by).all()
+    qs = UserChatInvite.objects.filter(user=fetched_by).all()
 
     return UserChatInviteFilter(filters, qs).qs
