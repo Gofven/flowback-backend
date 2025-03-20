@@ -94,7 +94,8 @@ def user_home_feed(*, fetched_by: User, filters=None):
                       'title',
                       'description',
                       'related_model',
-                      'group_joined']
+                      'group_joined',
+                      'related_id']
 
     # Thread
 
