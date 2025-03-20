@@ -1,6 +1,6 @@
 import django_filters
 from django.db import models
-from django.db.models import OuterRef, Q, Exists, Subquery, Count
+from django.db.models import OuterRef, Q, Exists, Subquery, Count, F
 from django_filters import FilterSet
 from rest_framework.exceptions import ValidationError
 
@@ -105,6 +105,7 @@ def user_home_feed(*, fetched_by: User, filters=None):
 
     thread_qs = GroupThread.objects.filter(q)
     thread_qs = thread_qs.annotate(related_model=models.Value('group_thread', models.CharField()),
+                                   related_id=F('id'),
                                    group_joined=Exists(joined_groups))
     thread_qs = thread_qs.values(*related_fields)
     thread_qs = UserHomeFeedFilter(filters, thread_qs).qs
@@ -112,6 +113,7 @@ def user_home_feed(*, fetched_by: User, filters=None):
     # Poll
     poll_qs = Poll.objects.filter(q)
     poll_qs = poll_qs.annotate(related_model=models.Value('poll', models.CharField()),
+                               related_id=F('id'),
                                group_joined=Exists(joined_groups))
     poll_qs = poll_qs.values(*related_fields)
     poll_qs = UserHomeFeedFilter(filters, poll_qs).qs
