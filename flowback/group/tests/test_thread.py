@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITestCase
 
+from flowback.comment.tests.factories import CommentFactory
 from flowback.common.tests import generate_request
 from flowback.group.models import GroupThreadVote, GroupThread
 from flowback.group.services.thread import group_thread_comment_create, group_thread_comment_delete
@@ -30,6 +31,8 @@ class TestGroupThread(APITestCase):
         GroupThreadVoteFactory.create(thread=self.threads[4], vote=True)
         GroupThreadVoteFactory.create(thread=self.threads[4], vote=True)
         GroupThreadVoteFactory.create(thread=self.threads[4], vote=False)
+
+        CommentFactory.create_batch(10, comment_section=self.threads[4].comment_section)
 
         GroupThreadVoteFactory.create(created_by=self.group_user, thread=self.threads[5], vote=False)
 

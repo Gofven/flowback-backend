@@ -4,9 +4,10 @@ from typing import Union
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import models
 from django.db.models import Q, Exists, OuterRef, Count, Case, When, F, Subquery, Sum
-from django.db.models.functions import Abs
+from django.db.models.functions import Abs, Coalesce
 from django.forms import model_to_dict
 
+from flowback.comment.models import Comment
 from flowback.comment.selectors import comment_list, comment_ancestor_list
 from flowback.common.filters import NumberInFilter
 from flowback.common.services import get_object
@@ -344,11 +345,14 @@ def group_thread_list(*, group_id: int, fetched_by: User, filters=None):
     else:
         threads = GroupThread.objects.filter(created_by__group_id=group_id)
 
-    qs = (threads.annotate(total_comments=Count('comment_section__comment',
-                                         filter=Q(comment_section__comment__active=True)),
-                    user_vote=Subquery(sq_user_vote),
-                    score=Count('groupthreadvote', filter=Q(groupthreadvote__vote=True)) -
-                          Count('groupthreadvote', filter=Q(groupthreadvote__vote=False))).all())
+    comment_qs = Coalesce(Subquery(
+                       Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
+                           'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0)
+
+    qs = (threads.annotate(total_comments=comment_qs,
+                           user_vote=Subquery(sq_user_vote),
+                           score=Count('groupthreadvote', filter=Q(groupthreadvote__vote=True)) -
+                                 Count('groupthreadvote', filter=Q(groupthreadvote__vote=False))).all())
 
     return BaseGroupThreadFilter(filters, qs).qs
 
