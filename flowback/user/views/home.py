@@ -29,7 +29,6 @@ class UserHomeFeedAPI(APIView):
         title = serializers.CharField()
         description = serializers.CharField(allow_null=True, default=None)
         related_model = serializers.CharField()
-        related_id = serializers.IntegerField()
         group_joined = serializers.BooleanField()
         user_vote = serializers.BooleanField(allow_null=True, default=None)
 
