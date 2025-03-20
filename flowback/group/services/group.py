@@ -10,9 +10,17 @@ from flowback.group.selectors import group_user_permissions
 from flowback.notification.services import NotificationManager
 from flowback.user.models import User
 
-group_notification = NotificationManager(sender_type='group', possible_categories=['group', 'members', 'invite',
-                                                                                   'delegate', 'poll', 'kanban',
-                                                                                   'schedule', 'poll_schedule'])
+group_notification = NotificationManager(sender_type='group',
+                                         possible_categories=['group', 'members', 'invite', 'delegate',
+
+                                                              'kanban',
+                                                              'kanban_self_assign',
+                                                              'kanban_priority_update',
+                                                              'kanban_lane_update',
+
+                                                              'poll',
+                                                              'poll_schedule',
+                                                              'schedule',])
 
 
 def group_create(*,

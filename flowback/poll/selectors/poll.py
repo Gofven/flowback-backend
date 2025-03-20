@@ -6,7 +6,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from flowback.comment.models import Comment
-from flowback.common.filters import ExistsFilter
+from flowback.common.filters import ExistsFilter, NumberInFilter
 from flowback.group.models import Group
 from flowback.poll.models import Poll, PollPhaseTemplate, PollPredictionStatement
 from flowback.user.models import User
@@ -21,6 +21,7 @@ class BasePollFilter(django_filters.FilterSet):
                                                      ('-end_date', 'end_date_desc')))
     start_date = django_filters.DateTimeFilter()
     end_date = django_filters.DateTimeFilter()
+    id_list = NumberInFilter(field_name='id')
     description = django_filters.CharFilter(field_name='description', lookup_expr='icontains')
     has_attachments = ExistsFilter(field_name='attachments')
     tag_name = django_filters.CharFilter(lookup_expr=['exact', 'icontains'], field_name='tag__name')
@@ -29,7 +30,7 @@ class BasePollFilter(django_filters.FilterSet):
 
     class Meta:
         model = Poll
-        fields = dict(id=['exact', 'in'],
+        fields = dict(id=['exact'],
                       created_by=['exact'],
                       title=['exact', 'icontains'],
                       description=['exact', 'icontains'],
