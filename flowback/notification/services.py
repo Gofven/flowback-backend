@@ -108,6 +108,9 @@ def notification_channel_unsubscribe(*, user_id: int, category: str,
     return
 
 
+# Make the manager work within Model Classes, (this way all important data will be directly available for management) c:<
+# Also have an "additional_data" field for 'notification create' to allow for extra data inputs
+# (This does however not solve the issue with documentation)
 class NotificationManager:
     class Action:
         create = 'create'
