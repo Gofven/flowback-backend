@@ -37,6 +37,7 @@ def group_permission_update(*, user: int, group: int, permission_id: int, data) 
                               'prediction_statement_delete',
 
                               'prediction_bet_create',
+                              'prediction_bet_update',
                               'prediction_bet_delete',
 
                               'create_kanban_task',
