@@ -20,7 +20,10 @@ group_notification = NotificationManager(sender_type='group',
 
                                                               'poll',
                                                               'poll_schedule',
-                                                              'schedule',])
+
+                                                              'schedule_event_create',
+                                                              'schedule_event_update',
+                                                              'schedule_event_delete',])
 
 
 def group_create(*,
