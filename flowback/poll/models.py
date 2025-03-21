@@ -272,7 +272,8 @@ class PollProposalTypeSchedule(BaseModel):
 
     def clean(self):
         if PollProposalTypeSchedule.objects.filter(event__start_date=self.event.start_date,
-                                                   event__end_date=self.event.end_date).exists():
+                                                   event__end_date=self.event.end_date,
+                                                   proposal__poll=self.proposal.poll).exists():
             raise ValidationError('Proposal event with same start_date and end_date already exists')
 
     class Meta:
