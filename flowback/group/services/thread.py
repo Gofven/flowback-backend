@@ -4,8 +4,9 @@ from flowback.comment.models import Comment
 from flowback.comment.services import comment_create, comment_update, comment_delete, comment_vote
 from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
-from flowback.group.models import GroupThread, GroupThreadVote
+from flowback.group.models import GroupThread, GroupThreadVote, WorkGroupUser
 from flowback.group.selectors import group_user_permissions
+from flowback.group.services.group import group_notification
 from flowback.notification.services import NotificationManager
 
 group_thread_notification = NotificationManager(sender_type='group_thread', possible_categories=['comment'])
@@ -37,6 +38,19 @@ def group_thread_create(user_id: int,
 
     thread.full_clean()
     thread.save()
+
+    # Notify users when thread is created
+    target_user_ids = None
+    if work_group_id:
+        target_user_ids = WorkGroupUser.objects.filter(id=work_group_id).values_list('group_user__user_id',
+                                                                                     flat=True)
+
+    group_notification.create(sender_id=group_id,
+                              action=group_thread_notification.Action.create,
+                              category="thread",
+                              message=f'User "{group_user.user.username}" created thread "{title}"',
+                              related_id=thread.id,
+                              target_user_ids=target_user_ids)
 
     return thread
 
@@ -115,7 +129,7 @@ def group_thread_comment_create(author_id: int,
 
 def group_thread_notification_subscribe(user_id: int, thread_id: int, categories: list[str]):
     thread = get_object(GroupThread, id=thread_id)
-    group_user_permissions(user=user_id, group=thread.created_by.group)
+    group_user_permissions(user=user_id, group=thread.created_by.group, work_group=thread.work_group)
 
     group_thread_notification.channel_subscribe(user_id=user_id,
                                          sender_id=thread.id,
