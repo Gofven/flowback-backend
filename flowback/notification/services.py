@@ -38,7 +38,7 @@ def notification_create(*, action: str, category: str, sender_type: str, sender_
                         message: str, timestamp: datetime = None, related_id: int = None,
                         target_user_ids: list[int] = None) -> NotificationObject:
     target_user_ids = (target_user_ids if isinstance(target_user_ids, list)
-                                          and target_user_ids is not None
+                                          or target_user_ids is None
                        else [target_user_ids])
 
     channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
