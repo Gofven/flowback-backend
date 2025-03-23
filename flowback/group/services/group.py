@@ -80,20 +80,28 @@ def group_delete(*, user: int, group: int) -> None:
     group_user_permissions(user=user, group=group, permissions=['creator']).group.delete()
 
 
-def group_mail(*, fetched_by: int, group: int, title: str, message: str, work_group_id: int = None) -> None:
+def group_mail(*, fetched_by: int,
+               group: int,
+               title: str,
+               message: str,
+               target_user_ids: list[int] = None,
+               work_group_id: int = None) -> None:
     group_user = group_user_permissions(user=fetched_by,
                                         group=group,
                                         permissions=['admin', 'send_group_email'],
                                         work_group=work_group_id)
 
     subject = f'[{group_user.group.name}] - {title}'
+    target_user_ids = target_user_ids or []
 
     if not work_group_id:
         group_user_permissions(user=fetched_by,
                                group=group,
                                permissions=['admin', 'send_group_email'])
 
-        targets = GroupUser.objects.filter(group_id=group).values('user__email').all()
+        targets = GroupUser.objects.filter(group_id=group,
+                                           user_id__in=target_user_ids).values('user__email').all()
+
         send_mass_mail([subject, message, DEFAULT_FROM_EMAIL,
                         [target['user__email']]] for target in targets)
 
@@ -104,7 +112,10 @@ def group_mail(*, fetched_by: int, group: int, title: str, message: str, work_gr
                                work_group=work_group_id,
                                allow_admin=True)
 
-        targets = WorkGroupUser.objects.filter(work_group_id=work_group_id).values('group_user__user__email').all()
+        targets = WorkGroupUser.objects.filter(work_group_id=work_group_id,
+                                               group_user__user_id__in=target_user_ids
+                                               ).values('group_user__user__email').all()
+
         send_mass_mail([subject, message, DEFAULT_FROM_EMAIL,
                         [target['group_user__user__email']]] for target in targets)
 
