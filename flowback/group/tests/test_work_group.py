@@ -41,10 +41,10 @@ class WorkGroupTest(APITransactionTestCase):
         work_group_one = WorkGroupFactory(group=self.group_user_creator_one.group)
         work_group_two = WorkGroupFactory(group=self.group_user_creator_one.group)
         
-        work_group_users_one = WorkGroupUserFactory.create_batch(10,
+        work_group_users_one = WorkGroupUserFactory.create_batch(22,
                                                                  group_user__group=self.group_one,
                                                                  work_group=work_group_one)
-        work_group_users_two = WorkGroupUserFactory.create_batch(10,
+        work_group_users_two = WorkGroupUserFactory.create_batch(17,
                                                                  group_user__group=self.group_two,
                                                                  work_group=work_group_two)
 
@@ -54,12 +54,14 @@ class WorkGroupTest(APITransactionTestCase):
         response = generate_request(api=WorkGroupListAPI,
                                     user=self.group_user_creator_one.user,
                                     url_params=dict(group_id=self.group_user_creator_one.group.id),
-                                    data=dict(order_by="-created_at"))
+                                    data=dict(order_by="created_at_desc"))
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data['count'], 2)
         self.assertEqual(response.data['results'][0]['id'], work_group_two.id)
+        self.assertEqual(response.data['results'][0]['member_count'], 17)
         self.assertEqual(response.data['results'][1]['id'], work_group_one.id)
+        self.assertEqual(response.data['results'][1]['member_count'], 22)
 
 
     def test_work_group_user_list(self):

@@ -14,6 +14,10 @@ def comment_create(*,
                    attachments: list = None,
                    attachment_upload_to="",
                    attachment_upload_to_include_timestamp=True) -> Comment:
+
+    if not (message or attachments):
+        raise ValidationError("Comments can't be created without either a Message or Attachment(s)")
+
     if attachments:
         collection = upload_collection(user_id=author_id,
                                        file=attachments,

@@ -182,6 +182,7 @@ class GroupMailApi(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField()
         message = serializers.CharField()
+        target_user_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
         work_group_id = serializers.IntegerField(required=False)
 
     def post(self, request, group: int):
