@@ -78,6 +78,7 @@ if not SECRET_KEY:
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
+TESTING = sys.argv[1:2] == ['test']
 
 
 FLOWBACK_URL = env('FLOWBACK_URL')
