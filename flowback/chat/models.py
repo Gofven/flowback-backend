@@ -28,43 +28,9 @@ class MessageChannelParticipant(BaseModel):
     timestamp = models.DateTimeField(auto_now=True)
     active = models.BooleanField(default=True)
 
-    @classmethod
-    def post_save(cls, instance, created, **kwargs):
-        if created:  # Only send for new messages
-            if not TESTING:
-                channel_layer = get_channel_layer()
-
-                # Send the message to the group
-                async_to_sync(channel_layer.group_send)(
-                    f"{instance.channel.id}",
-                    dict(type="info",
-                         method="message_notify",
-                         message=f"User {instance.user.username} joined the channel")
-                )
-
-
-
-    @classmethod
-    def post_delete(cls, instance, created, **kwargs):
-        if created:  # Only send for new messages
-            if not TESTING:
-                channel_layer = get_channel_layer()
-
-                # Send the message to the group
-                async_to_sync(channel_layer.group_send)(
-                    f"{instance.channel.id}",
-                    dict(type="info",
-                         method="message_notify",
-                         message=f"User {instance.user.username} joined the channel")
-                )
-
-
 
     class Meta:
         unique_together = ('user', 'channel')
-
-post_save.connect(MessageChannelParticipant.post_save, sender=MessageChannelParticipant)
-post_delete.connect(MessageChannelParticipant.post_delete, sender=MessageChannelParticipant)
 
 
 # For image attachments
@@ -81,6 +47,7 @@ class MessageFileCollection(BaseModel):
 class Message(BaseModel):
     user = models.ForeignKey('user.User', on_delete=models.CASCADE)
     channel = models.ForeignKey(MessageChannel, on_delete=models.CASCADE)
+    type = models.CharField(max_length=255, default='message')
     topic = models.ForeignKey(MessageChannelTopic, on_delete=models.CASCADE, null=True, blank=True)
     message = models.TextField(max_length=2000)
     attachments = models.ForeignKey(MessageFileCollection,
