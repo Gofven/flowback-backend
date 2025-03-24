@@ -3,7 +3,7 @@ from typing import Union
 from django.core.mail import send_mass_mail
 from rest_framework.exceptions import ValidationError
 
-from backend.settings import env, DEFAULT_FROM_EMAIL
+from backend.settings import env, DEFAULT_FROM_EMAIL, FLOWBACK_ALLOW_GROUP_CREATION, FLOWBACK_DEFAULT_GROUP_JOIN
 from flowback.common.services import get_object, model_update
 from flowback.group.models import Group, GroupUser, GroupPermissions, GroupUserInvite, WorkGroupUser
 from flowback.group.selectors import group_user_permissions
@@ -184,6 +184,10 @@ def group_user_update(*, user: int, group: int, fetched_by: int, data) -> GroupU
 
 
 def group_user_delete(*, user_id: int, group_id: int, target_user_id: int) -> None:
+    if not FLOWBACK_ALLOW_GROUP_CREATION and group_id in FLOWBACK_DEFAULT_GROUP_JOIN:
+        raise ValidationError("Can't delete a group user when group creation is disabled and group user is in "
+                              "default group join list")
+
     group_user_permissions(user=user_id, group=group_id, permissions=['admin'])
     group_user_to_delete = group_user_permissions(user=target_user_id, group=group_id)
 
