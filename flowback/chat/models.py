@@ -1,5 +1,9 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.db import models
+from django.db.models.signals import post_delete, post_save
 
+from backend.settings import TESTING
 from flowback.common.models import BaseModel
 from flowback.files.models import FileCollection
 
@@ -24,8 +28,43 @@ class MessageChannelParticipant(BaseModel):
     timestamp = models.DateTimeField(auto_now=True)
     active = models.BooleanField(default=True)
 
+    @classmethod
+    def post_save(cls, instance, created, **kwargs):
+        if created:  # Only send for new messages
+            if not TESTING:
+                channel_layer = get_channel_layer()
+
+                # Send the message to the group
+                async_to_sync(channel_layer.group_send)(
+                    f"{instance.channel.id}",
+                    dict(type="info",
+                         method="message_notify",
+                         message=f"User {instance.user.username} joined the channel")
+                )
+
+
+
+    @classmethod
+    def post_delete(cls, instance, created, **kwargs):
+        if created:  # Only send for new messages
+            if not TESTING:
+                channel_layer = get_channel_layer()
+
+                # Send the message to the group
+                async_to_sync(channel_layer.group_send)(
+                    f"{instance.channel.id}",
+                    dict(type="info",
+                         method="message_notify",
+                         message=f"User {instance.user.username} joined the channel")
+                )
+
+
+
     class Meta:
         unique_together = ('user', 'channel')
+
+post_save.connect(MessageChannelParticipant.post_save, sender=MessageChannelParticipant)
+post_delete.connect(MessageChannelParticipant.post_delete, sender=MessageChannelParticipant)
 
 
 # For image attachments
