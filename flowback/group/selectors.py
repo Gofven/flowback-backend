@@ -400,14 +400,24 @@ def work_group_list(*, group_id: int, fetched_by: User, filters=None):
     group_user = group_user_permissions(user=fetched_by, group=group_id)
 
     qs = WorkGroup.objects.filter(group_id=group_id).annotate(
-        joined=Q(workgroupuser__group_user__in=[group_user]),
-        requested_access=Q(workgroupuserjoinrequest__group_user__in=[group_user]),
+        joined=Exists(
+            WorkGroupUser.objects.filter(
+                work_group=OuterRef('pk'),
+                group_user=group_user
+            )
+        ),
+        requested_access=Exists(
+            WorkGroupUserJoinRequest.objects.filter(
+                work_group=OuterRef('pk'),
+                group_user=group_user
+            )
+        ),
         member_count=Coalesce(Subquery(
             WorkGroupUser.objects.filter(work_group=OuterRef('pk'))
             .values('work_group')
             .annotate(count=Count('id'))
             .values('count')[:1]), 0)
-    ).distinct('id')
+    )
 
     return BaseWorkGroupFilter(filters, qs).qs
 
