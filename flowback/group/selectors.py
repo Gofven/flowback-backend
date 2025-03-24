@@ -407,7 +407,7 @@ def work_group_list(*, group_id: int, fetched_by: User, filters=None):
             .values('work_group')
             .annotate(count=Count('id'))
             .values('count')[:1]), 0)
-    ).distinct()
+    ).distinct('id')
 
     return BaseWorkGroupFilter(filters, qs).qs
 
