@@ -1,6 +1,7 @@
 from pprint import pprint
 
 from django.test import TransactionTestCase
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -113,10 +114,12 @@ class ChatTestHTTP(TransactionTestCase):
             channel = MessageChannelFactory()
             channel_participant_one = MessageChannelParticipantFactory(
                 channel=channel,
-                user=self.message_channel_participant_one.user)
+                user=self.message_channel_participant_one.user,
+                timestamp=timezone.now())
             channel_participant_two = MessageChannelParticipantFactory(
                 channel=channel,
-                user=self.message_channel_participant_two.user)
+                user=self.message_channel_participant_two.user,
+                timestamp=timezone.now())
 
             channel_two = MessageChannelFactory(origin_name='user')
             channel_participant_one_one = MessageChannelParticipantFactory(
@@ -145,6 +148,7 @@ class ChatTestHTTP(TransactionTestCase):
 
             if i > 0:
                 self.assertEqual(response.data.get('count'), (i + 1) * 2)
+                self.assertTrue(response.data['results'][i]['timestamp'])
                 self.assertGreater(response.data['results'][i - 1]['created_at'],
                                    response.data['results'][i]['created_at'])
 
@@ -154,6 +158,7 @@ class ChatTestHTTP(TransactionTestCase):
 
             if i > 0:
                 self.assertEqual(response.data.get('count'), i + 1)
+                self.assertTrue(response.data['results'][i]['timestamp'])
                 self.assertGreater(response.data['results'][i - 1]['created_at'],
                                    response.data['results'][i]['created_at'])
 
@@ -162,6 +167,7 @@ class ChatTestHTTP(TransactionTestCase):
 
             if i > 0:
                 self.assertEqual(response.data.get('count'), i + 1)
+                self.assertTrue(response.data['results'][i]['timestamp'])
                 self.assertGreater(response.data['results'][i - 1]['created_at'],
                                    response.data['results'][i]['created_at'])
 
