@@ -22,7 +22,7 @@ To create an admin account that can be used in the frontend you will need to nav
 python manage.py createsuperuser
 ```
 
-### About .env
+#### About .env
 When docker compose is running, it'll create .env file in the repository folder if it doesn't exist,
 or append `DJANGO_SECRET` to the file if .env exists and the variable isn't present in it. 
 If you wish to change the environment variables, use .env.example as reference!
