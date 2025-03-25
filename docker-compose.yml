@@ -14,9 +14,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    env_file:
-      - path: ./.env
-        required: false
 #    ports:
 #      - "5432:5432"
 
@@ -46,9 +43,6 @@ services:
       FLOWBACK_PSQL_HOST: ${POSTGRES_HOST:-flowback-postgresql}
       FLOWBACK_PSQL_PORT: ${POSTGRES_PORT:-5432}
       FLOWBACK_REDIS_HOST: ${REDIS_HOST:-flowback-redis}
-    env_file:
-      - path: ./.env
-        required: false
 
   flowback-celery-worker:
     build: .
@@ -63,9 +57,6 @@ services:
       FLOWBACK_PSQL_HOST: ${POSTGRES_HOST:-flowback-postgresql}
       FLOWBACK_PSQL_PORT: ${POSTGRES_PORT:-5432}
       FLOWBACK_REDIS_HOST: ${REDIS_HOST:-flowback-redis}
-    env_file:
-      - path: ./.env
-        required: false
 
   flowback-celery-beat:
     build: .
@@ -82,9 +73,6 @@ services:
       FLOWBACK_PSQL_HOST: ${POSTGRES_HOST:-flowback-postgresql}
       FLOWBACK_PSQL_PORT: ${POSTGRES_PORT:-5432}
       FLOWBACK_REDIS_HOST: ${REDIS_HOST:-flowback-redis}
-    env_file:
-      - path: ./.env
-        required: false
 
 volumes:
   postgres_data:
