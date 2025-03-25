@@ -31,8 +31,7 @@ def message_channel_participant_post_save(sender, instance, created, update_fiel
                                channel=instance.channel,
                                message=f"User {instance.user.username} {'joined' if instance.active else 'left'}"
                                        f" the channel",
-                               type="info",
-                               active=False)
+                               type="info")
 
 
 @receiver(post_delete, sender=MessageChannelParticipant)
@@ -51,5 +50,4 @@ def message_channel_participant_post_delete(sender, instance, **kwargs):
     Message.objects.create(user=instance.user,
                            channel=instance.channel,
                            message=f"User {instance.user.username} left the channel",
-                           type="info",
-                           active=False)
+                           type="info")
