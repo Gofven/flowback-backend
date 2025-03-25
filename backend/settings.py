@@ -250,8 +250,9 @@ CHANNEL_LAYERS = {
 
 
 # OIDC Settings
-LOGIN_URL = '/accounts/login/'
+LOGIN_URL = '/login/'
 OIDC_USERINFO = 'backend.oidc_provider_settings.userinfo'
+OIDC_SESSION_MANAGEMENT_ENABLE = True
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 db_data = dict(ENGINE='django.db.backends.postgresql_psycopg2')
