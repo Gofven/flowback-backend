@@ -8,7 +8,9 @@ from flowback.chat.models import MessageChannel, MessageChannelParticipant
 from flowback.chat.tests.factories import MessageChannelFactory
 from flowback.comment.tests.factories import CommentFactory
 from flowback.common.tests import generate_request
+from flowback.group.models import GroupThread
 from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory, GroupFactory
+from flowback.poll.models import Poll
 from flowback.poll.tests.factories import PollFactory
 from flowback.user.models import User, UserChatInvite
 from flowback.user.services import user_create, user_create_verify
@@ -117,6 +119,14 @@ class UserTest(APITransactionTestCase):
         # Check if order_by is for created_at, in descending order
         for x in range(1, response.data['count']):
             self.assertTrue(response.data['results'][x]['created_at'] < response.data['results'][x - 1]['created_at'])
+
+            if response.data['results'][x]['related_model'] == "poll":
+                self.assertTrue(Poll.objects.filter(created_by__group=response.data['results'][x]['group_id'],
+                                                    id=response.data['results'][x]['id']).exists())
+
+            if response.data['results'][x]['related_model'] == "thread":
+                self.assertTrue(GroupThread.objects.filter(created_by__group=response.data['results'][x]['group_id'],
+                                                    id=response.data['results'][x]['id']).exists())
 
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data['count'], 17)

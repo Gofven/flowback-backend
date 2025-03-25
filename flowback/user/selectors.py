@@ -5,6 +5,7 @@ from django_filters import FilterSet
 from rest_framework.exceptions import ValidationError
 
 from flowback.comment.models import Comment
+from flowback.common.filters import NumberInFilter
 from flowback.common.services import get_object
 from flowback.group.models import Group, GroupUser, GroupThread
 from flowback.poll.models import Poll, PollPredictionStatement
@@ -81,6 +82,7 @@ class UserHomeFeedFilter(django_filters.FilterSet):
     description = django_filters.CharFilter(lookup_expr='icontains')
     related_model = django_filters.CharFilter(lookup_expr='exact')
     group_joined = django_filters.BooleanFilter(lookup_expr='exact')
+    group_ids = NumberInFilter(field_name='created_by__group_id')
 
 
 # TODO add relevant Count (proposal, prediction, comments) to the home feed if possible
@@ -91,6 +93,7 @@ def user_home_feed(*, fetched_by: User, filters=None):
                       'created_by',
                       'created_at',
                       'updated_at',
+                      'group_id',
                       'title',
                       'description',
                       'related_model',
@@ -105,6 +108,7 @@ def user_home_feed(*, fetched_by: User, filters=None):
 
     thread_qs = GroupThread.objects.filter(q)
     thread_qs = thread_qs.annotate(related_model=models.Value('group_thread', models.CharField()),
+                                   group_id=F('created_by__group_id'),
                                    group_joined=Exists(joined_groups))
     thread_qs = thread_qs.values(*related_fields)
     thread_qs = UserHomeFeedFilter(filters, thread_qs).qs
@@ -112,6 +116,7 @@ def user_home_feed(*, fetched_by: User, filters=None):
     # Poll
     poll_qs = Poll.objects.filter(q)
     poll_qs = poll_qs.annotate(related_model=models.Value('poll', models.CharField()),
+                               group_id=F('created_by__group_id'),
                                group_joined=Exists(joined_groups))
     poll_qs = poll_qs.values(*related_fields)
     poll_qs = UserHomeFeedFilter(filters, poll_qs).qs
