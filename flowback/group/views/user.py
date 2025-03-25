@@ -8,7 +8,7 @@ from flowback.group.models import GroupUser
 from flowback.group.selectors import group_user_list, group_user_invite_list
 from flowback.group.serializers import GroupUserSerializer
 
-from flowback.group.services.group import group_user_update, group_join, group_leave
+from flowback.group.services.group import group_user_update, group_join, group_leave, group_user_delete
 from flowback.group.services.invite import group_invite, group_invite_accept, group_invite_reject
 
 
@@ -161,5 +161,18 @@ class GroupInviteRejectApi(APIView):
         serializer = self.InputSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
         group_invite_reject(fetched_by=request.user.id, group=group, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=['group'])
+class GroupUserDeleteAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        target_user_id = serializers.IntegerField()
+
+    def post(self, request, group_id: int):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        group_user_delete(user_id=request.user.id, group_id=group_id, **serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)

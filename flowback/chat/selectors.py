@@ -69,20 +69,20 @@ def message_channel_preview_list(*, user: User, filters=None):
     filters = filters or {}
 
     timestamp = MessageChannelParticipant.objects.filter(user=user,
-                                                         channel=OuterRef('channel_id'),
-                                                         active=True).values('timestamp')
+                                                         channel_id=OuterRef('channel_id')).values('timestamp')
 
     message_qs = Message.objects.filter(Q(Q(channel__messagechannelparticipant__closed_at__isnull=True)
                                           | Q(channel__messagechannelparticipant__closed_at__gt=F('created_at'))),
                                         Q(Q(topic__isnull=True)
                                           | Q(topic__hidden=False)),
                                         channel__messagechannelparticipant__user=user,
-                                        active=True).annotate(timestamp=Subquery(timestamp)
-                                                              ).distinct('channel').all()
+                                        active=True).distinct('channel').all()
 
     qs = Message.objects.filter(id__in=message_qs)
 
-    return BaseMessageChannelPreviewFilter(filters, qs).qs
+    final_qs = BaseMessageChannelPreviewFilter(filters, qs).qs.annotate(timestamp=Subquery(timestamp))
+
+    return final_qs
 
 
 class MessageChannelParticipantFilter(django_filters.FilterSet):
