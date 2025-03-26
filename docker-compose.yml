@@ -28,6 +28,7 @@ services:
 
   flowback-backend:
     build: .
+    restart: unless-stopped
     command: >
       bash -c "pip install --no-cache-dir -r requirements.txt
       && python manage.py migrate
@@ -52,6 +53,7 @@ services:
 
   flowback-celery-worker:
     build: .
+    restart: unless-stopped
     command: celery -A backend worker --loglevel=info
     depends_on:
       - flowback-backend
@@ -69,6 +71,7 @@ services:
 
   flowback-celery-beat:
     build: .
+    restart: unless-stopped
     command: celery -A backend beat --loglevel=info
     depends_on:
       - flowback-backend

@@ -250,7 +250,7 @@ CHANNEL_LAYERS = {
 
 
 # OIDC Settings
-LOGIN_URL = '/accounts/login/'
+LOGIN_URL = '/login/'
 OIDC_USERINFO = 'backend.oidc_provider_settings.userinfo'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
