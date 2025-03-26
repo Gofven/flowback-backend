@@ -16,6 +16,21 @@ To run Flowback backend using Docker Compose, follow these instructions:
 4) Run `docker compose up -d`
 5) Flowback backend should now be accessible (by default on http://localhost:8000)
 
+#### Create admin account
+To create an admin account that can be used in the frontend you will need to navigate to the terminal in the docker
+container that ends with "flowback-backend-1" (by default, the container name is `<flowback_root_folder_name>_flowback_backend_1`).
+
+To enter the container, run following command:
+```
+docker exec -ti <container_name> bash
+```
+
+Once you're inside the container, create an admin container using:
+```python
+python manage.py createsuperuser
+```
+
+#### About .env
 When docker compose is running, it'll create .env file in the repository folder if it doesn't exist,
 or append `DJANGO_SECRET` to the file if .env exists and the variable isn't present in it. 
 If you wish to change the environment variables, use .env.example as reference!

@@ -18,6 +18,8 @@ group_notification = NotificationManager(sender_type='group',
                                                               'kanban_priority_update',
                                                               'kanban_lane_update',
 
+                                                              'thread',
+
                                                               'poll',
                                                               'poll_schedule',
 
