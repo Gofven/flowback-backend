@@ -100,13 +100,25 @@ def user_home_feed(*, fetched_by: User, filters=None):
                       'group_joined']
 
     # Thread
+    # threads = GroupThread.objects.filter(
+    #     Q(created_by__group_id=group_id)
+    #     & Q(Q(work_group__isnull=True)  # All threads without workgroup
+    #         | Q(work_group__isnull=False) & Q(  # All threads with workgroup
+    #             Q(work_group__workgroupuser__group_user=group_user))  # Check if groupuser is member in workgroup
+    #         | Q(Q(created_by__group__groupuser=group_user) & Q(
+    #             created_by__group__groupuser__is_admin=True)))  # Check if groupuser is admin in group
+    # ).values('id')
+    #
+    # threads = GroupThread.objects.filter(id__in=[t['id'] for t in threads])  # TODO make this one query
 
     q = (Q(created_by__group__groupuser__user__in=[fetched_by]) & Q(created_by__group__groupuser__active=True)
          | Q(created_by__group__public=True) & ~Q(created_by__group__groupuser__user__in=[fetched_by])
          | Q(created_by__group__public=True) & Q(created_by__group__groupuser__user__in=[fetched_by])
          & Q(created_by__group__groupuser__active=False))
 
-    thread_qs = GroupThread.objects.filter(q)
+    thread_qs = GroupThread.objects.filter(q & Q(work_group__isnull=True)  # All threads without workgroup
+                                           | Q(work_group__isnull=False) & Q(  # All threads with workgroup
+                                             Q(work_group__workgroupuser__group_user__user=fetched_by)))
     thread_qs = thread_qs.annotate(related_model=models.Value('group_thread', models.CharField()),
                                    group_id=F('created_by__group_id'),
                                    group_joined=Exists(joined_groups))

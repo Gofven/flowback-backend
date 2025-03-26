@@ -9,7 +9,8 @@ from flowback.chat.tests.factories import MessageChannelFactory
 from flowback.comment.tests.factories import CommentFactory
 from flowback.common.tests import generate_request
 from flowback.group.models import GroupThread
-from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory, GroupFactory
+from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory, GroupFactory, WorkGroupFactory, \
+    WorkGroupUserFactory
 from flowback.poll.models import Poll
 from flowback.poll.tests.factories import PollFactory
 from flowback.user.models import User, UserChatInvite
@@ -99,6 +100,8 @@ class UserTest(APITransactionTestCase):
     def test_user_home_feed(self):
         group_user, group_user_three = GroupUserFactory.create_batch(size=2, group__public=False)
         group_user_two = GroupUserFactory(group__public=True)
+
+        # TODO Test with workgroup
 
         GroupThreadFactory.create_batch(size=2)
         PollFactory.create_batch(size=5, created_by=group_user)

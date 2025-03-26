@@ -112,7 +112,6 @@ def group_user_permissions(*,
         if work_group_moderator_check and not work_group_user.is_moderator:
             raise PermissionDenied("Requires work group moderator permission")
 
-
     return group_user
 
 
@@ -335,25 +334,49 @@ def group_thread_list(*, group_id: int, fetched_by: User, filters=None):
     filters = filters or {}
     group_user = group_user_permissions(user=fetched_by, group=group_id)
 
-    sq_user_vote = GroupThreadVote.objects.filter(thread_id=OuterRef('id'), created_by=group_user).values('vote')
+    threads = GroupThread.objects.filter(
+        Q(created_by__group_id=group_id)
+        & Q(Q(work_group__isnull=True)  # All threads without workgroup
+            | Q(work_group__isnull=False) & Q(  # All threads with workgroup
+                Q(work_group__workgroupuser__group_user=group_user))  # Check if groupuser is member in workgroup
+            | Q(Q(created_by__group__groupuser=group_user) & Q(
+                created_by__group__groupuser__is_admin=True)))  # Check if groupuser is admin in group
+    ).values('id')
 
-    # TODO only work group users or admin should be able to see threads in /home
-    # if not group_user_permissions(group_user=group_user, permissions=['admin'], raise_exception=False):
-    #     threads = GroupThread.objects.filter(Q(created_by__group_id=group_id, work_group__isnull=True)
-    #                                      | Q(work_group__isnull=False) &
-    #                                        Q(work_group__workgroupuser__group_user__in=[group_user]))
-    #
-    # else:
-    threads = GroupThread.objects.filter(created_by__group_id=group_id)
+    threads = GroupThread.objects.filter(id__in=[t['id'] for t in threads])  # TODO make this one query
 
     comment_qs = Coalesce(Subquery(
-                       Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
-                           'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0)
+        Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
+            'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0)
 
-    qs = (threads.annotate(total_comments=comment_qs,
-                           user_vote=Subquery(sq_user_vote),
-                           score=Count('groupthreadvote', filter=Q(groupthreadvote__vote=True)) -
-                                 Count('groupthreadvote', filter=Q(groupthreadvote__vote=False))).all())
+    user_vote_qs = GroupThreadVote.objects.filter(thread_id=OuterRef('id'), created_by=group_user).values('vote')
+
+    positive_votes_qs = (
+        GroupThreadVote.objects.filter(
+            thread_id=OuterRef('pk'),
+            vote=True
+        )
+        .values('thread_id')
+        .annotate(positive_count=Count('id'))
+        .values('positive_count')
+    )
+
+    negative_votes_qs = (
+        GroupThreadVote.objects.filter(
+            thread_id=OuterRef('pk'),
+            vote=False
+        )
+        .values('thread_id')
+        .annotate(negative_count=Count('id'))
+        .values('negative_count')
+    )
+
+    qs = threads.annotate(total_comments=comment_qs,
+                          user_vote=Subquery(user_vote_qs),
+                          score=Coalesce(Subquery(positive_votes_qs,
+                                                  output_field=models.IntegerField()), 0) -
+                                Coalesce(Subquery(negative_votes_qs,
+                                                  output_field=models.IntegerField()), 0)).all()
 
     return BaseGroupThreadFilter(filters, qs).qs
 
