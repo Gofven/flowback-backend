@@ -56,8 +56,9 @@ def notification_create(*, action: str, category: str, sender_type: str, sender_
                                           for subscriber in subscribers])
 
     else:
+        subscribers = NotificationSubscription.objects.filter(channel=channel, user_id__in=target_user_ids).all()
         Notification.objects.bulk_create(
-            [Notification(user_id=i, notification_object=notification_object) for i in target_user_ids])
+            [Notification(user=subscriber.user, notification_object=notification_object) for subscriber in subscribers])
 
     return notification_object
 

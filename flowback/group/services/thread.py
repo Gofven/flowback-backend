@@ -46,7 +46,7 @@ def group_thread_create(user_id: int,
                                                                                      flat=True)
 
     group_notification.create(sender_id=group_id,
-                              action=group_thread_notification.Action.create,
+                              action=group_notification.Action.create,
                               category="thread",
                               message=f'User "{group_user.user.username}" created thread "{title}"',
                               related_id=thread.id,
