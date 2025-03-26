@@ -474,7 +474,7 @@ def work_group_user_join_request_list(*, work_group_id: int, fetched_by: User, f
                                                                 is_moderator=True).exists()
 
     if group_user_is_admin or work_group_user_is_moderator:
-        qs = WorkGroupUserJoinRequest.objects.filter(id=work_group_id)
+        qs = WorkGroupUserJoinRequest.objects.filter(work_group_id=work_group_id)
 
         return BaseWorkGroupFilter(filters, qs).qs
 
