@@ -321,7 +321,7 @@ class BaseGroupThreadFilter(django_filters.FilterSet):
                 ('-pinned', 'pinned')))
     user_vote = django_filters.BooleanFilter()
     id_list = NumberInFilter(field_name='id')
-    group_ids = NumberInFilter(field_name='group_id')
+    group_ids = NumberInFilter(field_name='created_by__group_id')
     work_group_ids = NumberInFilter(field_name='work_group_id')
 
     class Meta:
@@ -348,7 +348,7 @@ def group_thread_list(*, fetched_by: User, filters=None):
         Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
             'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0)
 
-    user_vote_qs = GroupThreadVote.objects.filter(thread_id=OuterRef('id'), created_by=group_user).values('vote')
+    user_vote_qs = GroupThreadVote.objects.filter(thread_id=OuterRef('id'), created_by__user=fetched_by).values('vote')
 
     positive_votes_qs = (
         GroupThreadVote.objects.filter(
