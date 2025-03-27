@@ -134,7 +134,7 @@ group_patterns = [
     path('<int:group_id>/kanban/entry/update', GroupKanbanEntryUpdateAPI.as_view(), name='group_kanban_entry_update'),
     path('<int:group_id>/kanban/entry/delete', GroupKanbanEntryDeleteAPI.as_view(), name='group_kanban_entry_delete'),
 
-    path('<int:group_id>/thread/list', GroupThreadListAPI.as_view(), name='group_thread'),
+    path('thread/list', GroupThreadListAPI.as_view(), name='group_thread'),
     path('<int:group_id>/thread/create', GroupThreadCreateAPI.as_view(), name='group_thread_create'),
     path('thread/<int:thread_id>/update', GroupThreadUpdateAPI.as_view(), name='group_thread_update'),
     path('thread/<int:thread_id>/delete', GroupThreadDeleteAPI.as_view(), name='group_thread_delete'),

@@ -34,6 +34,7 @@ class GroupThreadListAPI(APIView):
         title = serializers.CharField(required=False)
         title__icontains = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
+        group_ids = serializers.CharField(required=False)
         user_vote = serializers.BooleanField(required=False, allow_null=True, default=None)
         work_group_ids = serializers.CharField(required=False)
 
@@ -50,11 +51,11 @@ class GroupThreadListAPI(APIView):
         user_vote = serializers.BooleanField(allow_null=True)
         work_group = WorkGroupSerializer()
 
-    def get(self, request, group_id: int):
+    def get(self, request):
         serializer = self.FilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        threads = group_thread_list(group_id=group_id, fetched_by=request.user, filters=serializer.validated_data)
+        threads = group_thread_list(fetched_by=request.user, filters=serializer.validated_data)
         return get_paginated_response(pagination_class=self.Pagination,
                                       serializer_class=self.OutputSerializer,
                                       queryset=threads,
