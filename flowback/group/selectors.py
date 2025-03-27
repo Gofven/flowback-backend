@@ -321,6 +321,7 @@ class BaseGroupThreadFilter(django_filters.FilterSet):
                 ('-pinned', 'pinned')))
     user_vote = django_filters.BooleanFilter()
     id_list = NumberInFilter(field_name='id')
+    group_ids = NumberInFilter(field_name='group_id')
     work_group_ids = NumberInFilter(field_name='work_group_id')
 
     class Meta:
@@ -330,17 +331,15 @@ class BaseGroupThreadFilter(django_filters.FilterSet):
                       description=['icontains'])
 
 
-def group_thread_list(*, group_id: int, fetched_by: User, filters=None):
+def group_thread_list(*, fetched_by: User, filters=None):
     filters = filters or {}
-    group_user = group_user_permissions(user=fetched_by, group=group_id)
 
     threads = GroupThread.objects.filter(
-        Q(created_by__group_id=group_id)
-        & Q(Q(work_group__isnull=True)  # All threads without workgroup
-            | Q(work_group__isnull=False) & Q(  # All threads with workgroup
-                Q(work_group__workgroupuser__group_user=group_user))  # Check if groupuser is member in workgroup
-            | Q(Q(created_by__group__groupuser=group_user) & Q(
-                created_by__group__groupuser__is_admin=True)))  # Check if groupuser is admin in group
+        Q(Q(work_group__isnull=True)  # All threads without workgroup
+          | Q(work_group__isnull=False) & Q(  # All threads with workgroup
+            Q(work_group__workgroupuser__group_user__user=fetched_by))  # Check if groupuser is member in workgroup
+          | Q(Q(created_by__group__groupuser__user=fetched_by) & Q(
+            created_by__group__groupuser__is_admin=True)))  # Check if groupuser is admin in group
     ).values('id')
 
     threads = GroupThread.objects.filter(id__in=[t['id'] for t in threads])  # TODO make this one query
