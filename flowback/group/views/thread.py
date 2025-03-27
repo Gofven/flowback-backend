@@ -8,7 +8,7 @@ from flowback.comment.views import CommentListAPI, CommentCreateAPI, CommentUpda
     CommentAncestorListAPI
 from flowback.files.serializers import FileSerializer
 from flowback.group.selectors import group_thread_list, group_thread_comment_list, group_thread_comment_ancestor_list
-from flowback.group.serializers import WorkGroupSerializer
+from flowback.group.serializers import WorkGroupSerializer, GroupUserSerializer
 from flowback.group.services.thread import (group_thread_create,
                                             group_thread_update,
                                             group_thread_delete,
@@ -39,7 +39,7 @@ class GroupThreadListAPI(APIView):
         work_group_ids = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-        created_by = BasicUserSerializer(source='created_by.user')
+        created_by = GroupUserSerializer(source='created_by')
         created_at = serializers.DateTimeField()
         id = serializers.IntegerField()
         title = serializers.CharField()
