@@ -39,7 +39,7 @@ class GroupThreadListAPI(APIView):
         work_group_ids = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-        created_by = GroupUserSerializer(source='created_by')
+        created_by = GroupUserSerializer()
         created_at = serializers.DateTimeField()
         id = serializers.IntegerField()
         title = serializers.CharField()
