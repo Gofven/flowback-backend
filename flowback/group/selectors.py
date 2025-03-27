@@ -348,7 +348,7 @@ def group_thread_list(*, fetched_by: User, filters=None):
         Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
             'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0)
 
-    user_vote_qs = GroupThreadVote.objects.filter(thread_id=OuterRef('id'), created_by=group_user).values('vote')
+    user_vote_qs = GroupThreadVote.objects.filter(thread_id=OuterRef('id'), created_by__user=fetched_by).values('vote')
 
     positive_votes_qs = (
         GroupThreadVote.objects.filter(
