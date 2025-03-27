@@ -321,7 +321,7 @@ class BaseGroupThreadFilter(django_filters.FilterSet):
                 ('-pinned', 'pinned')))
     user_vote = django_filters.BooleanFilter()
     id_list = NumberInFilter(field_name='id')
-    group_ids = NumberInFilter(field_name='group_id')
+    group_ids = NumberInFilter(field_name='created_by__group_id')
     work_group_ids = NumberInFilter(field_name='work_group_id')
 
     class Meta:
