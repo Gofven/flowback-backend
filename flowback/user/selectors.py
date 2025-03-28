@@ -99,14 +99,7 @@ def user_home_feed(*, fetched_by: User, filters=None):
                       'group_joined']
 
     q = (Q(created_by__group__groupuser__user__in=[fetched_by])
-         & Q(created_by__group__groupuser__active=True)  # User in group
-
-         | Q(created_by__group__public=True)
-         & ~Q(created_by__group__groupuser__user__in=[fetched_by])  # Group is Public
-
-         | Q(created_by__group__public=True)
-         & Q(created_by__group__groupuser__user__in=[fetched_by])
-         & Q(created_by__group__groupuser__active=False))  # User in group but not active, and group is public
+         & Q(created_by__group__groupuser__active=True))  # User in group
 
     thread_qs = GroupThread.objects.filter(q & Q(work_group__isnull=True)  # All threads without workgroup
 
@@ -124,7 +117,13 @@ def user_home_feed(*, fetched_by: User, filters=None):
     thread_qs = UserHomeFeedFilter(filters, thread_qs).qs
 
     # Poll
-    poll_qs = Poll.objects.filter(q)
+    poll_qs = Poll.objects.filter(q
+         | Q(created_by__group__public=True)
+         & ~Q(created_by__group__groupuser__user__in=[fetched_by])  # Group is Public
+
+         | Q(created_by__group__public=True)
+         & Q(created_by__group__groupuser__user__in=[fetched_by])
+         & Q(created_by__group__groupuser__active=False))  # User in group but not active, and group is public
     poll_qs = poll_qs.annotate(related_model=models.Value('poll', models.CharField()),
                                group_id=F('created_by__group_id'),
                                group_joined=Exists(joined_groups))

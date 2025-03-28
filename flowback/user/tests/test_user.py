@@ -167,17 +167,17 @@ class UserTest(APITransactionTestCase):
         ## User
         response = generate_request(api=UserHomeFeedAPI, user=group_user_private.user)
         self.assertEqual(response.status_code, 200, response.data)
-        self.assertEqual(response.data['count'], 20)
+        self.assertEqual(response.data['count'], 15)
 
         ## Admin
         response = generate_request(api=UserHomeFeedAPI, user=group_user_private_admin.user)
         self.assertEqual(response.status_code, 200, response.data)
-        self.assertEqual(response.data['count'], 25)
+        self.assertEqual(response.data['count'], 20)
 
         ## WorkGroup User
         response = generate_request(api=UserHomeFeedAPI, user=group_user_private_workgroupuser.group_user.user)
         self.assertEqual(response.status_code, 200, response.data)
-        self.assertEqual(response.data['count'], 25)
+        self.assertEqual(response.data['count'], 20)
 
         # Private testing
 
