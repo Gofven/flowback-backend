@@ -8,7 +8,7 @@ from flowback.chat.models import MessageChannel, MessageChannelParticipant
 from flowback.chat.tests.factories import MessageChannelFactory
 from flowback.comment.tests.factories import CommentFactory
 from flowback.common.tests import generate_request
-from flowback.group.models import GroupThread
+from flowback.group.models import GroupThread, GroupUser
 from flowback.group.tests.factories import GroupThreadFactory, GroupUserFactory, GroupFactory, WorkGroupFactory, \
     WorkGroupUserFactory
 from flowback.poll.models import Poll
@@ -97,7 +97,7 @@ class UserTest(APITransactionTestCase):
         self.assertIn('username', response.data.keys())
 
 
-    def test_user_home_feed(self):
+    def test_user_home_feed_order(self):
         group_user, group_user_three = GroupUserFactory.create_batch(size=2, group__public=False)
         group_user_two = GroupUserFactory(group__public=True)
 
@@ -134,14 +134,69 @@ class UserTest(APITransactionTestCase):
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data['count'], 17)
 
-        # Test total_comments
-        # response = generate_request(api=UserHomeFeedAPI,
-        #                             user=group_user_three.user,
-        #                             data=dict(related_model="poll", id=poll_with_comments.id))
-        #
-        # self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
-        # self.assertEqual(response.data['count'], 1)
-        # self.assertEqual(response.data['results'][0]['total_comments'], 5)
+    def test_user_home_feed_visibility(self):
+        # Create public group with 5 polls and 10 threads
+        group_public = GroupFactory(public=True)
+        group_user_public_workgroupuser = WorkGroupUserFactory(work_group__group=group_public,
+                                                               group_user__group=group_public)
+        group_public_workgroup = group_user_public_workgroupuser.work_group
+        group_user_public_admin = GroupUser.objects.get(user=group_public.created_by)
+        group_user_public = GroupUserFactory(group=group_public)
+        public_threads = GroupThreadFactory.create_batch(size=5, created_by=group_user_public)
+        public_polls = PollFactory.create_batch(size=5, created_by=group_user_public)
+        public_threads_workgroup = GroupThreadFactory.create_batch(size=5,
+                                                                   created_by=group_user_public,
+                                                                   work_group=group_public_workgroup)
+
+        # Create private group with 5 polls and 10 threads
+        group_private = GroupFactory(public=False)
+        group_user_private_workgroupuser = WorkGroupUserFactory(work_group__group=group_private,
+                                                                group_user__group=group_private)
+        group_user_private_workgroup = group_user_private_workgroupuser.work_group
+        group_private_workgroup = group_user_private_workgroupuser.work_group
+        group_user_private_admin = GroupUser.objects.get(user=group_private.created_by)
+        group_user_private = GroupUserFactory(group=group_private)
+        private_threads = GroupThreadFactory.create_batch(size=5, created_by=group_user_private)
+        private_polls = PollFactory.create_batch(size=5, created_by=group_user_private)
+        private_threads_workgroup = GroupThreadFactory.create_batch(size=5,
+                                                                    created_by=group_user_private,
+                                                                    work_group=group_private_workgroup)
+
+        # Public testing
+
+        ## User
+        response = generate_request(api=UserHomeFeedAPI, user=group_user_private.user)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['count'], 20)
+
+        ## Admin
+        response = generate_request(api=UserHomeFeedAPI, user=group_user_private_admin.user)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['count'], 25)
+
+        ## WorkGroup User
+        response = generate_request(api=UserHomeFeedAPI, user=group_user_private_workgroupuser.group_user.user)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['count'], 25)
+
+        # Private testing
+
+        ## User
+        response = generate_request(api=UserHomeFeedAPI, user=group_user_public.user)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['count'], 10)
+
+        ## Admin
+        response = generate_request(api=UserHomeFeedAPI, user=group_user_public_admin.user)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['count'], 15)
+
+        ## WorkGroup User
+        response = generate_request(api=UserHomeFeedAPI, user=group_user_public_workgroupuser.group_user.user)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['count'], 15)
+
+
 
     def test_user_get_chat_channel(self):
         participants = UserFactory.create_batch(25)

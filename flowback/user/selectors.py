@@ -98,29 +98,22 @@ def user_home_feed(*, fetched_by: User, filters=None):
                       'related_model',
                       'group_joined']
 
-    # Thread
-    # threads = GroupThread.objects.filter(
-    #     Q(created_by__group_id=group_id)
-    #     & Q(Q(work_group__isnull=True)  # All threads without workgroup
-    #         | Q(work_group__isnull=False) & Q(  # All threads with workgroup
-    #             Q(work_group__workgroupuser__group_user=group_user))  # Check if groupuser is member in workgroup
-    #         | Q(Q(created_by__group__groupuser=group_user) & Q(
-    #             created_by__group__groupuser__is_admin=True)))  # Check if groupuser is admin in group
-    # ).values('id')
-    #
-    # threads = GroupThread.objects.filter(id__in=[t['id'] for t in threads])  # TODO make this one query
+    q = (Q(created_by__group__groupuser__user__in=[fetched_by])
+         & Q(created_by__group__groupuser__active=True)  # User in group
 
-    q = (Q(created_by__group__groupuser__user__in=[fetched_by]) & Q(created_by__group__groupuser__active=True)
-         | Q(created_by__group__public=True) & ~Q(created_by__group__groupuser__user__in=[fetched_by])
-         | Q(created_by__group__public=False) & Q(created_by__group__groupuser__user__in=[fetched_by])
-         & Q(created_by__group__groupuser__active=False))
+         | Q(created_by__group__public=True)
+         & ~Q(created_by__group__groupuser__user__in=[fetched_by])  # Group is Public
+
+         | Q(created_by__group__public=True)
+         & Q(created_by__group__groupuser__user__in=[fetched_by])
+         & Q(created_by__group__groupuser__active=False))  # User in group but not active, and group is public
 
     thread_qs = GroupThread.objects.filter(q & Q(work_group__isnull=True)  # All threads without workgroup
 
-                                           | Q(work_group__isnull=False)  # User in workgroup
+                                           | q & Q(work_group__isnull=False)  # User in workgroup
                                            & Q(work_group__workgroupuser__group_user__user=fetched_by)
 
-                                           | Q(work_group__isnull=False)  # User is admin in group
+                                           | q & Q(work_group__isnull=False)  # User is admin in group
                                            & Q(created_by__group__groupuser__user=fetched_by)
                                            & Q(created_by__group__groupuser__is_admin=True))
 
