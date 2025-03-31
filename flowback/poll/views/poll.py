@@ -326,6 +326,7 @@ class PollPhaseTemplateListAPI(APIView):
         poll_is_dynamic = serializers.BooleanField(required=False)
 
     class OutputSerializer(serializers.Serializer):
+        id = serializers.IntegerField()
         created_by_group_user = GroupUserSerializer()
         name = serializers.CharField(max_length=255)
         poll_type = serializers.IntegerField(max_value=4, min_value=1)
