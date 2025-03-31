@@ -41,6 +41,7 @@ class PollListApi(APIView):
         has_attachments = serializers.BooleanField(required=False, allow_null=True, default=None)
         status = serializers.IntegerField(required=False)
         phase = serializers.CharField(required=False)
+        work_group_ids = serializers.CharField(required=False)
 
         # Blob of gt and lt filter fields
         start_date__gt = serializers.DateTimeField(required=False)

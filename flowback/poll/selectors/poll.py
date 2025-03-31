@@ -10,6 +10,7 @@ from flowback.common.filters import ExistsFilter, NumberInFilter
 from flowback.group.models import Group
 from flowback.poll.models import Poll, PollPhaseTemplate, PollPredictionStatement
 from flowback.user.models import User
+from flowback.group.models import WorkGroupUser
 from flowback.group.selectors import group_user_permissions
 
 
@@ -27,6 +28,7 @@ class BasePollFilter(django_filters.FilterSet):
     tag_name = django_filters.CharFilter(lookup_expr=['exact', 'icontains'], field_name='tag__name')
     tag_id = django_filters.NumberFilter(lookup_expr='exact', field_name='tag__id')
     phase = django_filters.CharFilter(lookup_expr='iexact')
+    work_group_ids = NumberInFilter(field_name="work_group_id")
 
     class Meta:
         model = Poll
@@ -76,10 +78,22 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
         default=Value('waiting'),
         output_field=CharField()
     )
+    
+    polls = Poll.objects.filter(
+
+        ).values('id')
+
 
     if group_id:
         group_user_permissions(user=fetched_by, group=group_id)
-        qs = Poll.objects.filter(created_by__group_id=group_id) \
+        qs = Poll.objects.filter(
+                                Q(created_by__group_id=group_id) & (
+                                Q(Q(work_group__isnull=True)  # All polls without workgroup
+                                | Q(work_group__isnull=False) & Q(  # All polls with workgroup
+                                Q(work_group__workgroupuser__group_user__user=fetched_by))  # Check if groupuser is member in workgroup
+                                | Q(Q(created_by__group__groupuser__user=fetched_by) & Q(
+                                created_by__group__groupuser__is_admin=True)))  # Check if groupuser is admin in group
+                                )) \
             .annotate(phase=poll_phase,
                       total_comments=Coalesce(Subquery(
                           Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
@@ -87,7 +101,7 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
                       total_proposals=Count('pollproposal', distinct=True),
                       total_predictions=Coalesce(Subquery(
                           PollPredictionStatement.objects.filter(poll_id=OuterRef('id')).values('poll_id')
-                          .annotate(total=Count('*')).values('total')[:1]), 0)).all()
+                          .annotate(total=Count('*')).values('total')[:1]), 0)).all()        
 
     else:
         joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
