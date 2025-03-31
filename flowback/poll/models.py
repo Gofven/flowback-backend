@@ -62,6 +62,7 @@ class Poll(BaseModel):
     end_date = models.DateTimeField()  # Result Phase, Prediction Vote afterward indefinitely
 
     blockchain_id = models.PositiveIntegerField(null=True, blank=True, default=None)
+    work_group_id = models.PositiveIntegerField(null=True, blank=True, default=None)
 
     """
     Poll Status Code

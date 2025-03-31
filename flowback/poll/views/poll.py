@@ -167,6 +167,7 @@ class PollCreateAPI(APIView):
         delegate_vote_end_date = serializers.DateTimeField(required=False)
         vote_end_date = serializers.DateTimeField(required=False)
         end_date = serializers.DateTimeField(required=False)
+        work_group_id = serializers.IntegerField(required=False)
 
         class Meta:
             model = Poll
@@ -188,6 +189,7 @@ class PollCreateAPI(APIView):
                       'pinned',
                       'dynamic',
                       'quorum',
+                      'work_group_id',
                       'attachments')
 
     def post(self, request, group_id: int):
