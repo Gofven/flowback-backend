@@ -77,6 +77,7 @@ class PollListApi(APIView):
         total_comments = serializers.IntegerField()
         total_proposals = serializers.IntegerField()
         total_predictions = serializers.IntegerField()
+        work_group_id = serializers.IntegerField()
 
         proposal_end_date = serializers.DateTimeField(required=False)
         prediction_statement_end_date = serializers.DateTimeField(required=False)
@@ -123,6 +124,7 @@ class PollListApi(APIView):
                       'status',
                       'status_prediction',
                       'attachments',
+                      'work_group_id',
                       'phase')
 
     def get(self, request, group_id: int = None):
