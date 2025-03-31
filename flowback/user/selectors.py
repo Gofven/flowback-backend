@@ -101,14 +101,15 @@ def user_home_feed(*, fetched_by: User, filters=None):
     q = (Q(created_by__group__groupuser__user__in=[fetched_by])
          & Q(created_by__group__groupuser__active=True))  # User in group
 
-    thread_qs = GroupThread.objects.filter(q 
-        & Q(work_group__isnull=True)  # All threads without workgroup
+    thread_qs = GroupThread.objects.filter(
+        q & Q(work_group__isnull=True)  # All threads without workgroup
 
         | q & Q(work_group__isnull=False)  # User in workgroup
         & Q(work_group__workgroupuser__group_user__user=fetched_by)
 
         | q & Q(work_group__isnull=False)  # User is admin in group
         & Q(created_by__group__groupuser__user=fetched_by)
+        & ~Q(created_by__group__groupuser__user__in=[fetched_by])
         & Q(created_by__group__groupuser__is_admin=True))
 
     thread_qs = thread_qs.annotate(related_model=models.Value('group_thread', models.CharField()),
@@ -118,16 +119,24 @@ def user_home_feed(*, fetched_by: User, filters=None):
     thread_qs = UserHomeFeedFilter(filters, thread_qs).qs
 
     # Poll
-    poll_qs = Poll.objects.filter(q
-        | Q(created_by__group__public=True)
-        & ~Q(created_by__group__groupuser__user__in=[fetched_by])  # Group is Public
-        
-        & Q(work_group__isnull=False)  # User in workgroup
-        & Q(work_group__workgroupuser__group_user__user=fetched_by)
+    poll_qs = Poll.objects.filter(
+        q & Q(work_group__isnull=True)  # User in Group
 
         | Q(created_by__group__public=True)
+        & ~Q(created_by__group__groupuser__user__in=[fetched_by])  # Group is Public
+        & Q(work_group__isnull=True)
+        
+        | q & Q(work_group__isnull=False)  # User in workgroup
+        & Q(work_group__workgroupuser__group_user__user=fetched_by)
+
+        | q & Q(created_by__group__public=True)
         & Q(created_by__group__groupuser__user__in=[fetched_by])
-        & Q(created_by__group__groupuser__active=False))  # User in group but not active, and group is public
+        & Q(created_by__group__groupuser__active=False)  # User in group but not active, and group is public
+    
+        | q & Q(work_group__isnull=False)  # User is admin in group
+        & Q(created_by__group__groupuser__user=fetched_by)
+        & ~Q(created_by__group__groupuser__user__in=[fetched_by])
+        & Q(created_by__group__groupuser__is_admin=True))
     poll_qs = poll_qs.annotate(related_model=models.Value('poll', models.CharField()),
                                group_id=F('created_by__group_id'),
                                group_joined=Exists(joined_groups))
