@@ -84,42 +84,40 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
         ).values('id')
 
 
-    if group_id:
-        group_user_permissions(user=fetched_by, group=group_id)
-        qs = Poll.objects.filter(
-                                Q(created_by__group_id=group_id) & (
-                                Q(Q(work_group__isnull=True)  # All polls without workgroup
-                                | Q(work_group__isnull=False) & Q(  # All polls with workgroup
-                                Q(work_group__workgroupuser__group_user__user=fetched_by))  # Check if groupuser is member in workgroup
-                                | Q(Q(created_by__group__groupuser__user=fetched_by) & Q(
-                                created_by__group__groupuser__is_admin=True)))  # Check if groupuser is admin in group
-                                )) \
-            .annotate(phase=poll_phase,
-                      total_comments=Coalesce(Subquery(
-                          Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
-                              'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0),
-                      total_proposals=Count('pollproposal', distinct=True),
-                      total_predictions=Coalesce(Subquery(
-                          PollPredictionStatement.objects.filter(poll_id=OuterRef('id')).values('poll_id')
-                          .annotate(total=Count('*')).values('total')[:1]), 0)).all()        
+    q = (Q(created_by__group__groupuser__user__in=[fetched_by])
+         & Q(created_by__group__groupuser__active=True))  # User in group
 
-    else:
-        joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
-        qs = Poll.objects.filter(
-            (Q(created_by__group__groupuser__user__in=[fetched_by]) & Q(created_by__group__groupuser__active=True)
-             | Q(public=True) & ~Q(created_by__group__groupuser__user__in=[fetched_by])
-             | Q(public=True) & Q(created_by__group__groupuser__user__in=[fetched_by]
-                                  ) & Q(created_by__group__groupuser__active=False)
-             ) & Q(start_date__lte=timezone.now())
-        ).annotate(phase=poll_phase,
-                   group_joined=Exists(joined_groups),
-                   total_comments=Coalesce(Subquery(
-                       Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
-                           'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0),
-                   total_proposals=Count('pollproposal', distinct=True),
-                   total_predictions=Coalesce(Subquery(
-                       PollPredictionStatement.objects.filter(poll_id=OuterRef('id')).values('poll_id')
-                       .annotate(total=Count('*')).values('total')[:1]), 0)).all()
+
+    base_qs = (
+        q & Q(work_group__isnull=True)  # User in Group
+
+        | Q(created_by__group__public=True)
+        & ~Q(created_by__group__groupuser__user__in=[fetched_by])  # Group is Public
+        & Q(work_group__isnull=True)
+        
+        | q & Q(work_group__isnull=False)  # User in workgroup
+        & Q(work_group__workgroupuser__group_user__user=fetched_by)
+
+        | q & Q(created_by__group__public=True)
+        & Q(created_by__group__groupuser__user__in=[fetched_by])
+        & Q(created_by__group__groupuser__active=False)  # User in group but not active, and group is public
+    
+        | q & Q(work_group__isnull=False)  # User is admin in group
+        & Q(created_by__group__groupuser__user=fetched_by)
+        & ~Q(created_by__group__groupuser__user__in=[fetched_by])
+        & Q(created_by__group__groupuser__is_admin=True))
+
+
+    joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
+    qs = Poll.objects.filter(base_qs).annotate(phase=poll_phase,
+                group_joined=Exists(joined_groups),
+                total_comments=Coalesce(Subquery(
+                    Comment.objects.filter(comment_section_id=OuterRef('comment_section_id'), active=True).values(
+                        'comment_section_id').annotate(total=Count('*')).values('total')[:1]), 0),
+                total_proposals=Count('pollproposal', distinct=True),
+                total_predictions=Coalesce(Subquery(
+                    PollPredictionStatement.objects.filter(poll_id=OuterRef('id')).values('poll_id')
+                    .annotate(total=Count('*')).values('total')[:1]), 0)).all()
 
     return BasePollFilter(filters, qs).qs
 
