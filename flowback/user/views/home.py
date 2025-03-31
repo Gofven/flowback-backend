@@ -22,6 +22,7 @@ class UserHomeFeedAPI(APIView):
         user_vote = serializers.BooleanField(required=False, allow_null=True, default=None)
         group_ids = serializers.CharField(required=False)
 
+
     class OutputSerializer(serializers.Serializer):
         created_by = GroupUserSerializer()
         created_at = serializers.DateTimeField()
