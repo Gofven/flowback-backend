@@ -191,7 +191,7 @@ def group_user_list(*, group: int, fetched_by: User, filters=None):
                                            )
     qs = GroupUser.objects.filter(group_id=group,
                                   active=True,
-                                  ).annotate(delegate_pool=F('groupuserdelegate__pool_id'),
+                                  ).annotate(delegate_pool_id=F('groupuserdelegate__pool_id'),
                                              work_groups=ArrayAgg('workgroupuser__work_group__name')).all()
     return BaseGroupUserFilter(filters, qs).qs
 
