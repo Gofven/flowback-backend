@@ -11,21 +11,28 @@ It is a decision-making platform.
 ### Docker Compose Example
 To run Flowback backend using Docker Compose, follow these instructions: 
 1) [Download](https://github.com/Gofven/flowback/archive/refs/heads/master.zip) or [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository to your local computer
-2) Download [Docker Compose](https://docs.docker.com/compose/install/linux/) (Linux) or [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows)
-3) Using your computers terminal, navigate to the local repository using `cd <directory>`
+2) Download [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows, macOS and Linux) or [Docker Compose](https://docs.docker.com/compose/install/linux/) (Linux)
+3) Navigate to the root of this repository.
 4) Run `docker compose up -d`
 5) Flowback backend should now be accessible (by default on http://localhost:8000)
 
-#### Create admin account
-To create an admin account that can be used in the frontend you will need to navigate to the terminal in the docker
-container that ends with "flowback-backend-1" (by default, the container name is `<flowback_root_folder_name>_flowback_backend_1`).
+#### Documentation
+You can find the api documenation at http://127.0.0.1:8000/schema/redoc/ once you have started the backend with docker.
 
-To enter the container, run following command:
+#### Create admin account
+To create an admin account that can be used in the frontend you will need to execute a command inside the backedn docker container. By default, the container name is `<flowback_root_folder_name>_flowback_backend_1`.
+
+You can enter the container through the docker desktop app, click on the container and then click on the terminal tab. There you can create an admin account by executing: 
+```python
+python manage.py createsuperuser
+```
+
+Alternatively, you can access the docer container by running the following command:
 ```
 docker exec -ti <container_name> bash
 ```
 
-Once you're inside the container, create an admin container using:
+And once you're inside the container, create an admin account using:
 ```python
 python manage.py createsuperuser
 ```
@@ -34,7 +41,6 @@ python manage.py createsuperuser
 When docker compose is running, it'll create .env file in the repository folder if it doesn't exist,
 or append `DJANGO_SECRET` to the file if .env exists and the variable isn't present in it. 
 If you wish to change the environment variables, use .env.example as reference!
-
 
 ### Caddy DNS Setup Example
 
