@@ -27,7 +27,7 @@ class GroupUserListApi(APIView):
         permission = serializers.IntegerField(required=False)
 
     class OutputSerializer(GroupUserSerializer):
-        is_delegate = serializers.BooleanField(source='delegate')
+        delegate_pool_id = serializers.IntegerField(allow_null=True)
         work_groups = serializers.ListField(allow_null=True, child=serializers.CharField())
 
     def get(self, request, group: int):
@@ -108,7 +108,7 @@ class GroupUserUpdateApi(APIView):
         user = serializers.IntegerField(required=False)
         delegate = serializers.BooleanField(required=False, default=None, allow_null=True)
         permission = serializers.IntegerField(required=False, allow_null=True, source='permission_id')
-        is_admin = serializers.IntegerField(required=False)
+        is_admin = serializers.BooleanField(required=False)
 
     def post(self, request, group: int):
         serializer = self.InputSerializer(data=request.data)
