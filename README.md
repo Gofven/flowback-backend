@@ -20,7 +20,7 @@ To run Flowback backend using Docker Compose, follow these instructions:
 You can find the api documenation at http://127.0.0.1:8000/schema/redoc/ once you have started the backend with docker.
 
 #### Create admin account
-To create an admin account that can be used in the frontend you will need to execute a command inside the backedn docker container. By default, the container name is `<flowback_root_folder_name>_flowback_backend_1`.
+To create an admin account that can be used in the frontend you will need to execute a command inside the backend docker container. By default, the container name is `<flowback_root_folder_name>_flowback_backend_1`.
 
 You can enter the container through the docker desktop app, click on the container and then click on the terminal tab. There you can create an admin account by executing: 
 ```python
