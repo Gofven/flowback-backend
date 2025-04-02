@@ -4,7 +4,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from .models import MessageChannel, Message, MessageChannelParticipant, MessageChannelTopic
 from flowback.user.models import User
-from ..common.filters import NumberInFilter, ExistsFilter
+from ..common.filters import NumberInFilter, ExistsFilter, StringInFilter
 from ..common.services import get_object
 
 
@@ -53,7 +53,7 @@ class BaseMessageChannelPreviewFilter(django_filters.FilterSet):
                                                      ('-created_at', 'created_at_desc')))
 
     username__icontains = django_filters.CharFilter(field_name='target__username', lookup_expr='icontains')
-    origin_name = django_filters.CharFilter(field_name='channel__origin_name', lookup_expr='exact')
+    origin_name = StringInFilter(field_name='channel__origin_name')
     topic_name = django_filters.CharFilter(field_name='topic__name', lookup_expr='exact')
 
     class Meta:
