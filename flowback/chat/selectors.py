@@ -1,4 +1,4 @@
-from django.db.models import Q, OuterRef, Subquery, Case, When, F
+from django.db.models import Q, OuterRef, Subquery, Case, When, F, Count
 import django_filters
 from rest_framework.exceptions import PermissionDenied
 
@@ -80,7 +80,8 @@ def message_channel_preview_list(*, user: User, filters=None):
 
     qs = Message.objects.filter(id__in=message_qs)
 
-    final_qs = BaseMessageChannelPreviewFilter(filters, qs).qs.annotate(timestamp=Subquery(timestamp))
+    final_qs = BaseMessageChannelPreviewFilter(filters, qs).qs.annotate(timestamp=Subquery(timestamp),
+                                                                        participants=Count('channel__messagechannelparticipant'))
 
     return final_qs
 

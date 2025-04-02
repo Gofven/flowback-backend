@@ -62,6 +62,7 @@ class MessageChannelPreviewAPI(APIView):
 
     class OutputSerializer(BasicMessageSerializer):
         timestamp = serializers.DateTimeField(allow_null=True)
+        participants = serializers.IntegerField(help_text="Number of participants in the channel")
 
     def get(self, request):
         serializer = self.FilterSerializer(data=request.query_params)
