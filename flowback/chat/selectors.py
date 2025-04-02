@@ -53,7 +53,7 @@ class BaseMessageChannelPreviewFilter(django_filters.FilterSet):
                                                      ('-created_at', 'created_at_desc')))
 
     username__icontains = django_filters.CharFilter(field_name='target__username', lookup_expr='icontains')
-    origin_name = StringInFilter(field_name='channel__origin_name')
+    origin_names = StringInFilter(field_name='channel__origin_name')
     topic_name = django_filters.CharFilter(field_name='topic__name', lookup_expr='exact')
 
     class Meta:
