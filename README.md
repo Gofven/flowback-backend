@@ -27,7 +27,7 @@ You can enter the container through the docker desktop app, click on the contain
 python manage.py createsuperuser
 ```
 
-Alternatively, you can access the docer container by running the following command:
+Alternatively, you can access the docker container by running the following command:
 ```
 docker exec -ti <container_name> bash
 ```
