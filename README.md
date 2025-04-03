@@ -13,7 +13,7 @@ To run Flowback backend using Docker Compose, follow these instructions:
 1) [Download](https://github.com/Gofven/flowback/archive/refs/heads/master.zip) or [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository to your local computer
 2) Download [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows, macOS and Linux) or [Docker Compose](https://docs.docker.com/compose/install/linux/) (Linux)
 3) Navigate to the root of this repository.
-4) Run `docker compose up -d`
+4) Run `docker compose up -d`. If you have run the docker before and have an updated version of the code, run `docker compose up --build -d` to get the latest docker version.
 5) Flowback backend should now be accessible (by default on http://localhost:8000)
 
 #### Documentation
