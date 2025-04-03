@@ -1,10 +1,10 @@
-from django.db.models import Q, OuterRef, Subquery, Case, When, F
+from django.db.models import Q, OuterRef, Subquery, Case, When, F, Count
 import django_filters
 from rest_framework.exceptions import PermissionDenied
 
 from .models import MessageChannel, Message, MessageChannelParticipant, MessageChannelTopic
 from flowback.user.models import User
-from ..common.filters import NumberInFilter, ExistsFilter
+from ..common.filters import NumberInFilter, ExistsFilter, StringInFilter
 from ..common.services import get_object
 
 
@@ -53,7 +53,7 @@ class BaseMessageChannelPreviewFilter(django_filters.FilterSet):
                                                      ('-created_at', 'created_at_desc')))
 
     username__icontains = django_filters.CharFilter(field_name='target__username', lookup_expr='icontains')
-    origin_name = django_filters.CharFilter(field_name='channel__origin_name', lookup_expr='exact')
+    origin_names = StringInFilter(field_name='channel__origin_name')
     topic_name = django_filters.CharFilter(field_name='topic__name', lookup_expr='exact')
 
     class Meta:
@@ -80,7 +80,8 @@ def message_channel_preview_list(*, user: User, filters=None):
 
     qs = Message.objects.filter(id__in=message_qs)
 
-    final_qs = BaseMessageChannelPreviewFilter(filters, qs).qs.annotate(timestamp=Subquery(timestamp))
+    final_qs = BaseMessageChannelPreviewFilter(filters, qs).qs.annotate(timestamp=Subquery(timestamp),
+                                                                        participants=Count('channel__messagechannelparticipant'))
 
     return final_qs
 

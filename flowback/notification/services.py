@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Union
 
-from django.db.models import F
+from django.db.models import F, QuerySet
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -36,10 +36,14 @@ def notification_delete_channel(*, sender_type: str, sender_id: int, category: s
 # Notification subscription handled outside, notification management handled inside
 def notification_create(*, action: str, category: str, sender_type: str, sender_id: int,
                         message: str, timestamp: datetime = None, related_id: int = None,
-                        target_user_ids: list[int] = None) -> NotificationObject:
-    target_user_ids = (target_user_ids if isinstance(target_user_ids, list)
-                                          or target_user_ids is None
-                       else [target_user_ids])
+                        target_user_ids: list[int] | QuerySet = None) -> NotificationObject:
+
+    if target_user_ids is not None:
+        if isinstance(target_user_ids, int):
+            target_user_ids = [target_user_ids]
+
+        elif isinstance(target_user_ids, QuerySet):
+            target_user_ids = list(target_user_ids)
 
     channel = notification_load_channel(category=category, sender_type=sender_type, sender_id=sender_id)
     timestamp = timestamp or timezone.now()
