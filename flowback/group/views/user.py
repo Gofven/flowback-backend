@@ -114,8 +114,8 @@ class GroupUserUpdateApi(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         target_user_id = request.user.id
-        if serializer.validated_data.get('user'):
-            target_user_id = serializer.validated_data.pop('user')
+        if serializer.validated_data.get('target_user_id'):
+            target_user_id = serializer.validated_data.pop('target_user_id')
 
         group_user_update(fetched_by=request.user,
                           target_user_id=target_user_id,
