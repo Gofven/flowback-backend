@@ -170,7 +170,6 @@ def group_leave(*, user: int, group: int) -> None:
 
 
 def group_user_update(*, user: int, group: int, fetched_by: int, data) -> GroupUser:
-    user_to_update = group_user_permissions(user=fetched_by, group=group)
     non_side_effect_fields = []
 
     # If user updates someone else (requires Admin)
