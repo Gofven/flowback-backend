@@ -169,16 +169,12 @@ def group_leave(*, user: int, group: int) -> None:
                               category='members', message=f'User {user.user.username} left the group {user.group.name}')
 
 
-def group_user_update(*, user: int, group: int, fetched_by: int, data) -> GroupUser:
-    non_side_effect_fields = []
-
+def group_user_update(*, fetched_by: User, group: int, target_user_id: int, data) -> GroupUser:
     # If user updates someone else (requires Admin)
-    if group_user_permissions(user=fetched_by, group=group, permissions=['admin'], raise_exception=False):
-        user_to_update = group_user_permissions(user=user, group=group)
-        non_side_effect_fields.extend(['permission_id', 'is_admin'])
+    group_user_permissions(user=fetched_by, group=group, permissions=['admin'])
 
-    else:
-        raise ValidationError('Permission denied')
+    non_side_effect_fields = ['permission_id', 'is_admin']
+    user_to_update = group_user_permissions(user=target_user_id, group=group)
 
     group_user, has_updated = model_update(instance=user_to_update,
                                            fields=non_side_effect_fields,

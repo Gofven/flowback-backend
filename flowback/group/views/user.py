@@ -105,7 +105,7 @@ class GroupLeaveApi(APIView):
 @extend_schema(tags=['group'])
 class GroupUserUpdateApi(APIView):
     class InputSerializer(serializers.Serializer):
-        user = serializers.IntegerField(required=False)
+        target_user_id = serializers.IntegerField()
         delegate = serializers.BooleanField(required=False, default=None, allow_null=True)
         permission = serializers.IntegerField(required=False, allow_null=True, source='permission_id')
         is_admin = serializers.BooleanField(required=False)
@@ -113,13 +113,13 @@ class GroupUserUpdateApi(APIView):
     def post(self, request, group: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user_to_update = request.user.id
+        target_user_id = request.user.id
         if serializer.validated_data.get('user'):
-            user_to_update = serializer.validated_data.pop('user')
+            target_user_id = serializer.validated_data.pop('user')
 
-        group_user_update(user=user_to_update,
+        group_user_update(fetched_by=request.user,
+                          target_user_id=target_user_id,
                           group=group,
-                          fetched_by=request.user.id,
                           data=serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK)
