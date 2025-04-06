@@ -137,8 +137,17 @@ class BaseGroupFilter(django_filters.FilterSet):
 def group_list(*, fetched_by: User, filters=None):
     filters = filters or {}
     joined_groups = Group.objects.filter(id=OuterRef('pk'), groupuser__user__in=[fetched_by])
+    pending_join = Group.objects.filter(id=OuterRef('pk'),
+                                        groupuserinvite__user__in=[fetched_by],
+                                        groupuserinvite__external=True)
+    pending_invite = Group.objects.filter(id=OuterRef('pk'),
+                                          groupuserinvite__user__in=[fetched_by],
+                                          groupuserinvite__external=False)
+
     qs = _group_get_visible_for(user=fetched_by
                                 ).annotate(joined=Exists(joined_groups),
+                                           pending_invite=Exists(pending_invite),
+                                           pending_join=Exists(pending_join),
                                            member_count=Count('groupuser')
                                            ).order_by('created_at').all()
     qs = BaseGroupFilter(filters, qs).qs
