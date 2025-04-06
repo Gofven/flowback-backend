@@ -11,7 +11,7 @@ from flowback.user.views.user import (UserCreateApi,
                                       UserDeleteAPI,
                                       UserForgotPasswordApi,
                                       UserForgotPasswordVerifyApi, UserGetChatChannelAPI, UserChatInviteListAPI,
-                                      UserChatInviteAPI)
+                                      UserChatInviteAPI, UserLogoutAPI)
 from flowback.user.views.schedule import (UserScheduleEventListAPI,
                                           UserScheduleEventCreateAPI,
                                           UserScheduleEventUpdateAPI,
@@ -24,6 +24,7 @@ from flowback.user.views.home import UserHomeFeedAPI
 
 user_patterns = [
     path('login', views.obtain_auth_token, name='login'),
+    path('logout', UserLogoutAPI.as_view(), name='logout'),
     path('forgot_password', UserForgotPasswordApi.as_view(), name='forgot_password'),
     path('forgot_password/verify', UserForgotPasswordVerifyApi.as_view(), name='forgot_password_verify'),
     path('users', UserListApi.as_view(), name='users'),

@@ -1,3 +1,4 @@
+from django.contrib.auth import logout
 from drf_spectacular.utils import extend_schema
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers, status
@@ -232,3 +233,9 @@ class UserChatInviteListAPI(APIView):
                                       queryset=qs,
                                       request=self.request,
                                       view=self)
+
+
+class UserLogoutAPI(APIView):
+    def post(self, request):
+        logout(request)
+        return Response(status=status.HTTP_200_OK)
