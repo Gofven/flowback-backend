@@ -30,8 +30,8 @@ class GroupListApi(APIView):
     class OutputSerializer(serializers.ModelSerializer):
         joined = serializers.BooleanField()
         member_count = serializers.IntegerField()
-        pending_invite = serializers.BooleanField()
-        pending_join = serializers.BooleanField()
+        pending_invite = serializers.BooleanField(help_text="Group sent invite to current user")
+        pending_join = serializers.BooleanField(help_text="Current user sent join request to group")
 
         class Meta:
             model = Group
