@@ -52,10 +52,10 @@ def group_user_permissions(*,
 
     # Setup initial values for the function
     if isinstance(user, int):
-        user = get_object(User, id=user, active=True)
+        user = User.objects.get(id=user, is_active=True)
 
     if isinstance(group, int):
-        group = get_object(Group, id=group, active=True)
+        group = Group.objects.get(id=group, active=True)
 
     if isinstance(permissions, str):
         permissions = [permissions]
