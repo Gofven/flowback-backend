@@ -248,8 +248,7 @@ def poll_proposal_vote_count(poll_id: int) -> None:
     if poll.status:
         return
 
-    # Count mandate for each delegate, multiply it by score
-    # TODO Redundant
+    # Count delegators participating in poll
     mandate = GroupUserDelegatePool.objects.filter(polldelegatevoting__poll=poll).aggregate(
         mandate=Count('groupuserdelegator',
                       filter=~Q(groupuserdelegator__delegator__pollvoting__poll=poll
@@ -309,20 +308,15 @@ def poll_proposal_vote_count(poll_id: int) -> None:
 
     if poll.poll_type == Poll.PollType.CARDINAL:
         if poll.tag:
-            # Calculate user scores
-            # user_weight = PollVoting.objects.filter(id=OuterRef('author'), poll=poll
-            #                                         ).annotate(weight=Sum('pollvotingtypecardinal__raw_score')
-            #                                                    ).values('weight')
+            # Sets baseline scores to all votes
             PollVotingTypeCardinal.objects.filter(author__isnull=False,
                                                   proposal__poll=poll).update(score=F('raw_score'))
-            # delegate_weight = PollDelegateVoting.objects.filter(id=OuterRef('author_delegate'), poll=poll
-            #                                                 ).annotate(weight=Sum('pollvotingtypecardinal__raw_score')
-            #                                                            ).values('weight')
-            # Calculate delegate scores
-            delegate_scores = PollVotingTypeCardinal.objects.filter(id=OuterRef('id')).annotate(
-                final_score=F('raw_score') * F('author_delegate__mandate')).values('final_score')
+            # Calculate final scores
+            multiplier = PollVotingTypeCardinal.objects.filter(id=OuterRef('id')).annotate(
+                multiplier=F('author_delegate__mandate')).values('multiplier')
+
             PollVotingTypeCardinal.objects.filter(author_delegate__isnull=False, proposal__poll=poll
-                                                  ).update(score=Subquery(delegate_scores))
+                                                  ).update(score=F('raw_score') * Subquery(multiplier))
 
             proposal_scores = PollProposal.objects.filter(id=OuterRef('id')).annotate(final_score=Sum('pollvotingtypecardinal__score')).values('final_score')
             PollProposal.objects.update(score=Subquery(proposal_scores))
