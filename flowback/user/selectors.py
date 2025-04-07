@@ -92,7 +92,7 @@ def user_home_feed(*, fetched_by: User, filters=None):
     filters = filters or {}
     ordering_filter = {}
 
-    if 'order_by' in filters:
+    if 'order_by' in filters.keys():
         ordering_filter['order_by'] = filters.pop('order_by')
 
     joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
