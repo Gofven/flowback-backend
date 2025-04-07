@@ -304,7 +304,7 @@ def poll_proposal_vote_count(poll_id: int) -> None:
             # TODO make this work aswell, replace above
             # PollProposal.objects.bulk_update(proposals, fields=('score',))
 
-            poll.participants = mandate + PollVoting.objects.filter(poll=poll).all().count()
+            poll.participants = (mandate + PollVoting.objects.filter(poll=poll).all().count()) or 1
             poll.save()
 
     if poll.poll_type == Poll.PollType.CARDINAL:
@@ -358,6 +358,7 @@ def poll_proposal_vote_count(poll_id: int) -> None:
             # PollProposal.objects.bulk_update(proposals, fields=('score',))
 
             poll.participants = (mandate + PollVoting.objects.filter(poll=poll).all().count()) or 1
+            poll.save()
 
     total_group_users = GroupUser.objects.filter(group=group).count()
     quorum = (poll.quorum if poll.quorum is not None else group.default_quorum) / 100
