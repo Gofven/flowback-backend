@@ -90,6 +90,11 @@ class UserHomeFeedFilter(django_filters.FilterSet):
 # TODO add relevant Count (proposal, prediction, comments) to the home feed if possible
 def user_home_feed(*, fetched_by: User, filters=None):
     filters = filters or {}
+    ordering_filter = {}
+
+    if 'order_by' in filters.keys():
+        ordering_filter['order_by'] = filters.pop('order_by')
+
     joined_groups = Group.objects.filter(id=OuterRef('created_by__group_id'), groupuser__user__in=[fetched_by])
     related_fields = ['id',
                       'created_by',
@@ -119,6 +124,8 @@ def user_home_feed(*, fetched_by: User, filters=None):
                                    group_id=F('created_by__group_id'),
                                    group_joined=Exists(joined_groups))
     thread_qs = thread_qs.values(*related_fields)
+    thread_qs = UserHomeFeedFilter(filters, thread_qs).qs
+
 
     # Poll
     poll_qs = Poll.objects.filter(
@@ -143,9 +150,10 @@ def user_home_feed(*, fetched_by: User, filters=None):
                                group_id=F('created_by__group_id'),
                                group_joined=Exists(joined_groups))
     poll_qs = poll_qs.values(*related_fields)
+    poll_qs = UserHomeFeedFilter(filters, poll_qs).qs
 
     qs = thread_qs.union(poll_qs).order_by('-created_at')
-    qs = UserHomeFeedFilter(filters, qs).qs
+    qs = UserHomeFeedFilter(ordering_filter, qs).qs
 
     return qs
 
