@@ -137,8 +137,17 @@ class BaseGroupFilter(django_filters.FilterSet):
 def group_list(*, fetched_by: User, filters=None):
     filters = filters or {}
     joined_groups = Group.objects.filter(id=OuterRef('pk'), groupuser__user__in=[fetched_by])
+    pending_join = Group.objects.filter(id=OuterRef('pk'),
+                                        groupuserinvite__user__in=[fetched_by],
+                                        groupuserinvite__external=True)
+    pending_invite = Group.objects.filter(id=OuterRef('pk'),
+                                          groupuserinvite__user__in=[fetched_by],
+                                          groupuserinvite__external=False)
+
     qs = _group_get_visible_for(user=fetched_by
                                 ).annotate(joined=Exists(joined_groups),
+                                           pending_invite=Exists(pending_invite),
+                                           pending_join=Exists(pending_join),
                                            member_count=Count('groupuser')
                                            ).order_by('created_at').all()
     qs = BaseGroupFilter(filters, qs).qs
@@ -173,6 +182,9 @@ def group_schedule_event_list(*, fetched_by: User, group_id: int, filters=None):
 
 class BaseGroupUserFilter(django_filters.FilterSet):
     username__icontains = django_filters.CharFilter(field_name='user__username', lookup_expr='icontains')
+    delegate_pool_id = django_filters.NumberFilter(),
+    is_delegate = django_filters.BooleanFilter(field_name='delegate_pool_id', lookup_expr='isnull', exclude=True)
+
     delegate = django_filters.BooleanFilter(field_name='delegate')
 
     class Meta:
@@ -183,13 +195,10 @@ class BaseGroupUserFilter(django_filters.FilterSet):
                       permission=['in'])
 
 
-def group_user_list(*, group: int, fetched_by: User, filters=None):
-    group_user_permissions(user=fetched_by, group=group)
+def group_user_list(*, group_id: int, fetched_by: User, filters=None):
+    group_user_permissions(user=fetched_by, group=group_id)
     filters = filters or {}
-    is_delegate = GroupUser.objects.filter(group_id=group, groupuserdelegate__group_user=OuterRef('pk'),
-                                           groupuserdelegate__group=OuterRef('group')
-                                           )
-    qs = GroupUser.objects.filter(group_id=group,
+    qs = GroupUser.objects.filter(group_id=group_id,
                                   active=True,
                                   ).annotate(delegate_pool_id=F('groupuserdelegate__pool_id'),
                                              work_groups=ArrayAgg('workgroupuser__work_group__name')).all()
