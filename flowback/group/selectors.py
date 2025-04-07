@@ -52,10 +52,10 @@ def group_user_permissions(*,
 
     # Setup initial values for the function
     if isinstance(user, int):
-        user = get_object(User, id=user)
+        user = get_object(User, id=user, active=True)
 
     if isinstance(group, int):
-        group = get_object(Group, id=group)
+        group = get_object(Group, id=group, active=True)
 
     if isinstance(permissions, str):
         permissions = [permissions]
@@ -64,10 +64,14 @@ def group_user_permissions(*,
         work_group = WorkGroup.objects.get(id=work_group)
 
     if isinstance(group_user, int):
-        group_user = GroupUser.objects.get(id=group_user)
+        group_user = GroupUser.objects.get(id=group_user, active=True)
+
+    if group_user:
+        if not group_user.active:
+            raise ValidationError('Group user is not active')
 
     if user and group:
-        group_user = GroupUser.objects.get(user=user, group=group)
+        group_user = GroupUser.objects.get(user=user, group=group, active=True)
 
     elif user and work_group:
         group_user = GroupUser.objects.get(group=work_group.group, user=user, active=True)
