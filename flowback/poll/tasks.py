@@ -321,6 +321,9 @@ def poll_proposal_vote_count(poll_id: int) -> None:
             proposal_scores = PollProposal.objects.filter(id=OuterRef('id')).annotate(final_score=Sum('pollvotingtypecardinal__score')).values('final_score')
             PollProposal.objects.update(score=Subquery(proposal_scores))
 
+            poll.participants = (mandate + PollVoting.objects.filter(poll=poll).all().count()) or 1
+            poll.save()
+
     if poll.poll_type == Poll.PollType.SCHEDULE:
         if poll.tag:
             delegate_votes = PollVotingTypeForAgainst.objects.filter(author_delegate__poll=poll).values('pk').annotate(
