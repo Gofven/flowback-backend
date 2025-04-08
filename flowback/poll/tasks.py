@@ -371,6 +371,9 @@ def poll_proposal_vote_count(poll_id: int) -> None:
                              origin_id=poll.id,
                              description=poll.description)
 
+        print(f"Total Participants: {poll.participants}")
+        print(f"Total Group Users: {total_group_users}")
+        print(f"Quorum: {quorum}")
         poll.status = 1 if poll.participants > total_group_users * quorum else -1
         poll.result = True
         poll.save()
