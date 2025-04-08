@@ -140,7 +140,7 @@ class BaseGroupFilter(django_filters.FilterSet):
 
 def group_list(*, fetched_by: User, filters=None):
     filters = filters or {}
-    joined_groups = Group.objects.filter(id=OuterRef('pk'), groupuser__user__in=[fetched_by], group_user__active=True)
+    joined_groups = Group.objects.filter(id=OuterRef('pk'), groupuser__user__in=[fetched_by], groupuser__active=True)
     pending_join = Group.objects.filter(id=OuterRef('pk'),
                                         groupuserinvite__user__in=[fetched_by],
                                         groupuserinvite__external=True)
