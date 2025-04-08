@@ -122,6 +122,7 @@ class PollVoteTest(APITransactionTestCase):
 
         Poll.objects.filter(id=self.poll_cardinal.id).update(**generate_poll_phase_kwargs('result'))
         poll_proposal_vote_count(poll_id=self.poll_cardinal.id)
+        self.assertNotEqual(Poll.objects.get(id=self.poll_cardinal.id).status, -1)
 
         self.poll_cardinal_proposal_one.refresh_from_db()
         self.poll_cardinal_proposal_two.refresh_from_db()
