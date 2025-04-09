@@ -66,12 +66,11 @@ def poll_prediction_bet_count(poll_id: int):
     previous_outcome_avg = 0 if len(previous_outcomes) == 0 else sum(previous_outcomes) / len(previous_outcomes)
     poll_statements = statements.filter(poll=poll).all()
 
-    current_bets = []
-    previous_bets = []
-
     # Get group users associated with the relevant poll
     predictors = GroupUser.objects.filter(pollpredictionbet__prediction_statement__poll=poll).all().distinct()
 
+    current_bets = []
+    previous_bets = []
     for predictor in predictors:
         current_bets.append(list(PollPredictionBet.objects.filter(
             created_by=predictor,
@@ -84,6 +83,36 @@ def poll_prediction_bet_count(poll_id: int):
             prediction_statement__in=statements)
             & ~Q(prediction_statement__poll=poll)).order_by('-prediction_statement__poll__created_at').annotate(
             real_score=Cast(F('score'), models.FloatField()) / 5).values_list('real_score', flat=True)))
+
+    # Current
+    # Bets: [[0.2, 0.2], [0.0, 0.0], [1.0, 0.0]]
+    # Previous
+    # Outcomes: [1.0]
+    # Previous
+    # Bets: [[0.0], [0.2], [1.0]]
+
+    previous_bets = [[] for _ in range(len(predictors))]
+    for i, statement in enumerate(statements.filter(~Q(poll=poll)).order_by('-poll__created_at')):
+        for j, predictor in enumerate(predictors):
+            try:
+                bet = PollPredictionBet.objects.get(Q(created_by=predictor)
+                                                    & Q(prediction_statement=statement))
+                previous_bets[j].append(bet.score / 5)
+
+            except PollPredictionBet.DoesNotExist:
+                previous_bets[j].append(None)
+
+        # prediction_bets.append()
+        # print(PollPredictionBet.objects.filter(
+        #     Q(created_by=predictor,
+        #     prediction_statement__in=statements)
+        #     & ~Q(prediction_statement__poll=poll)).count())
+        #
+        # previous_bets.append(list(PollPredictionBet.objects.filter(
+        #     Q(created_by=predictor,
+        #     prediction_statement__in=statements)
+        #     & ~Q(prediction_statement__poll=poll)).order_by('-prediction_statement__poll__created_at').annotate(
+        #     real_score=Cast(F('score'), models.FloatField()) / 5).values_list('real_score', flat=True)))
 
     # Get bets
 
@@ -110,6 +139,20 @@ def poll_prediction_bet_count(poll_id: int):
     print("Current Bets:", current_bets)
     print("Previous Outcomes:", previous_outcomes)
     print("Previous Bets:", previous_bets)
+
+    print("Total Statement:", len(poll_statements))
+    print([[i.id, i.poll.id] for i in poll_statements])
+
+    # Delete any predictors with no previous history, if there is at least one user with a previous history
+    to_delete = []
+    if not all([all(i is None for i in predictor_bets) for predictor_bets in previous_bets]):
+        for j, predictor_bets in enumerate(previous_bets):
+            if all(i is None for i in predictor_bets):
+                to_delete.append(j)
+
+        current_bets = [u for i, u in enumerate(current_bets) if i not in to_delete]
+        previous_bets = [u for i, u in enumerate(previous_bets) if i not in to_delete]
+
 
     # Calculation below
     for i, statement in enumerate(poll_statements):
@@ -211,7 +254,7 @@ def poll_prediction_bet_count(poll_id: int):
         # I am unsure if I should limit the bias adjusted bets or only limit the combined bet in the end,
         # I think this might make more sense but I have to think about this more
         # TODO: think about this more
-        bias_adjusted_bet = [bet + bias_adjustments[j] for j, bet in enumerate(main_bets)]
+        bias_adjusted_bet = [bet + bias_adjustments[i] for bet in main_bets]
         for j in range(len(bias_adjusted_bet)):
             if bias_adjusted_bet[j] < 0:
                 bias_adjusted_bet[j] = 0.0
