@@ -14,7 +14,7 @@ from flowback.user.selectors import get_user, user_list, user_chat_invite_list
 from flowback.user.serializers import BasicUserSerializer
 from flowback.user.services import (user_create, user_create_verify, user_forgot_password,
                                     user_forgot_password_verify, user_update, user_delete, user_get_chat_channel,
-                                    user_chat_invite)
+                                    user_chat_invite, user_chat_channel_leave)
 
 
 class UserCreateApi(APIView):
@@ -191,6 +191,19 @@ class UserGetChatChannelAPI(APIView):
         data = user_get_chat_channel(fetched_by=request.user, **serializer.validated_data)
 
         return Response(status=status.HTTP_200_OK, data=self.OutputSerializer(data).data)
+
+
+class UserLeaveChatChannelAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        message_channel_id = serializers.IntegerField(help_text="You can only leave channels "
+                                                                "with the origin_name 'user_group'")
+
+    def post(self, request):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_chat_channel_leave(user_id=request.user.id, **serializer.validated_data)
+        return Response(status=status.HTTP_200_OK)
 
 
 class UserChatInviteAPI(APIView):
