@@ -12,7 +12,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from backend.settings import DEFAULT_FROM_EMAIL, FLOWBACK_URL, EMAIL_HOST
-from flowback.chat.models import MessageChannel
+from flowback.chat.models import MessageChannel, MessageChannelParticipant
 from flowback.chat.services import message_channel_create, message_channel_join
 from flowback.common.services import model_update, get_object
 from flowback.kanban.services import KanbanManager
@@ -278,6 +278,15 @@ def user_get_chat_channel(fetched_by: User, target_user_ids: int | list[int], pr
                                                             defaults=dict(rejected=None))
 
     return channel
+
+
+def user_chat_channel_leave(*, user_id: int, channel_id: int):
+    participant = MessageChannelParticipant.objects.get(channel_id=channel_id, user_id=user_id)
+
+    if not participant.channel.origin_name == f'{User.message_channel_origin}_group':
+        raise ValidationError("You can only leave user_group channels")
+
+    participant.channel.delete()
 
 
 def user_chat_invite(user_id: int, invite_id: int, accept: bool = True):
