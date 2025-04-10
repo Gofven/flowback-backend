@@ -189,8 +189,6 @@ class BaseGroupUserFilter(django_filters.FilterSet):
     delegate_pool_id = django_filters.NumberFilter(),
     is_delegate = django_filters.BooleanFilter(field_name='delegate_pool_id', lookup_expr='isnull', exclude=True)
 
-    delegate = django_filters.BooleanFilter(field_name='delegate')
-
     class Meta:
         model = GroupUser
         fields = dict(id=['exact'],
