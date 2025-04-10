@@ -72,16 +72,25 @@ def poll_prediction_bet_count(poll_id: int):
     current_bets = []
     previous_bets = []
     for predictor in predictors:
+        a_list = PollPredictionBet.objects.filter(
+            created_by=predictor,
+            prediction_statement__in=statements,
+            prediction_statement__poll=poll).order_by('-prediction_statement__created_at').annotate(
+            real_score=Cast(F('score'), models.FloatField()) / 5).values_list('prediction_statement_id', flat=True)
+
+        if list(a_list) != list(poll_statements):
+            raise Exception("poll_statements and predictor bet lists have mismatched id's")
+
         current_bets.append(list(PollPredictionBet.objects.filter(
             created_by=predictor,
             prediction_statement__in=statements,
-            prediction_statement__poll=poll).order_by('-prediction_statement__poll__created_at').annotate(
+            prediction_statement__poll=poll).order_by('-prediction_statement__created_at').annotate(
             real_score=Cast(F('score'), models.FloatField()) / 5).values_list('real_score', flat=True)))
 
         previous_bets.append(list(PollPredictionBet.objects.filter(
             Q(created_by=predictor,
             prediction_statement__in=statements)
-            & ~Q(prediction_statement__poll=poll)).order_by('-prediction_statement__poll__created_at').annotate(
+            & ~Q(prediction_statement__poll=poll)).order_by('-prediction_statement__created_at').annotate(
             real_score=Cast(F('score'), models.FloatField()) / 5).values_list('real_score', flat=True)))
 
     # Current
@@ -92,7 +101,7 @@ def poll_prediction_bet_count(poll_id: int):
     # Bets: [[0.0], [0.2], [1.0]]
 
     previous_bets = [[] for _ in range(len(predictors))]
-    for i, statement in enumerate(statements.filter(~Q(poll=poll)).order_by('-poll__created_at')):
+    for i, statement in enumerate(statements.filter(~Q(poll=poll))):
         for j, predictor in enumerate(predictors):
             try:
                 bet = PollPredictionBet.objects.get(Q(created_by=predictor)
@@ -164,6 +173,8 @@ def poll_prediction_bet_count(poll_id: int):
     print("Previous Bets:", previous_bets)
 
     print("Total Statement:", len(poll_statements))
+
+    # TODO match if poll_statements match previous bets and previous outcomes
 
     # Calculation below
     # for i, statement in enumerate(poll_statements):
