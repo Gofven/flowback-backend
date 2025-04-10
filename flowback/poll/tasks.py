@@ -254,7 +254,11 @@ def poll_prediction_bet_count(poll_id: int):
         # I am unsure if I should limit the bias adjusted bets or only limit the combined bet in the end,
         # I think this might make more sense but I have to think about this more
         # TODO: think about this more
-        bias_adjusted_bet = [bet + bias_adjustments[i] for bet in main_bets]
+
+        # For main bets is list of bets per predictor
+        # Bias adjustments is adjustments per predictor
+        #
+        bias_adjusted_bet = [main_bets[j] + bias_adjustments[j] for j in range(len(main_bets))]
         for j in range(len(bias_adjusted_bet)):
             if bias_adjusted_bet[j] < 0:
                 bias_adjusted_bet[j] = 0.0
