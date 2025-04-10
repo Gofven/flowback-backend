@@ -3,7 +3,6 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import serializers, status
 from rest_framework.views import APIView
-from rich.diagnose import report
 
 from flowback.common.pagination import get_paginated_response, LimitOffsetPagination
 from flowback.server.selectors import reports_list
