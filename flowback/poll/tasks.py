@@ -133,15 +133,6 @@ def poll_prediction_bet_count(poll_id: int):
     # If the determinant of a predictor bets list is zero then set the first value to the smallest non zero value
     # TODO future test combinations of values
     # previous_bets = [[0, 1, 0.7, 0, 1], [0, 0.2, 1, 0, 0.8]]
-    print("\n\n" + "#" * 50)
-
-    # Assume previous_bets matches order of current_bets
-    print("Current Bets:", current_bets)
-    print("Previous Outcomes:", previous_outcomes)
-    print("Previous Bets:", previous_bets)
-
-    print("Total Statement:", len(poll_statements))
-    print([[i.id, i.poll.id] for i in poll_statements])
 
     # Delete any predictors with no previous history, if there is at least one user with a previous history
     to_delete = []
@@ -153,6 +144,26 @@ def poll_prediction_bet_count(poll_id: int):
         current_bets = [u for i, u in enumerate(current_bets) if i not in to_delete]
         previous_bets = [u for i, u in enumerate(previous_bets) if i not in to_delete]
 
+    # Delete any previous_outcomes where outcome is 0.5 (that is, undecided)
+    to_delete = []
+    for j, previous_outcome in enumerate(previous_outcomes):
+        if previous_outcome == 0.5:
+            to_delete.append(j)
+
+    previous_outcomes = [j for n, j in enumerate(previous_outcomes) if n not in to_delete]
+
+    for i in range(len(previous_bets)):
+        previous_bets[i] = [j for n, j in enumerate(previous_bets[i]) if n not in to_delete]
+
+    print("\n\n" + "#" * 50)
+
+    # Assume previous_bets matches order of current_bets
+    print("Current Bets:", current_bets)
+    print("Previous Outcomes:", previous_outcomes)
+    print("Previous Bets:", previous_bets)
+
+    print("Total Statement:", len(poll_statements))
+    print([[i.id, i.poll.id] for i in poll_statements])
 
     # Calculation below
     for i, statement in enumerate(poll_statements):
