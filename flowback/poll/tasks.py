@@ -174,8 +174,6 @@ def poll_prediction_bet_count(poll_id: int):
 
     print("Total Statement:", len(poll_statements))
 
-    # TODO match if poll_statements match previous bets and previous outcomes
-
     # Calculation below
     # for i, statement in enumerate(poll_statements):
     for i, statement in enumerate(poll_statements):
