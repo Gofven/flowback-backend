@@ -8,7 +8,7 @@ It is a decision-making platform.
 
 ## Installation
 
-### Docker Compose Example
+### Docker Compose
 To run Flowback backend using Docker Compose, follow these instructions: 
 1) [Download](https://github.com/Gofven/flowback/archive/refs/heads/master.zip) or [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository to your local computer
 2) Download [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows, macOS and Linux) or [Docker Compose](https://docs.docker.com/compose/install/linux/) (Linux)
