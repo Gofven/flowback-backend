@@ -251,7 +251,7 @@ class UserChatInviteListAPI(APIView):
 class UserChatChannelUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         channel_id = serializers.IntegerField()
-        title = serializers.CharField()
+        title = serializers.CharField(source='channel_title')
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
