@@ -9,7 +9,7 @@ from django.db.models.functions import Abs
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
 
-from flowback.group.models import GroupUser
+from flowback.group.models import GroupUser, GroupTags
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
 from flowback.group.views.tag import GroupTagsListApi, GroupTagIntervalMeanAbsoluteCorrectnessAPI
 from flowback.poll.models import Poll, PollPredictionStatement, PollPredictionStatementSegment, PollPredictionBet, \
@@ -292,7 +292,34 @@ class PollPredictionStatementTest(APITransactionTestCase):
                                                created_by=bet_user.group_user,
                                                vote=bet_user.vote)
 
+    def run_combined_bet(self, *statements: list[list[int | bool] | None],
+                         group_users: list[GroupUser],
+                         poll: Poll = None,
+                         poll_creator: GroupUser = None,
+                         tag: GroupTags = None):
+        if not poll:
+            poll = PollFactory(created_by=poll_creator or self.user_group_creator,
+                               tag=tag or self.poll.tag,
+                               **generate_poll_phase_kwargs('prediction_vote'))
+
+        for bets in statements:
+            bet_users = []
+            for i, bet in enumerate(bets):
+                if bet is not None:
+                    group_user = GroupUserFactory(group=poll.created_by.group) if not group_users else group_users[i]
+                    bet_users.append(self.BetUser(group_user=group_user, score=bet[0], vote=bet[1]))
+
+            self.generate_previous_bet(poll=poll, bet_users=bet_users)
+
+        poll_prediction_bet_count(poll_id=poll.id)
+
     def test_poll_prediction_combined_bet(self):
+        # TODO in future add feature to inject sample values for combined_bets e.g.
+        # current_bets = [[0.2, 1.0, 1.0, 0.4, 0.6, 0.8, 0.6, 0.8, 0.6, 0.6, 0.6, 0.2, 0.2, 0.6, 0.2, 1.0]]
+        # previous_outcomes = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+        # previous_bets = [[0.2, 0.2, 1.0, 0.6, 0.8, 0.2, 0.2, 1.0, 0.8, 0.6, 0.2, 0.2, 1.0, 0.8, 0.8, 1.0, 1.0, 0.8, 0.2, 0.8, 0.6, 1.0, 0.8, 0.6, 0.8, 0.8, 0.8, 1.0, 0.2, 0.6, 0.2, 0.8, 0.6, 0.6, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.2]]
+        # poll_statements = [217, 216, 215, 214, 212, 211, 213, 210, 209, 207, 208, 206, 205, 204, 203, 202]
+
         # Make random previous bets
         poll_one_bets = [self.BetUser(group_user=self.user_prediction_caster_one,
                                       score=0,
@@ -354,6 +381,14 @@ class PollPredictionStatementTest(APITransactionTestCase):
         self.generate_previous_bet(poll=poll, bet_users=poll_three_bets)
         poll_prediction_bet_count(poll_id=poll.id)
 
+        self.run_combined_bet([[1, True], [5, True], None],
+                              [[3, True], None, [3, False]],
+                              [[4, True], [5, True], None],
+                              group_users=[self.user_prediction_caster_one,
+                                           self.user_prediction_caster_two,
+                                           self.user_prediction_caster_three],
+                              tag=self.poll.tag)
+
         # Calculate combined_bet
         (self.prediction_one,
          self.prediction_two,
@@ -385,7 +420,7 @@ class PollPredictionStatementTest(APITransactionTestCase):
             p1=Abs(F('combined_bet') - F('outcome')))
 
         pprint([i.__dict__ for i in qs_outcome])
-        print(qs_outcome.aggregate(interval_mean_absolute_error=(Sum('p1') / Sum('has_bets'))))
+        print(f"Interval Mean Absolute Error: {qs_outcome.aggregate(interval_mean_absolute_error=(Sum('p1') / Sum('has_bets')))}")
 
         # Request Test
         factory = APIRequestFactory()

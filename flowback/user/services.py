@@ -300,6 +300,20 @@ def user_chat_invite(user_id: int, invite_id: int, accept: bool = True):
     invite.save()
 
 
+def user_chat_channel_update(*, user_id: int, channel_id: int, **data: dict):
+    if MessageChannelParticipant.objects.filter(channel_id=channel_id,
+                                                user_id=user_id,
+                                                active=True,
+                                                channel__origin_name__in=[User.message_channel_origin,
+                                                                          f'{User.message_channel_origin}_group']
+                                                ).exists():
+        channel, has_updated = model_update(instance=MessageChannel.objects.get(id=channel_id),
+                                            fields=['title'],
+                                            data=data)
+
+        return channel
+
+
 def report_create(*, user_id: int, title: str, description: str):
     user = get_object(User, id=user_id)
 
