@@ -308,7 +308,7 @@ def user_chat_channel_update(*, user_id: int, channel_id: int, **data: dict):
                                                                           f'{User.message_channel_origin}_group']
                                                 ).exists():
         channel, has_updated = model_update(instance=MessageChannel.objects.get(id=channel_id),
-                                            fields=['title'],
+                                            fields=['channel_title'],
                                             data=data)
 
         return channel
