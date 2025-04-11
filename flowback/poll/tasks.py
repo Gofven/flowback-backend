@@ -64,7 +64,7 @@ def poll_prediction_bet_count(poll_id: int):
 
     previous_outcomes = list(statements.filter(~Q(poll=poll)).values_list('outcome', flat=True))
     previous_outcome_avg = 0 if len(previous_outcomes) == 0 else sum(previous_outcomes) / len(previous_outcomes)
-    poll_statements = statements.filter(poll=poll).all()
+    poll_statements = statements.filter(poll=poll).all().values_list('id', flat=True)
 
     # Get group users associated with the relevant poll
     predictors = GroupUser.objects.filter(pollpredictionbet__prediction_statement__poll=poll).all().distinct()
@@ -72,16 +72,25 @@ def poll_prediction_bet_count(poll_id: int):
     current_bets = []
     previous_bets = []
     for predictor in predictors:
+        a_list = PollPredictionBet.objects.filter(
+            created_by=predictor,
+            prediction_statement__in=statements,
+            prediction_statement__poll=poll).order_by('-prediction_statement__created_at').annotate(
+            real_score=Cast(F('score'), models.FloatField()) / 5).values_list('prediction_statement_id', flat=True)
+
+        if list(a_list) != list(poll_statements):
+            raise Exception("poll_statements and predictor bet lists have mismatched id's")
+
         current_bets.append(list(PollPredictionBet.objects.filter(
             created_by=predictor,
             prediction_statement__in=statements,
-            prediction_statement__poll=poll).order_by('-prediction_statement__poll__created_at').annotate(
+            prediction_statement__poll=poll).order_by('-prediction_statement__created_at').annotate(
             real_score=Cast(F('score'), models.FloatField()) / 5).values_list('real_score', flat=True)))
 
         previous_bets.append(list(PollPredictionBet.objects.filter(
             Q(created_by=predictor,
             prediction_statement__in=statements)
-            & ~Q(prediction_statement__poll=poll)).order_by('-prediction_statement__poll__created_at').annotate(
+            & ~Q(prediction_statement__poll=poll)).order_by('-prediction_statement__created_at').annotate(
             real_score=Cast(F('score'), models.FloatField()) / 5).values_list('real_score', flat=True)))
 
     # Current
@@ -92,7 +101,7 @@ def poll_prediction_bet_count(poll_id: int):
     # Bets: [[0.0], [0.2], [1.0]]
 
     previous_bets = [[] for _ in range(len(predictors))]
-    for i, statement in enumerate(statements.filter(~Q(poll=poll)).order_by('-poll__created_at')):
+    for i, statement in enumerate(statements.filter(~Q(poll=poll))):
         for j, predictor in enumerate(predictors):
             try:
                 bet = PollPredictionBet.objects.get(Q(created_by=predictor)
@@ -133,15 +142,6 @@ def poll_prediction_bet_count(poll_id: int):
     # If the determinant of a predictor bets list is zero then set the first value to the smallest non zero value
     # TODO future test combinations of values
     # previous_bets = [[0, 1, 0.7, 0, 1], [0, 0.2, 1, 0, 0.8]]
-    print("\n\n" + "#" * 50)
-
-    # Assume previous_bets matches order of current_bets
-    print("Current Bets:", current_bets)
-    print("Previous Outcomes:", previous_outcomes)
-    print("Previous Bets:", previous_bets)
-
-    print("Total Statement:", len(poll_statements))
-    print([[i.id, i.poll.id] for i in poll_statements])
 
     # Delete any predictors with no previous history, if there is at least one user with a previous history
     to_delete = []
@@ -153,8 +153,29 @@ def poll_prediction_bet_count(poll_id: int):
         current_bets = [u for i, u in enumerate(current_bets) if i not in to_delete]
         previous_bets = [u for i, u in enumerate(previous_bets) if i not in to_delete]
 
+    # Delete any previous_outcomes where outcome is 0.5 (that is, undecided)
+    to_delete = []
+    for j, previous_outcome in enumerate(previous_outcomes):
+        if previous_outcome == 0.5:
+            to_delete.append(j)
+
+    previous_outcomes = [j for n, j in enumerate(previous_outcomes) if n not in to_delete]
+    poll_statements = [j for n, j in enumerate(poll_statements) if n not in to_delete]
+
+    for i in range(len(previous_bets)):
+        previous_bets[i] = [j for n, j in enumerate(previous_bets[i]) if n not in to_delete]
+
+    print("\n\n" + "#" * 50)
+
+    # Assume previous_bets matches order of current_bets
+    print("Current Bets:", current_bets)
+    print("Previous Outcomes:", previous_outcomes)
+    print("Previous Bets:", previous_bets)
+
+    print("Total Statement:", len(poll_statements))
 
     # Calculation below
+    # for i, statement in enumerate(poll_statements):
     for i, statement in enumerate(poll_statements):
         bias_adjustments = []
         predictor_errors = []
@@ -162,10 +183,9 @@ def poll_prediction_bet_count(poll_id: int):
 
         # If there's no previous bets then do nothing
         if len(previous_bets) == 0 or len(previous_bets[0]) == 0:
-            result = None if all(bets[i] is None for bets in current_bets) else (sum(main_bets)) / len(main_bets)
-            print(f"No previous bets found, returning {result}")
-            statement.combined_bet = result
-            statement.save()
+            combined_bet = None if all(bets[i] is None for bets in current_bets) else (sum(main_bets)) / len(main_bets)
+            print(f"No previous bets found, returning {combined_bet}")
+            PollPredictionStatement.objects.filter(id=statement).update(combined_bet=combined_bet)
 
             continue
 
@@ -265,6 +285,7 @@ def poll_prediction_bet_count(poll_id: int):
             elif bias_adjusted_bet[j] > 1:
                 bias_adjusted_bet[j] = 1.0
 
+        print(f"Results: {np.matmul(transposed_bet_weights, bias_adjusted_bet)}")
         combined_bet = float(np.matmul(transposed_bet_weights, bias_adjusted_bet)[0])
 
         if combined_bet < 0:
@@ -279,8 +300,7 @@ def poll_prediction_bet_count(poll_id: int):
 
         print(combined_bet)
 
-        statement.combined_bet = combined_bet
-        statement.save()
+        PollPredictionStatement.objects.filter(id=statement).update(combined_bet=combined_bet)
 
     poll.status_prediction = 1
     poll.save()
