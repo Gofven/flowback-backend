@@ -53,8 +53,10 @@ def group_user_delegate_update(*, user_id: int, group_id: int, data):
                                                      group_id=group_id,
                                                      delegate_pool__in=pools).all()
 
+
     if tags == 0:
         GroupUserDelegator.objects.filter(delegator=group_user, group_id=group_id, delegate_pool__in=pools).delete()
+        return
 
     if len(GroupTags.objects.filter(id__in=tags, active=True).all()) < len(tags):
         raise ValidationError('Not all tags are available in group')
@@ -88,7 +90,7 @@ def group_user_delegate_pool_create(*, user: int, group: int, blockchain_id: int
     group_user = group_user_permissions(user=user, group=group, permissions=['allow_delegate', 'admin'])
 
     if GroupUserDelegator.objects.filter(delegator=group_user).exists():
-        raise ValidationError('Delegate cannot be a delegator')
+        GroupUserDelegator.objects.filter(delegator=group_user).delete()
 
     if GroupUserDelegate.objects.filter(group=group, group_user=group_user).exists():
         raise ValidationError('User is already a delegator')
