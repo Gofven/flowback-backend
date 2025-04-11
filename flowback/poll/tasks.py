@@ -73,20 +73,23 @@ def poll_prediction_bet_count(poll_id: int):
     current_bets = []
     previous_bets = []
     for predictor in predictors:
-        a_list = PollPredictionBet.objects.filter(
+        bets = list(PollPredictionBet.objects.filter(
             created_by=predictor,
             prediction_statement__in=statements,
             prediction_statement__poll=poll).order_by('-prediction_statement__created_at').annotate(
-            real_score=Cast(F('score'), models.FloatField()) / 5).values_list('prediction_statement_id', flat=True)
+            real_score=Cast(F('score'), models.FloatField()) / 5).values_list('prediction_statement_id', 'real_score'))
 
-        if list(a_list) != list(poll_statements):
-            raise Exception("poll_statements and predictor bet lists have mismatched id's")
+        bets_statements = [i[0] for i in bets]
+        current_bet = []
+        for statement in poll_statements:
+            if statement in bets_statements:
+                current_bet.append(bets[bets_statements.index(statement)][1])
 
-        current_bets.append(list(PollPredictionBet.objects.filter(
-            created_by=predictor,
-            prediction_statement__in=statements,
-            prediction_statement__poll=poll).order_by('-prediction_statement__created_at').annotate(
-            real_score=Cast(F('score'), models.FloatField()) / 5).values_list('real_score', flat=True)))
+            else:
+                current_bet.append(None)
+
+        current_bets.append(current_bet)
+
 
         previous_bets.append(list(PollPredictionBet.objects.filter(
             Q(created_by=predictor,
