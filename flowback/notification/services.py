@@ -9,8 +9,6 @@ from .models import NotificationChannel, NotificationObject, Notification, Notif
 from flowback.common.services import get_object
 
 
-# tag (Action), sender_type (Name), sender_id (identifier)
-# Notification subscription handled outside, notification management handled inside
 def notification_object_create(*,
                                channel: NotificationChannel | int,
                                action: NotificationObject.Action,
@@ -18,9 +16,6 @@ def notification_object_create(*,
                                category: str,
                                timestamp: datetime = None,
                                data=None) -> NotificationObject:
-
-    if isinstance(channel, int):
-        channel = NotificationChannel.objects.get(channel=channel)
 
     notification_object = NotificationObject(channel=channel,
                                              action=action,
