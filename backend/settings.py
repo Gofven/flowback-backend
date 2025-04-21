@@ -15,8 +15,7 @@ import sys
 import environ
 from pathlib import Path
 
-
-env = environ.Env(DEBUG=(bool, False),
+env = environ.Env(DEBUG=(bool, True),
                   LOGGING=(str, 'NONE'),
                   SECURE_PROXY_SSL_HEADERS=(bool, False),
                   DJANGO_SECRET=str,
@@ -31,11 +30,6 @@ env = environ.Env(DEBUG=(bool, False),
                   FLOWBACK_PSQL_PORT=(str, None),
                   FLOWBACK_REDIS_HOST=(str, 'localhost'),
                   FLOWBACK_REDIS_PORT=(str, '6379'),
-                  FLOWBACK_RABBITMQ_HOST=(str, 'localhost'), # RABBITMQ_BROKER_URL
-                  FLOWBACK_RABBITMQ_PORT=(str, '5672'),
-                  FLOWBACK_RABBITMQ_USER=(str, 'flowback'),
-                  FLOWBACK_RABBITMQ_PASSWORD=(str, 'flowback'),
-                  FLOWBACK_RABBITMQ_VHOST=(str, 'flowback'),
                   URL_SUBPATH=(str, ''),
                   AWS_S3_ENDPOINT_URL=(str, None),
                   AWS_S3_ACCESS_KEY_ID=(str, None),
@@ -84,12 +78,14 @@ if not SECRET_KEY:
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
+TESTING = sys.argv[1:2] == ['test']
 
 
 FLOWBACK_URL = env('FLOWBACK_URL')
 INSTANCE_NAME = env('INSTANCE_NAME')
 PG_SERVICE = env('PG_SERVICE')
 PG_PASS = env('PG_PASS')
+GIT_HASH = "Unavailable"  # TODO fix or remove, it breaks docker compose backend
 
 ALLOWED_HOSTS = [FLOWBACK_URL or "*"]
 
@@ -139,9 +135,7 @@ INSTALLED_APPS = [
     ] + env('INTEGRATIONS')
 
 
-CELERY_BROKER_URL = (f'amqp://{env("FLOWBACK_RABBITMQ_USER")}:{env("FLOWBACK_RABBITMQ_PASSWORD")}'
-                     f'@{env("FLOWBACK_RABBITMQ_HOST")}:{env("FLOWBACK_RABBITMQ_PORT")}'
-                     f'/{env("FLOWBACK_RABBITMQ_VHOST")}')
+CELERY_BROKER_URL = f"redis://{env('FLOWBACK_REDIS_HOST')}:{env('FLOWBACK_REDIS_PORT')}/0"
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'flowback.common.documentation.CustomAutoSchema',
@@ -157,7 +151,7 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Flowback API',
     'DESCRIPTION': 'Documentation for interfacing with Flowback',
-    'VERSION': '1.0.0',
+    'VERSION': '1.0.2',
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
@@ -246,14 +240,17 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(env('FLOWBACK_REDIS_HOST'), env('FLOWBACK_REDIS_PORT'))],
+            "hosts": [{
+                "address": f"redis://{env('FLOWBACK_REDIS_HOST')}:{env('FLOWBACK_REDIS_PORT')}/1",  # "REDIS_TLS_URL"
+                "ssl_cert_reqs": None,
+            }],
         },
     },
 }
 
 
 # OIDC Settings
-LOGIN_URL = '/accounts/login/'
+LOGIN_URL = '/login/'
 OIDC_USERINFO = 'backend.oidc_provider_settings.userinfo'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases

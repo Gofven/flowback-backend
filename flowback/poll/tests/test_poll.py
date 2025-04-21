@@ -5,12 +5,13 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
-from .factories import PollFactory
+from .factories import PollFactory, PollProposalFactory, PollPredictionStatementFactory
 
 from .utils import generate_poll_phase_kwargs
 from ..models import Poll
 from ..services.poll import poll_fast_forward, poll_create
 from ..views.poll import PollListApi, PollCreateAPI, PollUpdateAPI, PollDeleteAPI
+from ...comment.tests.factories import CommentFactory
 from ...common.tests import generate_request
 from ...files.tests.factories import FileSegmentFactory
 from ...group.models import GroupUser
@@ -39,6 +40,11 @@ class PollTest(APITransactionTestCase):
         self.poll_three.pinned = True
         self.poll_three.save()
 
+        CommentFactory.create_batch(17, comment_section=self.poll_one.comment_section)
+        PollProposalFactory.create_batch(12, poll=self.poll_one)
+        PollProposalFactory.create_batch(12, poll=self.poll_two)
+        PollPredictionStatementFactory.create_batch(15, poll=self.poll_one)
+
         response = generate_request(api=PollListApi,
                                     data=dict(order_by='pinned,start_date_asc'),
                                     user=self.group_user_creator.user)
@@ -49,6 +55,9 @@ class PollTest(APITransactionTestCase):
         self.assertEqual(response.data['count'], 3)
         self.assertGreater(response.data['results'][2]['start_date'], response.data['results'][1]['start_date'])
         self.assertGreater(response.data['results'][0]['start_date'], response.data['results'][2]['start_date'])
+        self.assertEqual(response.data['results'][1]['total_comments'], 17)
+        self.assertEqual(response.data['results'][1]['total_proposals'], 12)
+        self.assertEqual(response.data['results'][1]['total_predictions'], 15)
 
     def test_create_poll(self):
         factory = APIRequestFactory()

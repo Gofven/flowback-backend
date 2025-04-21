@@ -99,14 +99,15 @@ class CommentCreateAPI(APIView):
                                             **kwargs,
                                             **serializer.validated_data)
 
-        return Response(status=status.HTTP_200_OK, data=comment.id)
+        return Response(status=status.HTTP_201_CREATED, data=comment.id)
 
 
 class CommentUpdateAPI(APIView):
     lazy_action = comment_update
 
     class InputSerializer(serializers.Serializer):
-        message = serializers.CharField()
+        message = serializers.CharField(required=False)
+        attachments = serializers.ListField(child=serializers.FileField(), required=False, max_length=10)
 
     def post(self, request, *args, **kwargs):
         serializer = self.InputSerializer(data=request.data)
@@ -126,7 +127,7 @@ class CommentDeleteAPI(APIView):
     def post(self, request, *args, **kwargs):
         self.lazy_action.__func__(*args,
                                   **kwargs,
-                                  fetched_by=request.user)
+                                  fetched_by=request.user.id)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -142,8 +143,8 @@ class CommentVoteAPI(APIView):
         serializer.is_valid(raise_exception=True)
 
         self.lazy_action.__func__(*args,
-                                  **kwargs,
-                                  **serializer.validated_data,
-                                  fetched_by=request.user.id)
+                                 **kwargs,
+                                 **serializer.validated_data,
+                                 fetched_by=request.user.id)
 
         return Response(status=status.HTTP_200_OK)

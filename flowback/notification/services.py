@@ -18,10 +18,10 @@ def notification_object_create(*,
                                category: str,
                                timestamp: datetime = None,
                                data=None) -> NotificationObject:
-    
+
     if isinstance(channel, int):
         channel = NotificationChannel.objects.get(channel=channel)
-        
+
     notification_object = NotificationObject(channel=channel,
                                              action=action,
                                              message=message,
@@ -31,7 +31,7 @@ def notification_object_create(*,
 
     notification_object.full_clean()
     notification_object.save()
-    
+
     return notification_object
 
 
@@ -45,7 +45,7 @@ def notification_object_delete(*, channel: NotificationChannel | int,
 
     if isinstance(channel, int):
         channel = NotificationChannel.objects.get(channel=channel)
-        
+
     filters = {a: b for a, b in dict(channel=channel, action=action,
                                      id=notification_object_id,
                                      category=category,
@@ -71,6 +71,7 @@ def notification_shift(*, category: str, sender_type: str, sender_id: int,
 
 def notification_mark_read(*, fetched_by: int, notification_ids: list[int], read: bool) -> None:
     Notification.objects.filter(user_id=fetched_by, id__in=notification_ids).update(read=read)
+
 
 def notification_channel_subscribe(*,
                                    user_id: int,
@@ -123,7 +124,7 @@ class NotificationManager:
         self.possible_categories = possible_categories
 
     def category_is_possible(self, category: Union[str, list[str], set[str]], validation: bool = False):
-        categories, failed_categories = [[]]*2
+        categories, failed_categories = [[]] * 2
         if isinstance(category, set):
             categories = list(category)
         elif isinstance(category, str):
@@ -160,11 +161,12 @@ class NotificationManager:
         notification_delete_channel(sender_type=self.sender_type, sender_id=sender_id)
 
     def create(self, *, sender_id: int, action: str, category: str, message: str, timestamp: datetime = None,
-               related_id: int = None, target_user_id: int = None):
+               related_id: int = None, target_user_ids: list[int] | int = None):
+
         self.category_is_possible(category)
 
         notification_create(action=action, category=category, sender_type=self.sender_type, sender_id=sender_id,
-                            message=message, timestamp=timestamp, related_id=related_id, target_user_id=target_user_id)
+                            message=message, timestamp=timestamp, related_id=related_id, target_user_ids=target_user_ids)
 
     def shift(self, *, category: str, sender_id: int, related_id: int = None, timestamp: datetime = None,
               timestamp__lt: datetime = None, timestamp__gt: datetime = None, action: str = None,
