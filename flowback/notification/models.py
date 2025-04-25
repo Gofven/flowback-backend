@@ -136,7 +136,7 @@ class NotificationChannel(BaseModel):
                message: str,
                category: str,
                timestamp: datetime = None,
-               data=None,
+               data: dict = None,
                user_filters: dict = None,
                user_q_filters: list[Q] = None) -> NotificationObject:
         """
@@ -149,10 +149,14 @@ class NotificationChannel(BaseModel):
          Missing template for the model name won't raise an error, but it will remove the URL.
         :param category:
         :param timestamp: Timestamp when this notification becomes active. Defaults to timezone.now().
-        :param data: Additional data to pass to the notification. 'related_id' must be included for certain categories
+        :param data: Additional data to pass to the notification.
         :param user_filters: List of filters to pass onto the delivery of notifications.
         :param user_q_filters: List of Q filters to pass onto the delivery of notifications.
         """
+        if getattr(self.content_object, 'notification_data'):
+            data = data or {}
+            data = zip(data, self.content_object.notification_data)
+
         notification_object = NotificationObject(channel=self,
                                                  action=action,
                                                  message=message,
