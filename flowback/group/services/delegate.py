@@ -7,7 +7,6 @@ from flowback.comment.services import comment_create, comment_update, comment_de
 from flowback.common.services import get_object
 from flowback.group.models import GroupUserDelegator, GroupUserDelegatePool, GroupTags, GroupUserDelegate
 from flowback.group.selectors import group_user_permissions
-from flowback.group.services.group import group_notification
 
 
 def group_user_delegate(*, user: int, group: int, delegate_pool_id: int, tags: list[int] = None) -> GroupUserDelegator:
@@ -104,9 +103,6 @@ def group_user_delegate_pool_create(*, user: int, group: int, blockchain_id: int
     user_delegate.full_clean()
     user_delegate.save()
 
-    group_notification.create(sender_id=group, action=group_notification.Action.update, category='delegate',
-                              message=f'{group_user.user.username} is now a delegate in {group_user.group.name}')
-
     return delegate_pool
 
 
@@ -115,10 +111,6 @@ def group_user_delegate_pool_delete(*, user: int, group: int):
 
     delegate_user = get_object(GroupUserDelegate, group_user=group_user, group_id=group)
     delegate_pool = get_object(GroupUserDelegatePool, id=delegate_user.pool_id)
-
-    group_notification.create(sender_id=group, action=group_notification.Action.update, category='delegate',
-                              message=f'{group_user.user.username} has resigned from being a delegate in '
-                                      f'{group_user.group.name}')
 
     delegate_pool.delete()
 

@@ -203,7 +203,12 @@ class NotificationChannel(BaseModel):
         ]
 
 
-class NotifiableModel:
+def generate_notification_channel(sender, instance, created, *args, **kwargs):
+    if created and issubclass(sender, NotifiableModel):
+        NotificationChannel.objects.create(content_object=instance)
+
+
+class NotifiableModel(models.Model):
     """
     A plugin for models, adding notification functionality to the model.
     To add tags, make 'notify_{tag_name}' functions within the class that calls
@@ -212,14 +217,10 @@ class NotifiableModel:
     """
     notification_channel = GenericRelation(NotificationChannel)
 
-    @property
-    def notification_data(self):
-        """
-        dict containing data that is included in every NotificationObject's data field.
-        """
-        return None
+    class Meta:
+        abstract = True
 
-    @receiver(post_save)
-    def notification_channel_generator(self, instance, created, *args, **kwargs):
-        if created:
-            NotificationChannel.objects.create(content_object=instance)
+    @classmethod
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        models.signals.post_save.connect(generate_notification_channel, sender=cls)

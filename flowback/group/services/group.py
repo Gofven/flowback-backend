@@ -7,25 +7,7 @@ from backend.settings import env, DEFAULT_FROM_EMAIL, FLOWBACK_ALLOW_GROUP_CREAT
 from flowback.common.services import get_object, model_update
 from flowback.group.models import Group, GroupUser, GroupPermissions, GroupUserInvite, WorkGroupUser
 from flowback.group.selectors import group_user_permissions
-from flowback.notification.services import NotificationManager
 from flowback.user.models import User
-
-group_notification = NotificationManager(sender_type='group',
-                                         possible_categories=['group', 'members', 'invite', 'delegate',
-
-                                                              'kanban',
-                                                              'kanban_self_assign',
-                                                              'kanban_priority_update',
-                                                              'kanban_lane_update',
-
-                                                              'thread',
-
-                                                              'poll',
-                                                              'poll_schedule',
-
-                                                              'schedule_event_create',
-                                                              'schedule_event_update',
-                                                              'schedule_event_delete',])
 
 
 def group_create(*,
@@ -71,9 +53,6 @@ def group_update(*, user: int, group: int, data) -> Group:
     group, has_updated = model_update(instance=group_user.group,
                                       fields=non_side_effect_fields,
                                       data=data)
-
-    group_notification.create(sender_id=group.id, action=group_notification.Action.update, category='group',
-                              message=f'{group_user.user.username} updated the group information in {group.name}')
 
     return group
 
@@ -134,8 +113,6 @@ def group_join(*, user: int, group: int) -> Union[GroupUser, GroupUserInvite]:
 
     if not group.direct_join:
         user_status = GroupUserInvite(user=user, group=group, external=True)
-        group_notification.create(sender_id=group.id, action=group_notification.Action.update,
-                                  category='invite', message=f'User {user.username} requested to join {group.name}')
 
         user_status.full_clean()
         user_status.save()
@@ -150,9 +127,6 @@ def group_join(*, user: int, group: int) -> Union[GroupUser, GroupUserInvite]:
             # user_status.full_clean() TODO fix
             user_status.save()
 
-    group_notification.create(sender_id=group.id, action=group_notification.Action.create,
-                              category='members', message=f'User {user.username} joined the group {group.name}')
-
     return user_status
 
 
@@ -164,10 +138,6 @@ def group_leave(*, user: int, group: int) -> None:
 
     user.active = False
     user.save()
-
-    group_notification.create(sender_id=group, action=group_notification.Action.create,
-                              category='members', message=f'User {user.user.username} left the group {user.group.name}')
-
 
 def group_user_update(*, fetched_by: User, group: int, target_user_id: int, data) -> GroupUser:
     # If user updates someone else (requires Admin)
@@ -195,12 +165,3 @@ def group_user_delete(*, user_id: int, group_id: int, target_user_id: int) -> No
         raise ValidationError("Can't delete a group user with admin status")
 
     group_user_to_delete.delete()
-
-
-def group_notification_subscribe(*, user_id: int, group: int, categories: list[str]):
-    group_user = group_user_permissions(user=user_id, group=group)
-
-    if 'invite' in categories and (not group_user.is_admin or not group_user.check_permission(invite_user=True)):
-        raise ValidationError('Permission denied for invite notifications')
-
-    group_notification.channel_subscribe(user_id=user_id, sender_id=group, category=categories)

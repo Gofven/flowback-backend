@@ -1,7 +1,6 @@
 from django.utils import timezone
 
 from flowback.group.selectors import group_user_permissions
-from flowback.group.services.group import group_notification
 from flowback.kanban.models import KanbanEntry
 from flowback.kanban.services import KanbanManager
 
@@ -35,9 +34,6 @@ def group_kanban_entry_create(*,
                                               end_date=end_date,
                                               lane=lane)
 
-    group_notification.create(sender_id=group_id, action=group_notification.Action.create, category='kanban',
-                              message=f'User {group_user.user.username} created a kanban in {group_user.group.name}')
-
     return kanban
 
 
@@ -58,19 +54,6 @@ def group_kanban_entry_update(*,
     kanban = group_kanban.kanban_entry_update(origin_id=group_id,
                                               entry_id=entry_id,
                                               data=data)
-
-    if 'assignee_id' in data.keys() and data['assignee_id'] is not None:  # Notify assignee about kanban
-        group_notification.create(sender_id=group_id, related_id=entry_id,
-                                  action=group_notification.Action.update, category='kanban_self_assign',
-                                  message=f'You have been assigned to a kanban in {group_user.group.name}',
-                                  target_user_ids=data['assignee_id'])
-
-    for check in ['lane', 'priority']:
-        if check in data.keys() and data[check] is not None and kanban.assignee:  # Notify status update
-            group_notification.create(sender_id=group_id, related_id=entry_id,
-                                      action=group_notification.Action.update, category=f'kanban_{check}_update',
-                                      message=f'Status for {check} "{kanban.title}" has been updated',
-                                      target_user_ids=kanban.assignee)
 
     return kanban
 

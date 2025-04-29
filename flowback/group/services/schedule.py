@@ -2,7 +2,6 @@ from django.utils import timezone
 
 from flowback.group.models import WorkGroupUser
 from flowback.group.selectors import group_user_permissions
-from flowback.group.services.group import group_notification
 from flowback.schedule.models import ScheduleEvent
 from flowback.schedule.services import ScheduleManager, subscribe_schedule
 from flowback.user.services import user_schedule
@@ -29,13 +28,6 @@ def group_schedule_event_create(*,
         target_user_ids = WorkGroupUser.objects.filter(id=work_group_id).values_list('group_user__user_id',
                                                                                      flat=True)
 
-    group_notification.create(sender_id=group_id,
-                              action=group_notification.Action.create,
-                              category='schedule_event_create',
-                              message='A new schedule event has been created',
-                              related_id=event.id,
-                              target_user_ids=list(target_user_ids) if target_user_ids else None)
-
     return event
 
 
@@ -53,13 +45,6 @@ def group_schedule_event_update(*,
         target_user_ids = WorkGroupUser.objects.filter(id=work_group.id).values_list('group_user__user_id',
                                                                                      flat=True)
 
-    group_notification.create(sender_id=group_id,
-                              action=group_notification.Action.update,
-                              category='schedule_event_update',
-                              message='A schedule event has been updated',
-                              related_id=event_id,
-                              target_user_ids=list(target_user_ids) if target_user_ids else None)
-
 
 def group_schedule_event_delete(*,
                                 user_id: int,
@@ -73,13 +58,6 @@ def group_schedule_event_delete(*,
     if work_group:
         target_user_ids = WorkGroupUser.objects.filter(id=work_group.id).values_list('group_user__user_id',
                                                                                      flat=True)
-
-    group_notification.create(sender_id=group_id,
-                              action=group_notification.Action.delete,
-                              category='schedule_event_delete',
-                              message='A schedule event has been deleted',
-                              related_id=event_id,
-                              target_user_ids=list(target_user_ids) if target_user_ids else None)
 
 
 def group_schedule_subscribe(*,

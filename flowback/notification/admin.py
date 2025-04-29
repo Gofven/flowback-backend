@@ -14,7 +14,7 @@ class NotificationObjectAdmin(admin.ModelAdmin):
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ('subscriber', 'notification_object', 'read')
+    list_display = ('user', 'notification_object', 'read')
 
 
 @admin.register(NotificationSubscription)

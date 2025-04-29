@@ -13,9 +13,8 @@ from flowback.poll.selectors.poll import poll_list, poll_phase_template_list
 from flowback.poll.selectors.proposal import poll_user_schedule_list
 from flowback.poll.selectors.vote import poll_delegates_list
 
-from flowback.poll.services.poll import poll_create, poll_update, poll_delete, poll_notification, \
-    poll_notification_subscribe, poll_fast_forward, poll_phase_template_create, poll_phase_template_update, \
-    poll_phase_template_delete
+from flowback.poll.services.poll import (poll_create, poll_update, poll_delete, poll_fast_forward,
+ poll_phase_template_create, poll_phase_template_update, poll_phase_template_delete)
 
 
 @extend_schema(tags=['home', 'poll'])
@@ -142,18 +141,6 @@ class PollListApi(APIView):
             request=request,
             view=self
         )
-
-
-@extend_schema(tags=['poll'])
-class PollNotificationSubscribeApi(APIView):
-    class InputSerializer(serializers.Serializer):
-        categories = serializers.MultipleChoiceField(choices=poll_notification.possible_categories)
-
-    def post(self, request, poll: int):
-        serializer = self.InputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        poll_notification_subscribe(user_id=request.user.id, poll_id=poll, **serializer.validated_data)
-        return Response(status=status.HTTP_200_OK)
 
 
 @extend_schema(tags=['poll'])

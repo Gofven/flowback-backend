@@ -6,10 +6,8 @@ from django.utils import timezone
 from django.utils.datetime_safe import datetime
 from django_celery_beat.models import PeriodicTask
 
-from flowback.notification.services import NotificationManager
 from flowback.schedule.models import ScheduleEvent
 
-schedule_notification = NotificationManager(sender_type="schedule")
 
 @shared_task
 def event_notify(event_id: int, seconds_before_event: int = None):
@@ -26,11 +24,6 @@ def event_notify(event_id: int, seconds_before_event: int = None):
         message = (f'The event "{event.title}" begins in '
                    f'{"{:0>8}".format(str(timedelta(seconds=seconds_before_event)))}!')
 
-        schedule_notification.create(sender_id=event.schedule.id,
-                                     action='info',
-                                     category='event',
-                                     message=message,
-                                     related_id=event.id)
 
     # event = ScheduleEvent.objects.get(id=event_id)
     #

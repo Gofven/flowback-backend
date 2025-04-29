@@ -1,10 +1,11 @@
 from django.urls import path
 
-from .views.group import GroupFolderListApi, GroupListApi, GroupDetailApi, GroupCreateApi, GroupUpdateApi, \
-    GroupDeleteApi, GroupMailApi, \
-    GroupNotificationSubscribeApi, WorkGroupListAPI, WorkGroupUserListAPI, WorkGroupUserJoinRequestListAPI, \
-    WorkGroupCreateAPI, WorkGroupUpdateAPI, WorkGroupDeleteAPI, WorkGroupUserJoinAPI, WorkGroupUserLeaveAPI, \
-    WorkGroupUserAddAPI, WorkGroupUserUpdateAPI, WorkGroupUserRemoveAPI
+from .views.group import (GroupFolderListApi, GroupListApi, GroupDetailApi, GroupCreateApi, GroupUpdateApi,
+                          GroupDeleteApi, GroupMailApi, WorkGroupListAPI, WorkGroupUserListAPI,
+                          WorkGroupUserJoinRequestListAPI,
+                          WorkGroupCreateAPI, WorkGroupUpdateAPI, WorkGroupDeleteAPI, WorkGroupUserJoinAPI,
+                          WorkGroupUserLeaveAPI,
+                          WorkGroupUserAddAPI, WorkGroupUserUpdateAPI, WorkGroupUserRemoveAPI)
 from .views.user import (GroupUserListApi,
                          GroupUserUpdateApi,
                          GroupJoinApi,
@@ -42,8 +43,10 @@ from .views.thread import (GroupThreadListAPI,
                            GroupThreadCommentListAPI,
                            GroupThreadCommentCreateAPI,
                            GroupThreadCommentUpdateAPI,
-                           GroupThreadCommentDeleteAPI, GroupThreadNotificationSubscribeAPI, GroupThreadCommentVoteAPI,
-                           GroupThreadCommentAncestorListAPI, GroupThreadVoteUpdateAPI)
+                           GroupThreadCommentDeleteAPI,
+                           GroupThreadCommentVoteAPI,
+                           GroupThreadCommentAncestorListAPI,
+                           GroupThreadVoteUpdateAPI)
 from .views.comment import (GroupDelegatePoolCommentListAPI,
                             GroupDelegatePoolCommentCreateAPI,
                             GroupDelegatePoolCommentUpdateAPI,
@@ -56,7 +59,6 @@ group_patterns = [
     path('create', GroupCreateApi.as_view(), name='group_create'),
     path('<int:group>/update', GroupUpdateApi.as_view(), name='group_update'),
     path('<int:group>/delete', GroupDeleteApi.as_view(), name='group_delete'),
-    path('<int:group>/subscribe', GroupNotificationSubscribeApi.as_view()),
     path('<int:group>/mail', GroupMailApi.as_view(), name='group_mail'),
 
     path('<int:group_id>/users', GroupUserListApi.as_view(), name='group_users'),
@@ -139,9 +141,6 @@ group_patterns = [
     path('thread/<int:thread_id>/update', GroupThreadUpdateAPI.as_view(), name='group_thread_update'),
     path('thread/<int:thread_id>/delete', GroupThreadDeleteAPI.as_view(), name='group_thread_delete'),
     path('thread/<int:thread_id>/vote', GroupThreadVoteUpdateAPI.as_view(), name='group_thread_vote_update'),
-    path('thread/<int:thread_id>/subscribe',
-         GroupThreadNotificationSubscribeAPI.as_view(),
-         name='group_thread_subscribe'),
     path('thread/<int:thread_id>/comment/list',
          GroupThreadCommentListAPI.as_view(),
          name='group_thread_comment_list'),
