@@ -18,29 +18,28 @@ class NotificationListAPI(APIView):
         id = serializers.IntegerField(required=False)
         read = serializers.BooleanField(required=False)
         object_id = serializers.IntegerField(required=False)
-        message = serializers.CharField(required=False)
         message__icontains = serializers.CharField(required=False)
         action = serializers.CharField(required=False)
         timestamp__lt = serializers.DateTimeField(required=False)
         timestamp__gt = serializers.DateTimeField(required=False)
-        channel_sender_type = serializers.CharField(required=False)
-        channel_sender_id = serializers.IntegerField(required=False)
 
-        channel_sender_category = serializers.CharField(required=False)
-        order_by = serializers.ChoiceField(required=False, choices=['notification_object__timestamp_asc',
-                                                    'notification_object__timestamp_desc'])
+        channel_name = serializers.CharField(required=False)
+        order_by = serializers.ChoiceField(required=False, choices=['timestamp_asc',
+                                                                    'timestamp_desc'])
 
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
+        read = serializers.BooleanField()
+
         object_id = serializers.IntegerField(source='notification_object_id')
         message = serializers.CharField(source='notification_object.message')
+        data = serializers.IntegerField(source='notification_object.data')
         timestamp = serializers.DateTimeField(source='notification_object.timestamp')
         action = serializers.CharField(source='notification_object.action')
-        channel_sender_id = serializers.IntegerField(source='notification_object.channel.sender_id')
-        channel_sender_type = serializers.CharField(source='notification_object.channel.sender_type')
-        channel_id = serializers.IntegerField(source='notification_object.channel_id')
-        channel_category = serializers.CharField(source='notification_object.channel.category')
-        read = serializers.BooleanField()
+        tag = serializers.CharField(source='notification_object.tag')
+
+        channel_name = serializers.CharField(source='notification_object.channel.content_type.model')
+        channel_data = serializers.CharField(source='notification_object.channel.data')
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -60,14 +59,13 @@ class NotificationSubscriptionListAPI(APIView):
         max_limit = 100
 
     class FilterSerializer(serializers.Serializer):
-        channel_sender_type = serializers.CharField(required=False)
-        channel_sender_id = serializers.IntegerField(required=False)
-        channel_category = serializers.CharField(required=False)
+        channel_id = serializers.IntegerField(required=False)
+        channel_name = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
-        channel_sender_type = serializers.CharField(source='channel.sender_type')
-        channel_sender_id = serializers.IntegerField(source='channel.sender_id')
-        channel_category = serializers.CharField(source='channel.category')
+        channel_id = serializers.IntegerField()
+        channel_name = serializers.CharField(source='channel.name')
+        tags = serializers.CharField()
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)

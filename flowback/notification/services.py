@@ -1,7 +1,3 @@
-from datetime import datetime
-
-from rest_framework.exceptions import ValidationError
-
 from .models import NotificationChannel, Notification, NotificationSubscription
 from ..user.models import User
 
@@ -18,16 +14,16 @@ def notification_update(*, user: User,
 def notification_subscribe(*,
                            user: User,
                            channel: NotificationChannel,
-                           categories: list[str]) -> NotificationSubscription | None:
+                           tags: list[str]) -> NotificationSubscription | None:
 
     # Delete subscription if no categories are present
-    if not categories:
+    if not tags:
         NotificationSubscription.objects.get(user=user, channel=channel).delete()
         return None
 
     subscription, created = NotificationSubscription.objects.update_or_create(user=user,
                                                                               channel=channel,
-                                                                              defaults=dict(categories=categories))
+                                                                              defaults=dict(tags=tags))
 
     return subscription
 

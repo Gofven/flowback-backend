@@ -27,17 +27,21 @@ class NotificationObject(BaseModel):
 
     action = models.CharField(choices=Action.choices)
     message = models.TextField(max_length=2000)
-    category = models.CharField(max_length=255, default='default', help_text='Category of the notification')
+    tag = models.CharField(max_length=255, default='default', help_text='Tag of the notification')
     data = models.JSONField(null=True, blank=True)  # Suggested to store relevant data for user
     timestamp = models.DateTimeField(default=timezone.now)
     channel = models.ForeignKey('notification.NotificationChannel', on_delete=models.CASCADE)
 
     notifications = models.ManyToManyField('notification.Notification')
 
+    def clean(self):
+        if self.tag not in self.channel.tags:
+            raise ValidationError('Invalid tag, must be in channel tags')
+
     @classmethod
     def post_save(cls, instance, created, *args, **kwargs):
         """
-        Creates Notification for users on save for the given category
+        Creates Notification for users on save for the given tag
         """
 
         subscription_filters = dict()
@@ -51,7 +55,7 @@ class NotificationObject(BaseModel):
         if created:
             users = NotificationSubscription.objects.filter(*subscription_q_filters,
                                                             channel=instance.channel,
-                                                            categories__in=[instance.category],
+                                                            tags__in=[instance.tag],
                                                             **subscription_filters).values('user')
             notifications = [Notification(user=x, notification_object=instance) for x in users]
             Notification.objects.bulk_create(notifications, ignore_conflicts=True)
@@ -72,12 +76,12 @@ class Notification(BaseModel):
 class NotificationSubscription(BaseModel):
     user = models.ForeignKey('user.User', on_delete=models.CASCADE)
     channel = models.ForeignKey('notification.NotificationChannel', on_delete=models.CASCADE)
-    categories = ArrayField(models.CharField(max_length=255))
+    tags = ArrayField(models.CharField(max_length=255), help_text='Tags that user has subscribed to')
 
     def clean(self):
-        if not all([category in self.channel.categories for category in self.categories]):
+        if not all([tag in self.channel.tags for tag in self.tags]):
             raise ValidationError(f'Not all categories exists for {self.channel.name}. '
-                                  f'Following options are available: {", ".join(self.channel.categories)}')
+                                  f'Following options are available: {", ".join(self.channel.tags)}')
 
     class Meta:
         unique_together = ('user', 'channel')
@@ -123,18 +127,13 @@ class NotificationChannel(BaseModel):
         return notification_data if notification_data else None
 
     @property
-    def categories(self) -> list | None:
-        notification_categories = getattr(self.content_object, 'notification_categories')
-        return notification_categories if notification_categories else None
-
-    @property
     def name(self) -> str:
         return self.content_object.__name__.lower()
 
     def notify(self,
                action: NotificationObject.Action,
                message: str,
-               category: str,
+               tag: str,
                timestamp: datetime = None,
                data: dict = None,
                user_filters: dict = None,
@@ -147,7 +146,7 @@ class NotificationChannel(BaseModel):
          If you wish to notify using the channel template, keep the () and leave it blank.
          If you wish to use a template from a different model, type in the exact model name inside the ().
          Missing template for the model name won't raise an error, but it will remove the URL.
-        :param category:
+        :param tag:
         :param timestamp: Timestamp when this notification becomes active. Defaults to timezone.now().
         :param data: Additional data to pass to the notification.
         :param user_filters: List of filters to pass onto the delivery of notifications.
@@ -160,7 +159,7 @@ class NotificationChannel(BaseModel):
         notification_object = NotificationObject(channel=self,
                                                  action=action,
                                                  message=message,
-                                                 category=category,
+                                                 tag=tag,
                                                  timestamp=timestamp,
                                                  data=data)
 
