@@ -5,8 +5,10 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from flowback.common.fields import CharacterSeparatedField
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.notification.selectors import notification_list, notification_subscription_list
+from flowback.notification.services import notification_subscribe
 
 
 class NotificationListAPI(APIView):
@@ -65,7 +67,6 @@ class NotificationSubscriptionListAPI(APIView):
     class OutputSerializer(serializers.Serializer):
         channel_id = serializers.IntegerField()
         channel_name = serializers.CharField(source='channel.name')
-        tags = serializers.CharField()
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -77,3 +78,27 @@ class NotificationSubscriptionListAPI(APIView):
                                       queryset=subscriptions,
                                       request=request,
                                       view=self)
+
+
+class NotificationSubscribeAPI(APIView):
+    """
+    A Notification Subscription API constructor. Inherit this to a parent class,
+    replace lazy_action field with a service of your own. Override and inherit the internal FilterSerializer,
+    add any additional fields to it to pass onto the lazy_action.
+    """
+    lazy_action = notification_subscribe
+
+    class Pagination(LimitOffsetPagination):
+        default_limit = 25
+
+    class FilterSerializer(serializers.Serializer):
+        tags = CharacterSeparatedField(child=serializers.CharField(), required=False)
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.FilterSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        self.lazy_action.__func__(*args,
+                                  user=request.user,
+                                  **kwargs,
+                                  **serializer.validated_data)

@@ -13,7 +13,7 @@ def notification_update(*, user: User,
 
 def notification_subscribe(*,
                            user: User,
-                           channel: NotificationChannel,
+                           channel: NotificationChannel | int,
                            tags: list[str]) -> NotificationSubscription | None:
 
     # Delete subscription if no categories are present
