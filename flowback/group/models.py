@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import timezone
 
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q
@@ -13,6 +14,7 @@ from flowback.comment.models import CommentSection, comment_section_create, comm
 from flowback.common.models import BaseModel
 from flowback.files.models import FileCollection
 from flowback.kanban.models import Kanban, KanbanSubscription
+from flowback.notification.models import NotifiableModel
 from flowback.schedule.models import Schedule
 from flowback.user.models import User
 from django.db import models
@@ -26,7 +28,7 @@ class GroupFolder(BaseModel):
         return f'{self.id} - {self.name}'
 
 
-class Group(BaseModel):
+class Group(BaseModel, NotifiableModel):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
 
@@ -122,6 +124,11 @@ class Group(BaseModel):
         instance.kanban.delete()
         instance.chat.delete()
 
+    def notify_group(self, message):
+        self.notification_channel.notify(action=self.notification_channel.Action.CREATED,
+                                         message=message,
+                                         tag='group')
+
 
 pre_save.connect(Group.pre_save, sender=Group)
 post_save.connect(Group.post_save, sender=Group)
@@ -198,7 +205,7 @@ class GroupUser(BaseModel):
                 user_permissions = model_to_dict(self.group.default_permission)
             else:
                 fields = [field for field in GroupPermissions._meta.get_fields() if not (field.auto_created
-                          or field.name in GroupPermissions.negate_field_perms())]
+                                                                                         or field.name in GroupPermissions.negate_field_perms())]
                 user_permissions = {field.name: field.default for field in fields}
 
         def validate_perms():
@@ -260,7 +267,9 @@ class WorkGroup(BaseModel):
 
             instance.chat = message_channel
 
+
 pre_save.connect(WorkGroup.pre_save, sender=WorkGroup)
+
 
 class WorkGroupUser(BaseModel):
     work_group = models.ForeignKey(WorkGroup, on_delete=models.CASCADE)
@@ -291,6 +300,7 @@ class WorkGroupUser(BaseModel):
     class Meta:
         constraints = [models.UniqueConstraint(name='WorkGroupUser_group_user_and_work_group_is_unique',
                                                fields=['work_group', 'group_user'])]
+
 
 pre_save.connect(WorkGroupUser.pre_save, sender=WorkGroupUser)
 post_save.connect(WorkGroupUser.post_save, sender=WorkGroupUser)

@@ -62,6 +62,7 @@ class GroupTest(APITransactionTestCase):
         view = GroupCreateApi.as_view()
         data = dict(name="test",
                     description="test",
+                    public=True,
                     direct_join=True)
 
         request = factory.post('', data=data)

@@ -9,7 +9,7 @@ class NotificationChannelAdmin(admin.ModelAdmin):
 
 @admin.register(NotificationObject)
 class NotificationObjectAdmin(admin.ModelAdmin):
-    list_display = ('action', 'message', 'category', 'data', 'timestamp', 'channel')
+    list_display = ('action', 'message', 'tag', 'data', 'timestamp', 'channel')
 
 
 @admin.register(Notification)
@@ -19,4 +19,4 @@ class NotificationAdmin(admin.ModelAdmin):
 
 @admin.register(NotificationSubscription)
 class NotificationSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'channel', 'categories')
+    list_display = ('user', 'channel', 'tags')

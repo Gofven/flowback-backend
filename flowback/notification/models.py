@@ -1,15 +1,13 @@
 from datetime import timedelta, datetime
+from inspect import getfullargspec
 
 from django.db import models
 from django.db.models import F, Q
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils import timezone
 
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField
-from prometheus_client.decorator import getfullargspec
 from rest_framework.exceptions import ValidationError
 
 from flowback.common.models import BaseModel
@@ -89,6 +87,8 @@ class NotificationSubscription(BaseModel):
 
 # For any model using Notification, it is recommended to use post_save to create a NotificationChannel object
 class NotificationChannel(BaseModel):
+    Action = NotificationObject.Action
+
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
@@ -152,16 +152,17 @@ class NotificationChannel(BaseModel):
         :param user_filters: List of filters to pass onto the delivery of notifications.
         :param user_q_filters: List of Q filters to pass onto the delivery of notifications.
         """
-        if getattr(self.content_object, 'notification_data'):
+        if getattr(self.content_object, 'notification_data', False):
             data = data or {}
             data = zip(data, self.content_object.notification_data)
 
+        extra_fields = dict(timestamp=timestamp)  # Dict of fields that has defaults in NotificationObject model
         notification_object = NotificationObject(channel=self,
                                                  action=action,
                                                  message=message,
                                                  tag=tag,
-                                                 timestamp=timestamp,
-                                                 data=data)
+                                                 data=data,
+                                                 **{k:v for k, v in extra_fields.items() if v is not None})
 
         notification_object.user_filters = user_filters or {}
         notification_object.user_q_filters = user_q_filters or []
@@ -214,7 +215,11 @@ class NotifiableModel(models.Model):
     on the models notification_channel.notify function.
     The fields for the function will be used for checks and documentation.
     """
-    notification_channel = GenericRelation(NotificationChannel)
+    notification_channels = GenericRelation(NotificationChannel)
+
+    @property
+    def notification_channel(self):
+        return self.notification_channels.first()
 
     class Meta:
         abstract = True
