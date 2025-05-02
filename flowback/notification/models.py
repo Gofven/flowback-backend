@@ -25,12 +25,10 @@ class NotificationObject(BaseModel):
 
     action = models.CharField(choices=Action.choices)
     message = models.TextField(max_length=2000)
-    tag = models.CharField(max_length=255, default='default', help_text='Tag of the notification')
+    tag = models.CharField(max_length=255, help_text='Tag of the notification')
     data = models.JSONField(null=True, blank=True)  # Suggested to store relevant data for user
     timestamp = models.DateTimeField(default=timezone.now)
     channel = models.ForeignKey('notification.NotificationChannel', on_delete=models.CASCADE)
-
-    notifications = models.ManyToManyField('notification.Notification')
 
     def clean(self):
         if self.tag not in self.channel.tags:
@@ -108,7 +106,8 @@ class NotificationChannel(BaseModel):
         """
 
         # Get functions that starts with 'notify_'
-        tag_func_names = [tag_func_name for tag_func_name in dir(self.content_object) if tag_func_name.startswith('notify_')]
+        tag_func_names = [tag_func_name for tag_func_name in dir(self.content_object) if
+                          tag_func_name.startswith('notify_')]
 
         # Get attributes from the function related to tag and returns field names
         if f'notify_{tag}' in tag_func_names:
@@ -162,7 +161,7 @@ class NotificationChannel(BaseModel):
                                                  message=message,
                                                  tag=tag,
                                                  data=data,
-                                                 **{k:v for k, v in extra_fields.items() if v is not None})
+                                                 **{k: v for k, v in extra_fields.items() if v is not None})
 
         notification_object.user_filters = user_filters or {}
         notification_object.user_q_filters = user_q_filters or []
@@ -180,19 +179,16 @@ class NotificationChannel(BaseModel):
 
         NotificationObject.objects.get(channel_id=self.id, id=notification_object).delete()
 
-    def notification_shift(self,
-                           delta: int,
-                           timestamp__lt: timezone = None,
-                           timestamp__gt: timezone = None) -> None:
+    def shift(self,
+              delta: int,
+              **query_filters) -> None:
         """
         Shifts notifications using the delta (in seconds)
-        :param timestamp__lt: Filters notifications based on timestamp
-        :param timestamp__gt: Filters notifications based on timestamp
         :param delta: How much time to shift notifications (in seconds)
+        :param query_filters: Filters to apply to the NotificationObject query.
         """
-        filters = {key: val for key, val in dict(timestamp__lt=timestamp__lt,
-                                                 timestamp__gt=timestamp__gt) if val is not None}
-        self.notificationobject_set.filter(filters).update(timestamp=F('timestamp') + timedelta(seconds=delta))
+        filters = {key: val for key, val in query_filters.items() if val is not None}
+        self.notificationobject_set.filter(**filters).update(timestamp=F('timestamp') + timedelta(seconds=delta))
 
     def __str__(self):
         return f"<NotificationChannel {self.id}> for {self.content_object.__str__()}"

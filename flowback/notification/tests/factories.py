@@ -19,7 +19,7 @@ class NotificationObjectFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = NotificationObject
 
-    related_id = factory.LazyAttribute(lambda _: random.randint(1, 1000))
-    action = factory.LazyAttribute(lambda _: "create")
-    message = factory.LazyAttribute(lambda _: fake.description())
+    action = factory.LazyAttribute(lambda _: "CREATED")
+    message = factory.LazyAttribute(lambda _: fake.sentence())
+    channel = factory.SubFactory(NotificationChannelFactory)
 
