@@ -44,7 +44,7 @@ class GroupNotificationTest(APITransactionTestCase):
                                                                                                   flat=True)):
             self.assertEqual(timestamp, (prev_timestamps[i] + datetime.timedelta(seconds=100)))
 
-        # Test shifting some notifications 100 seconds forward
+        # Test shifting some notifications 200 seconds forward
         prev_timestamps = list(NotificationObject.objects.all().order_by("id").values_list("timestamp",
                                                                                            flat=True))
         self.group.notification_channel.shift(delta=200, timestamp__gt=prev_timestamps[5])
