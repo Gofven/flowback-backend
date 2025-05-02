@@ -3,6 +3,8 @@ from inspect import getfullargspec
 
 from django.db import models
 from django.db.models import F, Q
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
@@ -49,18 +51,26 @@ class NotificationObject(BaseModel):
             subscription_q_filters = instance.subscription_q_filters
 
         if created:
-            users = NotificationSubscription.objects.filter(*subscription_q_filters,
-                                                            channel=instance.channel,
-                                                            tags__in=[instance.tag],
-                                                            **subscription_filters).values('user')
-            notifications = [Notification(user=x, notification_object=instance) for x in users]
-            Notification.objects.bulk_create(notifications, ignore_conflicts=True)
+            print(instance.tag)
+            subscribers = NotificationSubscription.objects.filter(*subscription_q_filters,
+                                                                  channel=instance.channel,
+                                                                  tags__contains=[instance.tag],
+                                                                  **subscription_filters)
+
+            notifications = [Notification(user=x.user, notification_object=instance) for x in subscribers]
+            print([(x.user, x.notification_object) for x in notifications])
+            Notification.objects.bulk_create(notifications)
+
+        print("pass")
+
+
+post_save.connect(NotificationObject.post_save, NotificationObject)
 
 
 # Notification is created for every user subscribed to a channel,
 # with a NotificationObject attached to it containing the data
 class Notification(BaseModel):
-    user = models.OneToOneField('user.User', on_delete=models.CASCADE)
+    user = models.ForeignKey('user.User', on_delete=models.CASCADE)
     notification_object = models.ForeignKey("notification.NotificationObject", on_delete=models.CASCADE)
     read = models.BooleanField(default=False)
 
@@ -198,6 +208,18 @@ class NotificationChannel(BaseModel):
             models.Index(fields=["content_type", "object_id"]),
         ]
 
+    def subscribe(self, *, user, channel, tags: list[str]) -> NotificationSubscription | None:
+        # Delete subscription if no categories are present
+        if not tags:
+            NotificationSubscription.objects.get(user=user, channel=channel).delete()
+            return None
+
+        subscription, created = NotificationSubscription.objects.update_or_create(user=user,
+                                                                                  channel=channel,
+                                                                                  defaults=dict(tags=tags))
+
+        return subscription
+
 
 def generate_notification_channel(sender, instance, created, *args, **kwargs):
     if created and issubclass(sender, NotifiableModel):
@@ -214,7 +236,7 @@ class NotifiableModel(models.Model):
     notification_channels = GenericRelation(NotificationChannel)
 
     @property
-    def notification_channel(self):
+    def notification_channel(self) -> NotificationChannel:
         return self.notification_channels.first()
 
     class Meta:

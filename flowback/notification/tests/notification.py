@@ -4,8 +4,8 @@ from Scripts.activate_this import prev_length
 from rest_framework.test import APITransactionTestCase
 
 from flowback.common.tests import generate_request
-from flowback.group.tests.factories import GroupFactory
-from flowback.notification.models import NotificationObject
+from flowback.group.tests.factories import GroupFactory, GroupUserFactory
+from flowback.notification.models import NotificationObject, Notification
 from flowback.notification.tests.factories import NotificationObjectFactory
 
 
@@ -55,3 +55,27 @@ class GroupNotificationTest(APITransactionTestCase):
                 self.assertEqual(timestamp, prev_timestamps[i])
             else:
                 self.assertEqual(timestamp, (prev_timestamps[i] + datetime.timedelta(seconds=200)))
+
+    def test_group_notification_subscribe_and_notify(self):
+        # Create subscriptions
+        group_users = GroupUserFactory.create_batch(size=5, group=self.group)
+        [self.group.notification_channel.subscribe(user=u.user,
+                                                   channel=self.group.notification_channel,
+                                                   tags=['group']) for u in group_users]
+
+        self.assertEqual(
+            self.group.notification_channel.notificationsubscription_set.filter(
+                channel=self.group.notification_channel).count(), 5)
+
+        # Send notification
+        self.group.notify_group(message="Hello everyone!")
+        self.group.notify_group(message="Hi there!")
+
+        self.assertEqual(NotificationObject.objects.count(), 2)
+        self.assertEqual(Notification.objects.count(), 10)
+
+        # Check if notifications reached users
+        for u in group_users:
+            self.assertEqual(Notification.objects.filter(user=u.user,
+                                                         notification_object__channel=self.group.notification_channel,
+                                                         notification_object__tag="group").count(), 2)
