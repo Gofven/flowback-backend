@@ -6,7 +6,8 @@ from rest_framework.test import APITransactionTestCase
 from flowback.common.tests import generate_request
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
 from flowback.notification.models import NotificationObject, Notification
-from flowback.notification.tests.factories import NotificationObjectFactory
+from flowback.notification.tests.factories import NotificationObjectFactory, NotificationChannelFactory
+from flowback.notification.views import NotificationUpdateAPI
 
 
 # Create your tests here.
@@ -79,3 +80,34 @@ class GroupNotificationTest(APITransactionTestCase):
             self.assertEqual(Notification.objects.filter(user=u.user,
                                                          notification_object__channel=self.group.notification_channel,
                                                          notification_object__tag="group").count(), 2)
+
+    def test_notification_update(self):
+        group_users = GroupUserFactory.create_batch(size=5, group=self.group)
+        [self.group.notification_channel.subscribe(user=u.user,
+                                                   channel=self.group.notification_channel,
+                                                   tags=['group']) for u in group_users]
+
+        notification_one = self.group.notify_group(message="Hello everyone!")
+        notification_two = self.group.notify_group(message="Hi there!")
+
+        # Test updating notification
+        response = generate_request(api=NotificationUpdateAPI,
+                                    data=dict(notification_object_ids=[notification_two.id], read=True),
+                                    user=group_users[1].user)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Notification.objects.get(user=group_users[1].user,
+                                                  notification_object_id=notification_one.id).read)
+        self.assertTrue(Notification.objects.get(user=group_users[1].user,
+                                                 notification_object_id=notification_two.id).read)
+
+        # Test if updating impacts other users
+        self.assertFalse(Notification.objects.get(user=group_users[2].user,
+                                                  notification_object_id=notification_two.id).read)
+
+        # Test if updating no notifications will raise 400
+        response = generate_request(api=NotificationUpdateAPI,
+                                    data=dict(notification_object_ids=[123, 456], read=True),
+                                    user=group_users[1].user)
+
+        self.assertEqual(response.status_code, 400)

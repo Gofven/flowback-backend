@@ -125,9 +125,9 @@ class Group(BaseModel, NotifiableModel):
         instance.chat.delete()
 
     def notify_group(self, message):
-        self.notification_channel.notify(action=self.notification_channel.Action.CREATED,
-                                         message=message,
-                                         tag='group')
+        return self.notification_channel.notify(action=self.notification_channel.Action.CREATED,
+                                                message=message,
+                                                tag='group')
 
 
 pre_save.connect(Group.pre_save, sender=Group)

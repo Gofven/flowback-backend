@@ -1,10 +1,12 @@
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from flowback.common.fields import CharacterSeparatedField
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.notification.selectors import notification_list, notification_subscription_list
-from flowback.notification.services import notification_subscribe
+from flowback.notification.models import NotificationChannel
+from flowback.notification.services import notification_update
 
 
 class NotificationListAPI(APIView):
@@ -82,7 +84,7 @@ class NotificationSubscribeAPI(APIView):
     replace lazy_action field with a service of your own. Override and inherit the internal FilterSerializer,
     add any additional fields to it to pass onto the lazy_action.
     """
-    lazy_action = notification_subscribe
+    lazy_action = NotificationChannel.subscribe
 
     class Pagination(LimitOffsetPagination):
         default_limit = 25
@@ -98,3 +100,20 @@ class NotificationSubscribeAPI(APIView):
                                   user=request.user,
                                   **kwargs,
                                   **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class NotificationUpdateAPI(APIView):
+    class InputSerializer(serializers.Serializer):
+        notification_object_ids = CharacterSeparatedField(child=serializers.IntegerField(),
+                                                          help_text='List of notification object IDs to mark as read, '
+                                                                    'separated by commas.')
+        read = serializers.BooleanField()
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        notification_update(user=request.user, **serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK)
