@@ -33,7 +33,7 @@ class NotificationListAPI(APIView):
 
         object_id = serializers.IntegerField(source='notification_object_id')
         message = serializers.CharField(source='notification_object.message')
-        data = serializers.IntegerField(source='notification_object.data')
+        data = serializers.JSONField(source='notification_object.data')
         timestamp = serializers.DateTimeField(source='notification_object.timestamp')
         action = serializers.CharField(source='notification_object.action')
         tag = serializers.CharField(source='notification_object.tag')

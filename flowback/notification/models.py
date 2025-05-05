@@ -117,7 +117,7 @@ class NotificationChannel(BaseModel):
 
         # Get attributes from the function related to tag and returns field names
         if f'notify_{tag}' in tag_func_names:
-            excluded_fields = ['self', 'user_filters', 'user_q_filters']
+            excluded_fields = ['self', 'user_filters', 'user_q_filters', 'message', 'action']
             tag_fields = list(*getfullargspec(getattr(self.content_object, f'notify_{tag}'))[0])
             tag_fields = [tag_field for tag_field in tag_fields if tag_field not in excluded_fields]
 
@@ -128,10 +128,10 @@ class NotificationChannel(BaseModel):
     # Grabs the notification_data property from content_object (if any)
     @property
     def data(self) -> dict | None:
-        try:
-            return getattr(self.content_object, 'notification_data')
+        if self.content_object.notification_data is not None:
+            return self.content_object.notification_data
 
-        except AttributeError:
+        else:
             return None
 
     @property
@@ -160,9 +160,9 @@ class NotificationChannel(BaseModel):
         :param user_filters: List of filters to pass onto the delivery of notifications.
         :param user_q_filters: List of Q filters to pass onto the delivery of notifications.
         """
-        if getattr(self.content_object, 'notification_data', False):
+        if self.content_object.notification_data is not None:
             data = data or {}
-            data = zip(data, self.content_object.notification_data)
+            data = dict(zip(data, self.content_object.notification_data))
 
         extra_fields = dict(timestamp=timestamp)  # Dict of fields that has defaults in NotificationObject model
         notification_object = NotificationObject(channel=self,
@@ -237,6 +237,10 @@ class NotifiableModel(models.Model):
     @property
     def notification_channel(self) -> NotificationChannel:
         return self.notification_channels.first()
+
+    @property
+    def notification_data(self) -> dict | None:
+        return None
 
     class Meta:
         abstract = True

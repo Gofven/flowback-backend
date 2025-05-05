@@ -72,6 +72,17 @@ class Group(BaseModel, NotifiableModel):
         except GroupUser.DoesNotExist:
             raise ValidationError("Group creator has left the group..?")
 
+    # Notifications
+    @property
+    def notification_data(self):
+        return dict(group_id=self.id)
+
+    def notify_group(self, message: str, action: NotificationChannel.Action = NotificationChannel.Action.CREATED):
+        return self.notification_channel.notify(action=action,
+                                                message=message,
+                                                tag='group')
+
+    # Signals
     @classmethod
     def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):
         if instance.pk is None:
@@ -123,11 +134,6 @@ class Group(BaseModel, NotifiableModel):
         instance.schedule.delete()
         instance.kanban.delete()
         instance.chat.delete()
-
-    def notify_group(self, message: str, action: NotificationChannel.Action = NotificationChannel.Action.CREATED):
-        return self.notification_channel.notify(action=action,
-                                                message=message,
-                                                tag='group')
 
 
 pre_save.connect(Group.pre_save, sender=Group)

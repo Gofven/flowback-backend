@@ -1,12 +1,10 @@
 import datetime
-
-from Scripts.activate_this import prev_length
 from rest_framework.test import APITransactionTestCase
 
 from flowback.common.tests import generate_request
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
 from flowback.notification.models import NotificationObject, Notification
-from flowback.notification.tests.factories import NotificationObjectFactory, NotificationChannelFactory
+from flowback.notification.tests.factories import NotificationObjectFactory
 from flowback.notification.views import NotificationUpdateAPI, NotificationListAPI
 
 
