@@ -15,12 +15,13 @@ class BaseNotificationFilter(django_filters.FilterSet):
     message__icontains = django_filters.CharFilter(field_name='notification_object__message',
                                                    lookup_expr='icontains')
     action = django_filters.CharFilter(field_name='notification_object__action')
-    timestamp__lt = django_filters.DateFilter(field_name='notification_object__timestamp',
-                                              lookup_expr='lt')
-    timestamp__gt = django_filters.DateFilter(field_name='notification_object__timestamp',
-                                              lookup_expr='gt')
+    timestamp__lt = django_filters.DateTimeFilter(field_name='notification_object__timestamp',
+                                                  lookup_expr='lt')
+    timestamp__gt = django_filters.DateTimeFilter(field_name='notification_object__timestamp',
+                                                  lookup_expr='gt')
 
-    channel_name = django_filters.CharFilter(field_name='channel__content_type__model', lookup_expr='iexact')
+    channel_name = django_filters.CharFilter(field_name='notification_object__channel__content_type__model',
+                                             lookup_expr='iexact')
 
     class Meta:
         model = Notification

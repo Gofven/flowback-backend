@@ -7,7 +7,7 @@ from flowback.common.tests import generate_request
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
 from flowback.notification.models import NotificationObject, Notification
 from flowback.notification.tests.factories import NotificationObjectFactory, NotificationChannelFactory
-from flowback.notification.views import NotificationUpdateAPI
+from flowback.notification.views import NotificationUpdateAPI, NotificationListAPI
 
 
 # Create your tests here.
@@ -111,3 +111,126 @@ class GroupNotificationTest(APITransactionTestCase):
                                     user=group_users[1].user)
 
         self.assertEqual(response.status_code, 400)
+
+
+class NotificationListTest(APITransactionTestCase):
+    def setUp(self):
+        self.group = GroupFactory()
+        self.group_users = GroupUserFactory.create_batch(size=5, group=self.group)
+        [self.group.notification_channel.subscribe(user=u.user,
+                                                   channel=self.group.notification_channel,
+                                                   tags=['group']) for u in self.group_users]
+
+        # Create test notifications
+        self.notification_one = self.group.notify_group(message="Hello everyone!")
+        self.notification_two = self.group.notify_group(message="Hi there!")
+        self.notification_three = self.group.notify_group(message="Important announcement",
+                                                          action=NotificationObject.Action.UPDATED)
+
+        self.test_user = self.group_users[0].user
+
+    def test_basic_notification_list(self):
+        response = generate_request(api=NotificationListAPI, user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 3)
+
+        # Check if paginated
+        self.assertIn('count', response.data)
+        self.assertIn('next', response.data)
+        self.assertIn('previous', response.data)
+
+    def test_pagination(self):
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(limit=1),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['count'], 3)
+        self.assertIsNotNone(response.data['next'])
+
+    def test_filter_by_message(self):
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(message__icontains="Important"),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+
+        self.assertEqual(response.data['results'][0]['message'], "Important announcement")
+
+    def test_filter_by_action(self):
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(action=NotificationObject.Action.UPDATED),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+
+        self.assertEqual(response.data['results'][0]['action'], NotificationObject.Action.UPDATED)
+
+    def test_filter_by_timestamp(self):
+        # Test greater than
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(timestamp__gt=self.notification_two.timestamp),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+
+        self.assertEqual(response.data['results'][0]['object_id'], self.notification_three.id)
+
+        # Test less than
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(timestamp__lt=self.notification_two.timestamp),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+
+        self.assertEqual(response.data['results'][0]['object_id'], self.notification_one.id)
+
+    def test_filter_by_read_status(self):
+        # Test unread filter
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(read=False),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 3)
+
+        # Mark one as read
+        Notification.objects.filter(user=self.test_user,
+                                    notification_object_id=self.notification_one.id).update(read=True)
+
+        # Test read filter
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(read=True),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+
+        # Test unread filter after marking as read
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(read=False),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 2)
+
+    def test_filter_by_channel(self):
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(channel_name="group"),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 3)
+
+    def test_ordering(self):
+        # Test ascending order
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(order_by="timestamp_asc"),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 3)
+        self.assertEqual(response.data['results'][0]['object_id'], self.notification_one.id)
+
+        # Test descending order
+        response = generate_request(api=NotificationListAPI,
+                                    data=dict(order_by="timestamp_desc"),
+                                    user=self.test_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 3)
+        self.assertEqual(response.data['results'][0]['object_id'], self.notification_three.id)

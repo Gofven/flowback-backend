@@ -128,8 +128,11 @@ class NotificationChannel(BaseModel):
     # Grabs the notification_data property from content_object (if any)
     @property
     def data(self) -> dict | None:
-        notification_data = getattr(self.content_object, 'notification_data')
-        return notification_data if notification_data else None
+        try:
+            return getattr(self.content_object, 'notification_data')
+
+        except AttributeError:
+            return None
 
     @property
     def name(self) -> str:

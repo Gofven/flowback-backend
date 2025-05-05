@@ -16,7 +16,7 @@ class NotificationListAPI(APIView):
 
     class FilterSerializer(serializers.Serializer):
         id = serializers.IntegerField(required=False)
-        read = serializers.BooleanField(required=False)
+        read = serializers.BooleanField(required=False, allow_null=True, default=None)
         object_id = serializers.IntegerField(required=False)
         message__icontains = serializers.CharField(required=False)
         action = serializers.CharField(required=False)

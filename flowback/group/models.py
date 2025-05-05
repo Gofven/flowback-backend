@@ -14,7 +14,7 @@ from flowback.comment.models import CommentSection, comment_section_create, comm
 from flowback.common.models import BaseModel
 from flowback.files.models import FileCollection
 from flowback.kanban.models import Kanban, KanbanSubscription
-from flowback.notification.models import NotifiableModel
+from flowback.notification.models import NotifiableModel, NotificationChannel
 from flowback.schedule.models import Schedule
 from flowback.user.models import User
 from django.db import models
@@ -124,8 +124,8 @@ class Group(BaseModel, NotifiableModel):
         instance.kanban.delete()
         instance.chat.delete()
 
-    def notify_group(self, message):
-        return self.notification_channel.notify(action=self.notification_channel.Action.CREATED,
+    def notify_group(self, message: str, action: NotificationChannel.Action = NotificationChannel.Action.CREATED):
+        return self.notification_channel.notify(action=action,
                                                 message=message,
                                                 tag='group')
 
