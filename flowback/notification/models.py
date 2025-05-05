@@ -51,17 +51,13 @@ class NotificationObject(BaseModel):
             subscription_q_filters = instance.subscription_q_filters
 
         if created:
-            print(instance.tag)
             subscribers = NotificationSubscription.objects.filter(*subscription_q_filters,
                                                                   channel=instance.channel,
                                                                   tags__contains=[instance.tag],
                                                                   **subscription_filters)
 
             notifications = [Notification(user=x.user, notification_object=instance) for x in subscribers]
-            print([(x.user, x.notification_object) for x in notifications])
             Notification.objects.bulk_create(notifications)
-
-        print("pass")
 
 
 post_save.connect(NotificationObject.post_save, NotificationObject)
