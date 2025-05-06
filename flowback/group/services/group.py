@@ -165,3 +165,8 @@ def group_user_delete(*, user_id: int, group_id: int, target_user_id: int) -> No
         raise ValidationError("Can't delete a group user with admin status")
 
     group_user_to_delete.delete()
+
+
+def group_notification_subscribe(*, user: User, group_id: int, tags: list[str]) -> None:
+    group_user = group_user_permissions(user=user, group=group_id)
+    group_user.group.notification_channel.subscribe(user=user, tags=tags)

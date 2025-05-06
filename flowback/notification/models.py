@@ -136,7 +136,7 @@ class NotificationChannel(BaseModel):
 
     @property
     def name(self) -> str:
-        return self.content_object.__name__.lower()
+        return self.content_object.__class__.__name__.lower()
 
     def notify(self,
                action: NotificationObject.Action,
@@ -207,14 +207,19 @@ class NotificationChannel(BaseModel):
             models.Index(fields=["content_type", "object_id"]),
         ]
 
-    def subscribe(self, *, user, channel, tags: list[str]) -> NotificationSubscription | None:
-        # Delete subscription if no categories are present
+    def subscribe(self, *, user, tags: list[str]) -> NotificationSubscription | None:
+        # Delete subscription if no tags are present
         if not tags:
-            NotificationSubscription.objects.get(user=user, channel=channel).delete()
+            NotificationSubscription.objects.get(user=user, channel=self).delete()
             return None
 
+        tags = list(dict.fromkeys(tags))
+        if not all([x in self.tags for x in tags]):
+            raise ValidationError(f'Not all tags exists for {self.name}. '
+                                  f'Following options are available: {", ".join(self.tags)}')
+
         subscription, created = NotificationSubscription.objects.update_or_create(user=user,
-                                                                                  channel=channel,
+                                                                                  channel=self,
                                                                                   defaults=dict(tags=tags))
 
         return subscription

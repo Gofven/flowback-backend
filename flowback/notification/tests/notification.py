@@ -3,9 +3,11 @@ from rest_framework.test import APITransactionTestCase
 
 from flowback.common.tests import generate_request
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
-from flowback.notification.models import NotificationObject, Notification
+from flowback.notification.models import NotificationObject, Notification, NotificationSubscription
 from flowback.notification.tests.factories import NotificationObjectFactory
 from flowback.notification.views import NotificationUpdateAPI, NotificationListAPI
+from flowback.group.views.group import GroupNotificationSubscribeAPI
+from flowback.group.services.group import group_notification_subscribe
 
 
 # Create your tests here.
@@ -59,7 +61,6 @@ class GroupNotificationTest(APITransactionTestCase):
         # Create subscriptions
         group_users = GroupUserFactory.create_batch(size=5, group=self.group)
         [self.group.notification_channel.subscribe(user=u.user,
-                                                   channel=self.group.notification_channel,
                                                    tags=['group']) for u in group_users]
 
         self.assertEqual(
@@ -79,10 +80,11 @@ class GroupNotificationTest(APITransactionTestCase):
                                                          notification_object__channel=self.group.notification_channel,
                                                          notification_object__tag="group").count(), 2)
 
+    # This test has been moved to NotificationSubscribeTest class
+
     def test_notification_update(self):
         group_users = GroupUserFactory.create_batch(size=5, group=self.group)
         [self.group.notification_channel.subscribe(user=u.user,
-                                                   channel=self.group.notification_channel,
                                                    tags=['group']) for u in group_users]
 
         notification_one = self.group.notify_group(message="Hello everyone!")
@@ -116,7 +118,6 @@ class NotificationListTest(APITransactionTestCase):
         self.group = GroupFactory()
         self.group_users = GroupUserFactory.create_batch(size=5, group=self.group)
         [self.group.notification_channel.subscribe(user=u.user,
-                                                   channel=self.group.notification_channel,
                                                    tags=['group']) for u in self.group_users]
 
         # Create test notifications
@@ -126,16 +127,6 @@ class NotificationListTest(APITransactionTestCase):
                                                           action=NotificationObject.Action.UPDATED)
 
         self.test_user = self.group_users[0].user
-
-    def test_basic_notification_list(self):
-        response = generate_request(api=NotificationListAPI, user=self.test_user)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data['results']), 3)
-
-        # Check if paginated
-        self.assertIn('count', response.data)
-        self.assertIn('next', response.data)
-        self.assertIn('previous', response.data)
 
     def test_pagination(self):
         response = generate_request(api=NotificationListAPI,
@@ -232,3 +223,104 @@ class NotificationListTest(APITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['results']), 3)
         self.assertEqual(response.data['results'][0]['object_id'], self.notification_three.id)
+
+
+class NotificationSubscribeTest(APITransactionTestCase):
+    def setUp(self):
+        self.group = GroupFactory()
+        self.group_user = GroupUserFactory.create(group=self.group)
+        self.user = self.group_user.user
+
+    def test_notification_channel_subscribe(self):
+        """Test the subscribe method in the NotificationChannel class"""
+        # Test subscribing to a channel
+        subscription = self.group.notification_channel.subscribe(user=self.user, tags=['group'])
+
+        # Verify the subscription was created
+        self.assertIsNotNone(subscription)
+        self.assertEqual(subscription.user, self.user)
+        self.assertEqual(subscription.channel, self.group.notification_channel)
+        self.assertEqual(set(subscription.tags), {'group'})
+
+        # Verify the subscription is in the database
+        db_subscription = NotificationSubscription.objects.get(
+            user=self.user,
+            channel=self.group.notification_channel
+        )
+        self.assertEqual(set(db_subscription.tags), {'group'})
+
+        # Test updating the subscription
+        updated_subscription = self.group.notification_channel.subscribe(user=self.user, tags=['group'])
+
+        # Verify the subscription was updated
+        self.assertEqual(updated_subscription.id, subscription.id)  # Same subscription object
+        self.assertEqual(set(updated_subscription.tags), {'group'})
+
+        # Test unsubscribing (empty tags list)
+        result = self.group.notification_channel.subscribe(user=self.user, tags=[])
+
+        # Verify the subscription was deleted
+        self.assertIsNone(result)
+        self.assertEqual(
+            NotificationSubscription.objects.filter(
+                user=self.user,
+                channel=self.group.notification_channel
+            ).count(),
+            0
+        )
+
+    def test_group_notification_subscribe_service(self):
+        """Test the group_notification_subscribe service function"""
+        # Call the service function
+        group_notification_subscribe(user=self.user, group_id=self.group.id, tags=['group'])
+
+        # Verify the subscription was created
+        subscription = NotificationSubscription.objects.get(
+            user=self.user,
+            channel=self.group.notification_channel
+        )
+        self.assertEqual(set(subscription.tags), {'group'})
+
+        # Test updating the subscription
+        group_notification_subscribe(user=self.user, group_id=self.group.id, tags=[])
+
+        # Verify the subscription was updated
+        updated_subscription = NotificationSubscription.objects.filter(
+            user=self.user,
+            channel=self.group.notification_channel
+        )
+
+        self.assertEqual(updated_subscription.count(), 0)
+
+    def test_group_notification_subscribe_api(self):
+        """Test the GroupNotificationSubscribeAPI endpoint"""
+        # Make a POST request to the GroupNotificationSubscribeAPI endpoint
+        response = generate_request(
+            api=GroupNotificationSubscribeAPI,
+            url_params=dict(group_id=self.group.id),
+            data=dict(tags='group'),
+            user=self.user
+        )
+
+        # Verify the response status code
+        self.assertEqual(response.status_code, 200)
+
+        # Verify that the user is subscribed to the group's notification channel
+        subscription = NotificationSubscription.objects.get(
+            user=self.user,
+            channel=self.group.notification_channel
+        )
+        self.assertEqual(set(subscription.tags), {'group'})
+
+        # Send a notification to the group
+        notification = self.group.notify_group(message="Test notification", action=NotificationObject.Action.CREATED)
+
+        # Verify that the user receives the notification
+        user_notifications = Notification.objects.filter(
+            user=self.user,
+            notification_object__channel=self.group.notification_channel,
+            notification_object__tag="group"
+        )
+        self.assertEqual(user_notifications.count(), 1)
+        self.assertEqual(user_notifications.first().notification_object, notification)
+

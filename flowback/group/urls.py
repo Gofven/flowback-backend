@@ -5,7 +5,8 @@ from .views.group import (GroupFolderListApi, GroupListApi, GroupDetailApi, Grou
                           WorkGroupUserJoinRequestListAPI,
                           WorkGroupCreateAPI, WorkGroupUpdateAPI, WorkGroupDeleteAPI, WorkGroupUserJoinAPI,
                           WorkGroupUserLeaveAPI,
-                          WorkGroupUserAddAPI, WorkGroupUserUpdateAPI, WorkGroupUserRemoveAPI)
+                          WorkGroupUserAddAPI, WorkGroupUserUpdateAPI, WorkGroupUserRemoveAPI,
+                          GroupNotificationSubscribeAPI)
 from .views.user import (GroupUserListApi,
                          GroupUserUpdateApi,
                          GroupJoinApi,
@@ -60,6 +61,9 @@ group_patterns = [
     path('<int:group>/update', GroupUpdateApi.as_view(), name='group_update'),
     path('<int:group>/delete', GroupDeleteApi.as_view(), name='group_delete'),
     path('<int:group>/mail', GroupMailApi.as_view(), name='group_mail'),
+    path('<int:group_id>/notification/subscribe',
+         GroupNotificationSubscribeAPI.as_view(),
+         name='group_notification_subscribe'),
 
     path('<int:group_id>/users', GroupUserListApi.as_view(), name='group_users'),
     path('<int:group>/user/update', GroupUserUpdateApi.as_view(), name='group_user_update'),

@@ -78,13 +78,14 @@ class NotificationSubscriptionListAPI(APIView):
                                       view=self)
 
 
-class NotificationSubscribeAPI(APIView):
+class NotificationSubscribeTemplateAPI(APIView):
     """
     A Notification Subscription API constructor. Inherit this to a parent class,
     replace lazy_action field with a service of your own. Override and inherit the internal FilterSerializer,
     add any additional fields to it to pass onto the lazy_action.
     """
     lazy_action = NotificationChannel.subscribe
+    notification_channel: NotificationChannel = None
 
     class Pagination(LimitOffsetPagination):
         default_limit = 25
@@ -93,7 +94,7 @@ class NotificationSubscribeAPI(APIView):
         tags = CharacterSeparatedField(child=serializers.CharField(), required=False)
 
     def post(self, request, *args, **kwargs):
-        serializer = self.FilterSerializer(data=request.query_params)
+        serializer = self.FilterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         self.lazy_action.__func__(*args,

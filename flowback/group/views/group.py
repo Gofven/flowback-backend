@@ -8,9 +8,11 @@ from flowback.group.models import Group
 from flowback.group.selectors import group_list, group_detail, group_folder_list, work_group_user_list, \
     work_group_user_join_request_list, work_group_list
 from flowback.group.serializers import GroupUserSerializer
-from flowback.group.services.group import group_create, group_update, group_delete, group_mail
+from flowback.group.services.group import group_create, group_update, group_delete, group_mail, \
+    group_notification_subscribe
 from flowback.group.services.workgroup import work_group_create, work_group_update, work_group_delete, \
     work_group_user_join, work_group_user_leave, work_group_user_add, work_group_user_remove, work_group_user_update
+from flowback.notification.views import NotificationSubscribeTemplateAPI
 
 
 @extend_schema(tags=['group'])
@@ -167,6 +169,11 @@ class GroupDeleteApi(APIView):
     def post(self, request, group: int):
         group_delete(user=request.user.id, group=group)
         return Response(status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=['group'])
+class GroupNotificationSubscribeAPI(NotificationSubscribeTemplateAPI):
+    lazy_action = group_notification_subscribe
 
 
 @extend_schema(tags=['group'])
