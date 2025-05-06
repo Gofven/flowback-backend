@@ -1,3 +1,4 @@
+import inspect
 from datetime import timedelta, datetime
 from inspect import getfullargspec
 
@@ -141,7 +142,7 @@ class NotificationChannel(BaseModel):
     def notify(self,
                action: NotificationObject.Action,
                message: str,
-               tag: str,
+               tag: str = None,
                timestamp: datetime = None,
                data: dict = None,
                user_filters: dict = None,
@@ -149,17 +150,22 @@ class NotificationChannel(BaseModel):
         """
         Creates a new notification.
         :param action: Check NotificationObject.Action for more information
-        :param message: A text containing the message, if you wish to hyperlink a URL, do it in [text]() format.
-         If you wish to add a URL, add the url beginning with `http://` or `https://` inside the ().
-         If you wish to notify using the channel template, keep the () and leave it blank.
-         If you wish to use a template from a different model, type in the exact model name inside the ().
-         Missing template for the model name won't raise an error, but it will remove the URL.
-        :param tag:
+        :param message: A text containing the message.
+        :param tag: Optional tag for the notification. If not provided,
+         the tag will take the calling function name (without the 'notify_' prefix) if it exists, otherwise
+         it raises an error.
         :param timestamp: Timestamp when this notification becomes active. Defaults to timezone.now().
         :param data: Additional data to pass to the notification.
         :param user_filters: List of filters to pass onto the delivery of notifications.
         :param user_q_filters: List of Q filters to pass onto the delivery of notifications.
         """
+        source = inspect.stack()[1].function
+        if source.startswith('notify_') and not tag:
+            tag = source.replace('notify_', '')
+
+        elif not tag:
+            raise ValidationError('Tag is required for non-notify functions')
+
         if self.content_object.notification_data is not None:
             data = data or {}
             data = dict(zip(data, self.content_object.notification_data))

@@ -78,9 +78,10 @@ class Group(BaseModel, NotifiableModel):
         return dict(group_id=self.id)
 
     def notify_group(self, message: str, action: NotificationChannel.Action = NotificationChannel.Action.CREATED):
-        return self.notification_channel.notify(action=action,
-                                                message=message,
-                                                tag='group')
+        return self.notification_channel.notify(action=action, message=message)
+
+    def notify_poll(self, message: str, action: NotificationChannel.Action = NotificationChannel.Action.CREATED):
+        return self.notification_channel.notify(action=action, message=message)
 
     # Signals
     @classmethod
