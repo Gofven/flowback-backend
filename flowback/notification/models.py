@@ -259,7 +259,6 @@ class NotifiableModel(models.Model):
     The fields for the function will be used for checks and documentation.
     """
     notification_channels = GenericRelation(NotificationChannel)
-    related_notification_channel: NotificationChannel | int | None = None
 
     @property
     def notification_channel(self) -> NotificationChannel:
