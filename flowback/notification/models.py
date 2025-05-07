@@ -12,6 +12,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField
 from rest_framework.exceptions import ValidationError
+from tree_queries.models import TreeNode
 
 from flowback.common.models import BaseModel
 
@@ -91,7 +92,7 @@ class NotificationSubscription(BaseModel):
 
 
 # For any model using Notification, it is recommended to use post_save to create a NotificationChannel object
-class NotificationChannel(BaseModel):
+class NotificationChannel(BaseModel, TreeNode):
     Action = NotificationObject.Action
 
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
@@ -230,10 +231,24 @@ class NotificationChannel(BaseModel):
 
         return subscription
 
+    def unsubscribe_all(self, *, user):
+        """
+        Deletes all subscriptions for the given user, including related channels.
+        """
+        NotificationSubscription.objects.filter(channel__in=self.descendants(include_self=True)).delete()
+
 
 def generate_notification_channel(sender, instance, created, *args, **kwargs):
     if created and issubclass(sender, NotifiableModel):
-        NotificationChannel.objects.create(content_object=instance)
+        parent_id = instance.related_notification_channel
+        if isinstance(parent_id, NotificationChannel):
+            parent_id = parent_id.id
+
+        elif not (isinstance(parent_id, int) or parent_id is None):
+            raise ValueError('related_notification_channel must be a NotificationChannel or an integer')
+
+        print(instance.related_notification_channel, "hellou")
+        NotificationChannel.objects.create(content_object=instance, parent_id=parent_id)
 
 
 class NotifiableModel(models.Model):
@@ -244,6 +259,7 @@ class NotifiableModel(models.Model):
     The fields for the function will be used for checks and documentation.
     """
     notification_channels = GenericRelation(NotificationChannel)
+    related_notification_channel: NotificationChannel | int | None = None
 
     @property
     def notification_channel(self) -> NotificationChannel:
@@ -255,6 +271,10 @@ class NotifiableModel(models.Model):
 
     class Meta:
         abstract = True
+
+    def __init__(self, related_notification_channel: NotificationChannel | int | None = None, *args, **kwargs):
+        self.related_notification_channel = related_notification_channel
+        super().__init__(*args, **kwargs)
 
     @classmethod
     def __init_subclass__(cls, **kwargs):

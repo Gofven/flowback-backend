@@ -80,7 +80,25 @@ class GroupNotificationTest(APITransactionTestCase):
                                                          notification_object__channel=self.group.notification_channel,
                                                          notification_object__tag="group").count(), 2)
 
-    # This test has been moved to NotificationSubscribeTest class
+    def test_notification_subscribe_ancestor(self):
+        group_users = GroupUserFactory.create_batch(size=5, group=self.group)
+        [self.group.notification_channel.subscribe(user=u.user,
+                                                   tags=['group']) for u in group_users]
+
+        children = GroupFactory.create_batch(size=5, related_notification_channel=self.group.notification_channel.id)
+        GroupFactory.create_batch(size=3, related_notification_channel=children[0].notification_channel)
+        nested_children = GroupFactory.create_batch(size=4,
+                                                    related_notification_channel=children[1].notification_channel)
+        GroupFactory.create_batch(size=4, related_notification_channel=nested_children[1].notification_channel)
+
+        [nested_children[1].notification_channel.subscribe(user=u.user,
+                                                           tags=['group']) for u in group_users]
+
+        self.assertEqual(group_users[1].user.notificationsubscription_set.count(), 2)
+        self.group.notification_channel.unsubscribe_all(user=group_users[1].user)
+        self.assertEqual(group_users[1].user.notificationsubscription_set.count(), 0)
+
+        self.assertEqual(self.group.notification_channel.descendants().count(), 16)
 
     def test_notification_update(self):
         group_users = GroupUserFactory.create_batch(size=5, group=self.group)
@@ -323,4 +341,3 @@ class NotificationSubscribeTest(APITransactionTestCase):
         )
         self.assertEqual(user_notifications.count(), 1)
         self.assertEqual(user_notifications.first().notification_object, notification)
-
