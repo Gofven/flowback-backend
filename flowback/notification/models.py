@@ -247,7 +247,6 @@ def generate_notification_channel(sender, instance, created, *args, **kwargs):
         elif not (isinstance(parent_id, int) or parent_id is None):
             raise ValueError('related_notification_channel must be a NotificationChannel or an integer')
 
-        print(instance.related_notification_channel, "hellou")
         NotificationChannel.objects.create(content_object=instance, parent_id=parent_id)
 
 
@@ -271,8 +270,12 @@ class NotifiableModel(models.Model):
     class Meta:
         abstract = True
 
-    def __init__(self, related_notification_channel: NotificationChannel | int | None = None, *args, **kwargs):
-        self.related_notification_channel = related_notification_channel
+    def __init__(self, *args, **kwargs):
+        """
+        The Constructor of NotifiableModel. Possible to pass in `related_notification_channel`
+        as a kwarg (NotificationChannel or int).
+        """
+        self.related_notification_channel = kwargs.pop('related_notification_channel', None)
         super().__init__(*args, **kwargs)
 
     @classmethod
