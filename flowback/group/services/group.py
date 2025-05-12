@@ -40,19 +40,22 @@ def group_create(*,
     return group
 
 
-def group_update(*, user: int, group: int, data) -> Group:
-    group_user = group_user_permissions(user=user, group=group, permissions=['admin'])
+def group_update(*, user: int, group_id: int, data) -> Group:
+    group_user = group_user_permissions(user=user, group=group_id, permissions=['admin'])
     non_side_effect_fields = ['name', 'description', 'image', 'cover_image', 'hide_poll_users',
                               'public', 'direct_join', 'default_permission', 'default_quorum',
                               'poll_phase_minimum_space']
 
     # Check if group_permission exists to allow for a new default_permission
     if default_permission := data.get('default_permission'):
-        data['default_permission'] = get_object(GroupPermissions, id=default_permission, author_id=group)
+        data['default_permission'] = get_object(GroupPermissions, id=default_permission, author_id=group_id)
 
     group, has_updated = model_update(instance=group_user.group,
-                                      fields=non_side_effect_fields,
-                                      data=data)
+                                         fields=non_side_effect_fields,
+                                         data=data)
+
+    group.notify_group(message=f"Group has been updated",
+                          action=group.notification_channel.Action.UPDATED)
 
     return group
 

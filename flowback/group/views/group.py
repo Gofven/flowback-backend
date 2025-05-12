@@ -157,10 +157,10 @@ class GroupUpdateApi(APIView):
         default_permission = serializers.IntegerField(required=False, allow_null=True)
         default_quorum = serializers.IntegerField(required=False, allow_null=True)
 
-    def post(self, request, group: int):
+    def post(self, request, group_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        group_update(user=request.user.id, group=group, data=serializer.validated_data)
+        group_update(user=request.user.id, group_id=group_id, data=serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 
