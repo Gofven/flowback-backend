@@ -136,11 +136,13 @@ class NotificationListTest(APITransactionTestCase):
         self.group = GroupFactory()
         self.group_users = GroupUserFactory.create_batch(size=5, group=self.group)
         [self.group.notification_channel.subscribe(user=u.user,
-                                                   tags=['group']) for u in self.group_users]
+                                                   tags=['group', 'group_user']) for u in self.group_users]
 
         # Create test notifications
-        self.notification_one = self.group.notify_group(message="Hello everyone!")
-        self.notification_two = self.group.notify_group(message="Hi there!")
+        self.notification_one = self.group.notify_group(message="Hello everyone!",
+                                                        action=NotificationObject.Action.CREATED)
+        self.notification_two = self.group.notify_group(message="Hi there!",
+                                                        action=NotificationObject.Action.CREATED)
         self.notification_three = self.group.notify_group(message="Important announcement",
                                                           action=NotificationObject.Action.UPDATED)
 
@@ -241,6 +243,15 @@ class NotificationListTest(APITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['results']), 3)
         self.assertEqual(response.data['results'][0]['object_id'], self.notification_three.id)
+
+    def test_notification_notify_group_user(self):
+        self.group.notify_group_user(user_id=self.group_users[0].user_id,
+                                     message="Test notification",
+                                     action=NotificationObject.Action.CREATED)
+        self.assertEqual(Notification.objects.get(notification_object__channel__content_type__model="group",
+                                                  notification_object__channel__object_id=self.group.id,
+                                                  notification_object__tag="group_user").user,
+                         self.group_users[0].user)
 
 
 class NotificationSubscribeTest(APITransactionTestCase):

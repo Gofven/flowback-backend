@@ -77,11 +77,14 @@ class Group(BaseModel, NotifiableModel):
     def notification_data(self):
         return dict(group_id=self.id)
 
-    def notify_group(self, message: str, action: NotificationChannel.Action = NotificationChannel.Action.CREATED):
+    def notify_group(self, message: str, action: NotificationChannel.Action):
         return self.notification_channel.notify(action=action, message=message)
 
-    def notify_poll(self, message: str, action: NotificationChannel.Action = NotificationChannel.Action.CREATED):
-        return self.notification_channel.notify(action=action, message=message)
+    def notify_group_user(self, user_id: int, message: str, action: NotificationChannel.Action):
+        GroupUser.objects.get(user_id=user_id, group_id=self.id)
+        return self.notification_channel.notify(message=message,
+                                                action=action,
+                                                subscription_filters=dict(user_id=user_id))
 
     # Signals
     @classmethod

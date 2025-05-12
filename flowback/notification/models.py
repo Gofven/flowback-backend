@@ -146,8 +146,8 @@ class NotificationChannel(BaseModel, TreeNode):
                tag: str = None,
                timestamp: datetime = None,
                data: dict = None,
-               user_filters: dict = None,
-               user_q_filters: list[Q] = None) -> NotificationObject:
+               subscription_filters: dict = None,
+               subscription_q_filters: list[Q] = None) -> NotificationObject:
         """
         Creates a new notification.
         :param action: Check NotificationObject.Action for more information
@@ -157,8 +157,8 @@ class NotificationChannel(BaseModel, TreeNode):
          it raises an error.
         :param timestamp: Timestamp when this notification becomes active. Defaults to timezone.now().
         :param data: Additional data to pass to the notification.
-        :param user_filters: List of filters to pass onto the delivery of notifications.
-        :param user_q_filters: List of Q filters to pass onto the delivery of notifications.
+        :param user_filters: List of NotificationSubscription filters to pass onto the delivery of notifications.
+        :param user_q_filters: List of NotificationSubscription Q filters to pass onto the delivery of notifications.
         """
         source = inspect.stack()[1].function
         if source.startswith('notify_') and not tag:
@@ -179,8 +179,8 @@ class NotificationChannel(BaseModel, TreeNode):
                                                  data=data,
                                                  **{k: v for k, v in extra_fields.items() if v is not None})
 
-        notification_object.user_filters = user_filters or {}
-        notification_object.user_q_filters = user_q_filters or []
+        notification_object.subscription_filters = subscription_filters or {}
+        notification_object.subscription_q_filters = subscription_q_filters or []
 
         notification_object.full_clean()
         notification_object.save()
