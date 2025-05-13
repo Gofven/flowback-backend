@@ -88,6 +88,36 @@ class Group(BaseModel, NotifiableModel):
                                                 action=action,
                                                 subscription_filters=dict(user_id=_user_id))
 
+    def notify_kanban(self,
+                      message: str,
+                      action: NotificationChannel.Action,
+                      _user_id: int = None,
+                      work_group_id: int = None,
+                      work_group_name: str = None):
+        data = dict(work_group_id=work_group_id,
+                    work_group_name=work_group_name)
+
+        if _user_id:  # Send a notification to one user
+            return self.notification_channel.notify(message=message,
+                                                    action=action,
+                                                    subscription_filters=dict(user_id=_user_id),
+                                                    data=data)
+
+        elif work_group_id:  # Send notifications to a work group
+            user_list = WorkGroupUser.objects.filter(work_group_id=work_group_id
+                                                     ).values_list('group_user__user_id',
+                                                                   flat=True)
+
+            return self.notification_channel.notify(message=message,
+                                                    action=action,
+                                                    subscription_filters=dict(user_id__in=user_list),
+                                                    data=data)
+
+        # Send notifications to everyone
+        return self.notification_channel.notify(message=message,
+                                                action=action,
+                                                data=data)
+
     # Signals
     @classmethod
     def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):
