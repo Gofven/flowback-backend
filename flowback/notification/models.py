@@ -121,7 +121,9 @@ class NotificationChannel(BaseModel, TreeNode):
         if f'notify_{tag}' in tag_func_names:
             excluded_fields = ['self', 'user_filters', 'user_q_filters', 'message', 'action']
             tag_fields = list(*getfullargspec(getattr(self.content_object, f'notify_{tag}'))[0])
-            tag_fields = [tag_field for tag_field in tag_fields if tag_field not in excluded_fields]
+            tag_fields = [tag_field for tag_field in tag_fields
+                          if not (tag_field in excluded_fields
+                          or tag_field.startswith('_', ''))]
 
             return tag_fields
 
@@ -149,7 +151,8 @@ class NotificationChannel(BaseModel, TreeNode):
                subscription_filters: dict = None,
                subscription_q_filters: list[Q] = None) -> NotificationObject:
         """
-        Creates a new notification.
+        Creates a new notification. If called by a 'notify_*' function,
+        args prefixed with '_' won't be used for documentation.
         :param action: Check NotificationObject.Action for more information
         :param message: A text containing the message.
         :param tag: Optional tag for the notification. If not provided,
