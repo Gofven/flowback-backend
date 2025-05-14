@@ -1,4 +1,5 @@
-from flowback.group.models import WorkGroupUser, GroupThread
+from flowback.group.models import GroupThread
+from flowback.poll.models import Poll
 from flowback.kanban.models import KanbanEntry
 from flowback.notification.models import NotificationChannel
 from flowback.user.models import User
@@ -43,3 +44,20 @@ def notify_group_thread(message: str,
                                                work_group_id=thread.work_group_id if thread.work_group else None,
                                                work_group_name=thread.work_group.name if thread.work_group else None,
                                                subscription_filters=subscription_filters)
+
+
+def notify_group_poll(message: str,
+                      action: NotificationChannel.Action,
+                      poll: Poll):
+    subscription_filters = None
+
+    if poll.work_group:
+        subscription_filters = dict(user_id__in=poll.work_group.group_users.values_list('user_id', flat=True))
+
+    poll.created_by.group.notify_poll(message=message,
+                                      action=action,
+                                      poll_id=poll.id,
+                                      poll_title=poll.title,
+                                      work_group_id=poll.work_group_id if poll.work_group else None,
+                                      work_group_name=poll.work_group.name if poll.work_group else None,
+                                      subscription_filters=subscription_filters)

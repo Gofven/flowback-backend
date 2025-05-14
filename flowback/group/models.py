@@ -85,7 +85,6 @@ class Group(BaseModel, NotifiableModel):
 
     def notify_group_user(self, _user_id: int, message: str, action: NotificationChannel.Action):
         """Notify users about changes to their group user profile"""
-        GroupUser.objects.get(user_id=_user_id, group_id=self.id)
         return self.notification_channel.notify(message=message,
                                                 action=action,
                                                 subscription_filters=dict(user_id=_user_id))
@@ -116,6 +115,20 @@ class Group(BaseModel, NotifiableModel):
                       subscription_filters: dict = None,
                       subscription_q_filters: dict = None):
         """Notify relevant users about new threads"""
+        params = locals()
+        params.pop('self')
+
+        return self.notification_channel.notify(**params)
+
+    def notify_poll(self, *,
+                    message: str,
+                    action: NotificationChannel.Action,
+                    poll_id: int,
+                    poll_title: str,
+                    work_group_id: int = None,
+                    work_group_name: str = None,
+                    subscription_filters: dict = None):
+        """Notify relevant users about new polls"""
         params = locals()
         params.pop('self')
 
