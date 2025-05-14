@@ -5,7 +5,9 @@ from flowback.comment.services import comment_create, comment_update, comment_de
 from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
 from flowback.group.models import GroupThread, GroupThreadVote, WorkGroupUser
+from flowback.group.notify import notify_group_thread
 from flowback.group.selectors import group_user_permissions
+from flowback.notification.models import NotificationChannel
 
 
 def group_thread_create(user_id: int,
@@ -35,11 +37,10 @@ def group_thread_create(user_id: int,
     thread.full_clean()
     thread.save()
 
-    # Notify users when thread is created
-    target_user_ids = None
-    if work_group_id:
-        target_user_ids = list(WorkGroupUser.objects.filter(id=work_group_id).values_list('group_user__user_id',
-                                                                                          flat=True))
+    # Notify users when a thread is created
+    notify_group_thread(message="A new thread has been posted",
+                        action=NotificationChannel.Action.CREATED,
+                        thread=thread)
 
     return thread
 

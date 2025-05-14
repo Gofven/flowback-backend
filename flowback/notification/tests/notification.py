@@ -245,7 +245,7 @@ class NotificationListTest(APITransactionTestCase):
         self.assertEqual(response.data['results'][0]['object_id'], self.notification_three.id)
 
     def test_notification_notify_group_user(self):
-        self.group.notify_group_user(user_id=self.group_users[0].user_id,
+        self.group.notify_group_user(_user_id=self.group_users[0].user_id,
                                      message="Test notification",
                                      action=NotificationObject.Action.CREATED)
         self.assertEqual(Notification.objects.get(notification_object__channel__content_type__model="group",

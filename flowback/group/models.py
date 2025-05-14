@@ -80,43 +80,46 @@ class Group(BaseModel, NotifiableModel):
                     group_image=self.image)
 
     def notify_group(self, message: str, action: NotificationChannel.Action):
+        """Notify all users in the group about general events"""
         return self.notification_channel.notify(action=action, message=message)
 
     def notify_group_user(self, _user_id: int, message: str, action: NotificationChannel.Action):
+        """Notify users about changes to their group user profile"""
         GroupUser.objects.get(user_id=_user_id, group_id=self.id)
         return self.notification_channel.notify(message=message,
                                                 action=action,
                                                 subscription_filters=dict(user_id=_user_id))
 
-    def notify_kanban(self,
+    def notify_kanban(self, *,
                       message: str,
                       action: NotificationChannel.Action,
-                      _user_id: int = None,
+                      kanban_entry_id: int,
+                      kanban_entry_title: str,
                       work_group_id: int = None,
-                      work_group_name: str = None):
-        data = dict(work_group_id=work_group_id,
-                    work_group_name=work_group_name)
-
-        if _user_id:  # Send a notification to one user
-            return self.notification_channel.notify(message=message,
-                                                    action=action,
-                                                    subscription_filters=dict(user_id=_user_id),
-                                                    data=data)
-
-        elif work_group_id:  # Send notifications to a work group
-            user_list = WorkGroupUser.objects.filter(work_group_id=work_group_id
-                                                     ).values_list('group_user__user_id',
-                                                                   flat=True)
-
-            return self.notification_channel.notify(message=message,
-                                                    action=action,
-                                                    subscription_filters=dict(user_id__in=user_list),
-                                                    data=data)
+                      work_group_name: str = None,
+                      subscription_filters: dict = None,
+                      subscription_q_filters: dict = None):
+        """Notify relevant users about important changes to the kanban board"""
+        params = locals()
+        params.pop('self')
 
         # Send notifications to everyone
-        return self.notification_channel.notify(message=message,
-                                                action=action,
-                                                data=data)
+        return self.notification_channel.notify(**params)
+
+    def notify_thread(self, *,
+                      message: str,
+                      action: NotificationChannel.Action,
+                      thread_id: int,
+                      thread_title: str,
+                      work_group_id: int = None,
+                      work_group_name: str = None,
+                      subscription_filters: dict = None,
+                      subscription_q_filters: dict = None):
+        """Notify relevant users about new threads"""
+        params = locals()
+        params.pop('self')
+
+        return self.notification_channel.notify(**params)
 
     # Signals
     @classmethod
@@ -299,6 +302,10 @@ class WorkGroup(BaseModel):
     direct_join = models.BooleanField(default=False)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     chat = models.ForeignKey(MessageChannel, on_delete=models.PROTECT)
+
+    @property
+    def group_users(self):
+        return GroupUser.objects.filter(group=self.workgroupuser_set, active=True)
 
     @classmethod
     def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):
