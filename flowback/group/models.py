@@ -332,7 +332,7 @@ class WorkGroup(BaseModel):
 
     @property
     def group_users(self):
-        return GroupUser.objects.filter(group=self.workgroupuser_set, active=True)
+        return GroupUser.objects.filter(group=self.group, workgroupuser__work_group=self, active=True)
 
     @classmethod
     def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):

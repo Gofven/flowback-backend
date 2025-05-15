@@ -46,6 +46,7 @@ class NotificationObject(BaseModel):
 
         subscription_filters = dict()
         subscription_q_filters = []
+
         if hasattr(instance, 'subscription_filters'):
             subscription_filters = instance.subscription_filters
 
@@ -104,7 +105,7 @@ class NotificationChannel(BaseModel, TreeNode):
         """
         A list containing notification tags.
         """
-        return [tag.strip('notify_') for tag in dir(self.content_object) if tag.startswith('notify_')]
+        return [tag.replace('notify_', '') for tag in dir(self.content_object) if tag.startswith('notify_')]
 
     def get_tag_fields(self, tag: str) -> list | None:
         """
