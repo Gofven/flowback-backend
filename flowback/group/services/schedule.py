@@ -1,7 +1,9 @@
 from django.utils import timezone
 
 from flowback.group.models import WorkGroupUser
+from flowback.group.notify import notify_group_schedule_event
 from flowback.group.selectors import group_user_permissions
+from flowback.notification.models import NotificationChannel
 from flowback.schedule.models import ScheduleEvent
 from flowback.schedule.services import ScheduleManager, subscribe_schedule
 from flowback.user.services import user_schedule
@@ -23,10 +25,15 @@ def group_schedule_event_create(*,
                                         work_group_id=work_group_id,
                                         **data)
 
-    target_user_ids = None
-    if work_group_id:
-        target_user_ids = WorkGroupUser.objects.filter(id=work_group_id).values_list('group_user__user_id',
-                                                                                     flat=True)
+    notify_group_schedule_event(message="A new event has been created",
+                                action=NotificationChannel.Action.CREATED,
+                                schedule_event=event)
+
+    if event.assignees:
+        notify_group_schedule_event(message="You have been assigned to a new event",
+                                    action=NotificationChannel.Action.CREATED,
+                                    schedule_event=event,
+                                    user_id_list=list(event.assignees.values_list('user_id', flat=True)))
 
     return event
 
@@ -36,28 +43,44 @@ def group_schedule_event_update(*,
                                 group_id: int,
                                 event_id: int,
                                 **data):
-    work_group = group_schedule.get_schedule_event(event_id=event_id).work_group
-    group_user = group_user_permissions(user=user_id, group=group_id, work_group=work_group.id if work_group else None)
-    group_schedule.update_event(event_id=event_id, schedule_origin_id=group_user.group.id, data=data)
+    old_event = group_schedule.get_schedule_event(event_id=event_id)
+    old_event_assignees = list(old_event.assignees.values_list('user_id', flat=True))
 
-    target_user_ids = None
-    if work_group:
-        target_user_ids = WorkGroupUser.objects.filter(id=work_group.id).values_list('group_user__user_id',
-                                                                                     flat=True)
+    group_user = group_user_permissions(user=user_id,
+                                        group=group_id,
+                                        work_group=old_event.work_group.id if old_event.work_group else None)
+    updated_event = group_schedule.update_event(event_id=event_id, schedule_origin_id=group_user.group.id, data=data)
+    updated_event_assignees = list(updated_event.assignees.values_list('user_id', flat=True))
+
+    # Notify users
+    if list(set(old_event_assignees) - set(updated_event_assignees)):
+        notify_group_schedule_event(message="You have been unassigned from an event",
+                                    action=NotificationChannel.Action.UPDATED,
+                                    schedule_event=updated_event,
+                                    user_id_list=list(set(old_event_assignees) - set(updated_event_assignees)))
+
+    if list(set(updated_event_assignees) - set(old_event_assignees)):
+        notify_group_schedule_event(message="You have been assigned to an event",
+                                    action=NotificationChannel.Action.UPDATED,
+                                    schedule_event=updated_event,
+                                    user_id_list=list(set(updated_event_assignees) - set(old_event_assignees)))
 
 
 def group_schedule_event_delete(*,
                                 user_id: int,
                                 group_id: int,
                                 event_id: int):
-    work_group = group_schedule.get_schedule_event(event_id=event_id).work_group
-    group_user = group_user_permissions(user=user_id, group=group_id, work_group=work_group.id if work_group else None)
+    event = group_schedule.get_schedule_event(event_id=event_id)
+    group_user = group_user_permissions(user=user_id,
+                                        group=group_id,
+                                        work_group=event.work_group.id if event.work_group else None)
     group_schedule.delete_event(event_id=event_id, schedule_origin_id=group_user.group.id)
 
-    target_user_ids = None
-    if work_group:
-        target_user_ids = WorkGroupUser.objects.filter(id=work_group.id).values_list('group_user__user_id',
-                                                                                     flat=True)
+    if event.assignees:
+        notify_group_schedule_event(message="The schedule event you've been assigned to has been deleted",
+                                    action=NotificationChannel.Action.DELETED,
+                                    schedule_event=event,
+                                    user_id_list=list(event.assignees.values_list('user_id', flat=True)))
 
 
 def group_schedule_subscribe(*,

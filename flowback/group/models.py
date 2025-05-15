@@ -134,6 +134,20 @@ class Group(BaseModel, NotifiableModel):
 
         return self.notification_channel.notify(**params)
 
+    def notify_schedule_event(self, *,
+                              message: str,
+                              action: NotificationChannel.Action,
+                              schedule_event_id: int,
+                              schedule_event_title: str,
+                              work_group_id: int = None,
+                              work_group_name: str = None,
+                              subscription_filters: dict = None):
+        """Notify relevant users about new schedule events"""
+        params = locals()
+        params.pop('self')
+
+        return self.notification_channel.notify(**params)
+
     # Signals
     @classmethod
     def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):
