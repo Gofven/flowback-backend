@@ -9,7 +9,7 @@ class UserFactory(factory.django.DjangoModelFactory):
         model = User
 
     email = factory.LazyAttribute(lambda _: fake.unique.email())
-    username = factory.LazyAttribute(lambda _: fake.unique.first_name().lower())
+    username = factory.LazyAttribute(lambda _: fake.first_name().lower() + str(fake.pyint()))
     password = 'password123abc.!?'
 
 

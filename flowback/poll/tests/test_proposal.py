@@ -1,6 +1,6 @@
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
-from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
+from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
 from .factories import PollFactory, PollProposalFactory, PollProposalTypeScheduleFactory
 
 from .utils import generate_poll_phase_kwargs
@@ -11,7 +11,7 @@ from ...schedule.models import ScheduleEvent
 from ...user.models import User
 
 
-class ProposalTest(APITransactionTestCase):
+class ProposalTest(APITestCase):
     def setUp(self):
         self.group = GroupFactory()
         self.group_tag = GroupTagsFactory(group=self.group)

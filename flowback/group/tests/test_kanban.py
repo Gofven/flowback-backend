@@ -1,4 +1,4 @@
-from rest_framework.test import APITransactionTestCase, APIRequestFactory, force_authenticate
+from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from .factories import GroupFactory, GroupUserFactory, WorkGroupFactory
 from ..models import GroupUser
 from ..views.kanban import GroupKanbanEntryListAPI
@@ -6,7 +6,7 @@ from ...common.tests import generate_request
 from ...kanban.tests.factories import KanbanEntryFactory
 
 
-class TestKanban(APITransactionTestCase):
+class TestKanban(APITestCase):
     def setUp(self):
         self.group = GroupFactory()
         self.user = self.group.created_by

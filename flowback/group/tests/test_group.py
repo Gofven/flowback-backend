@@ -2,7 +2,7 @@ import json
 from pprint import pprint
 
 from rest_framework import status
-from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
+from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
 
 from flowback.common.tests import generate_request
 from flowback.group.models import GroupUser, Group, GroupUserInvite
@@ -15,7 +15,7 @@ from flowback.user.models import User
 from flowback.user.tests.factories import UserFactory
 
 
-class GroupTest(APITransactionTestCase):
+class GroupTest(APITestCase):
     def setUp(self):
         (self.group_one,
          self.group_two,

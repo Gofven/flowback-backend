@@ -2,7 +2,7 @@ import json
 import math
 
 from rest_framework import status
-from rest_framework.test import APITransactionTestCase, APIRequestFactory, force_authenticate
+from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 
 from flowback.chat.models import MessageChannel, MessageChannelParticipant
 from flowback.chat.tests.factories import MessageChannelFactory
@@ -20,7 +20,7 @@ from flowback.user.views.home import UserHomeFeedAPI
 from flowback.user.views.user import UserDeleteAPI, UserGetChatChannelAPI, UserUpdateApi, UserChatInviteAPI, UserGetApi
 
 
-class UserTest(APITransactionTestCase):
+class UserTest(APITestCase):
     def setUp(self):
         (self.user_one,
          self.user_two,

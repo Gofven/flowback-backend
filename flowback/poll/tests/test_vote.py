@@ -1,4 +1,4 @@
-from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
+from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
 from .factories import PollFactory, PollProposalFactory
 from .utils import generate_poll_phase_kwargs
 from ..models import PollDelegateVoting, PollVotingTypeCardinal, Poll, PollProposal, PollVoting, \
@@ -15,7 +15,7 @@ from ...group.tests.factories import GroupFactory, GroupUserFactory, GroupUserDe
 from ...user.models import User
 
 
-class PollVoteTest(APITransactionTestCase):
+class PollVoteTest(APITestCase):
     def setUp(self):
         self.group = GroupFactory()
         self.group_tag = GroupTagsFactory(group=self.group)
@@ -217,7 +217,7 @@ class PollVoteTest(APITransactionTestCase):
         self.assertEqual(event.end_date, self.poll_schedule_proposal_three.pollproposaltypeschedule.event.end_date)
 
 
-class PollDelegateVoteTest(APITransactionTestCase):
+class PollDelegateVoteTest(APITestCase):
     reset_sequences = True
 
     def setUp(self):

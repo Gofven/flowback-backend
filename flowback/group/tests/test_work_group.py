@@ -3,7 +3,7 @@ import json
 from pprint import pprint
 
 from rest_framework import status
-from rest_framework.test import APITransactionTestCase
+from rest_framework.test import APITestCase
 
 from flowback.chat.models import MessageChannel, MessageChannelParticipant
 from flowback.common.tests import generate_request
@@ -16,7 +16,7 @@ from flowback.group.views.group import WorkGroupCreateAPI, WorkGroupUpdateAPI, \
 from flowback.user.tests.factories import UserFactory
 
 
-class WorkGroupTest(APITransactionTestCase):
+class WorkGroupTest(APITestCase):
     def setUp(self):
         groups = [GroupFactory.create(public=True) for x in range(3)]
 
@@ -40,7 +40,7 @@ class WorkGroupTest(APITransactionTestCase):
     def test_work_group_list(self):
         work_group_one = WorkGroupFactory(group=self.group_user_creator_one.group)
         work_group_two = WorkGroupFactory(group=self.group_user_creator_one.group)
-        
+
         work_group_users_one = WorkGroupUserFactory.create_batch(22,
                                                                  group_user__group=self.group_one,
                                                                  work_group=work_group_one)

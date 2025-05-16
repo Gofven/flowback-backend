@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import Sum, Case, When, F
 from django.db.models.functions import Abs
 from django.utils import timezone
-from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
+from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
 
 from flowback.group.models import GroupUser, GroupTags
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
@@ -30,7 +30,7 @@ from flowback.poll.views.prediction import (PollPredictionStatementCreateAPI,
                                             PollPredictionBetListAPI)
 
 
-class PollPredictionStatementTest(APITransactionTestCase):
+class PollPredictionStatementTest(APITestCase):
     def setUp(self):
         # Group Preparation
         self.group = GroupFactory.create()

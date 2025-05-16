@@ -4,7 +4,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
+from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
 from .factories import PollFactory, PollProposalFactory, PollPredictionStatementFactory
 
 from .utils import generate_poll_phase_kwargs
@@ -20,7 +20,7 @@ from ...notification.models import NotificationChannel
 from ...user.models import User
 
 
-class PollTest(APITransactionTestCase):
+class PollTest(APITestCase):
     def setUp(self):
         self.group = GroupFactory()
         self.group_tag = GroupTagsFactory(group=self.group)
