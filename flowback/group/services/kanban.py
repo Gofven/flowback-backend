@@ -53,7 +53,10 @@ def group_kanban_entry_update(*,
                               group_id: int,
                               entry_id: int,
                               data) -> KanbanEntry:
-    previous_kanban_entry = KanbanEntry.objects.get(id=entry_id, origin_type='group', origin_id=group_id)
+    previous_kanban_entry = KanbanEntry.objects.get(id=entry_id,
+                                                    kanban__origin_type='group',
+                                                    kanban__origin_id=group_id)
+
     group_user = group_user_permissions(user=fetched_by_id,
                                         group=group_id,
                                         permissions=['admin', 'update_kanban_task'],
