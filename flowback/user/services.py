@@ -38,8 +38,7 @@ def user_create(*, username: str, email: str) -> OnboardUser | None:
 
     link = f'Use this code to create your account: {user.verification_code}'
     if FLOWBACK_URL:
-        link = f'''Use this link to create your account: {FLOWBACK_URL}/create_account/
-                   ?email={email}&verification_code={user.verification_code}'''
+        link = f'''Use this link to create your account: {FLOWBACK_URL}/create_account?email={email}&verification_code={user.verification_code}'''
 
     if EMAIL_HOST:
         send_mail('Flowback Verification Code', link, DEFAULT_FROM_EMAIL, [email])
