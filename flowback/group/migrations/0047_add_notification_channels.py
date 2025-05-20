@@ -10,6 +10,7 @@ def add_notification_channels(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('notification', '0007_notificationchannel_parent'),
         ('group', '0046_alter_workgroup_chat_and_more'),
     ]
 
