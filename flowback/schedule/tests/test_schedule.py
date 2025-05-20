@@ -1,6 +1,6 @@
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
-from rest_framework.test import APITransactionTestCase
+from rest_framework.test import APITestCase
 
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
 from flowback.schedule.models import ScheduleEvent
@@ -9,7 +9,7 @@ from flowback.schedule.tasks import event_notify
 from flowback.schedule.tests.factories import ScheduleFactory, ScheduleEventFactory
 
 
-class TestSchedule(APITransactionTestCase):
+class TestSchedule(APITestCase):
     def setUp(self):
         self.group = GroupFactory()
         self.group_users = GroupUserFactory.create_batch(size=10, group=self.group)

@@ -64,6 +64,19 @@ TESTING = sys.argv[1:2] == ['test'] or "pytest" in sys.modules
 env.read_env(os.path.join(BASE_DIR, ".env"))
 
 
+# Disable migrations when testing
+if TESTING:
+    class DisableMigrations(object):
+
+        def __contains__(self, item):
+            return True
+
+        def __getitem__(self, item):
+            return None
+
+    MIGRATION_MODULES = DisableMigrations()
+
+
 # Django Secret Key. If it's missing, it'll be generated and stored in .env
 SECRET_KEY = env('DJANGO_SECRET', default=None)
 

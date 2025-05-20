@@ -8,10 +8,11 @@ from flowback.group.models import Group
 from flowback.group.selectors import group_list, group_detail, group_folder_list, work_group_user_list, \
     work_group_user_join_request_list, work_group_list
 from flowback.group.serializers import GroupUserSerializer
-from flowback.group.services.group import group_notification_subscribe
-from flowback.group.services.group import group_notification, group_create, group_update, group_delete, group_mail
+from flowback.group.services.group import group_create, group_update, group_delete, group_mail, \
+    group_notification_subscribe
 from flowback.group.services.workgroup import work_group_create, work_group_update, work_group_delete, \
     work_group_user_join, work_group_user_leave, work_group_user_add, work_group_user_remove, work_group_user_update
+from flowback.notification.views import NotificationSubscribeTemplateAPI
 
 
 @extend_schema(tags=['group'])
@@ -156,10 +157,10 @@ class GroupUpdateApi(APIView):
         default_permission = serializers.IntegerField(required=False, allow_null=True)
         default_quorum = serializers.IntegerField(required=False, allow_null=True)
 
-    def post(self, request, group: int):
+    def post(self, request, group_id: int):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        group_update(user=request.user.id, group=group, data=serializer.validated_data)
+        group_update(user=request.user.id, group_id=group_id, data=serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -170,15 +171,9 @@ class GroupDeleteApi(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class GroupNotificationSubscribeApi(APIView):
-    class InputSerializer(serializers.Serializer):
-        categories = serializers.MultipleChoiceField(choices=group_notification.possible_categories)
-
-    def post(self, request, group: int):
-        serializer = self.InputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        group_notification_subscribe(user_id=request.user.id, group=group, **serializer.validated_data)
-        return Response(status=status.HTTP_200_OK)
+@extend_schema(tags=['group'])
+class GroupNotificationSubscribeAPI(NotificationSubscribeTemplateAPI):
+    lazy_action = group_notification_subscribe
 
 
 @extend_schema(tags=['group'])

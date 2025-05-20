@@ -2,7 +2,7 @@ from pprint import pprint
 
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.test import APITransactionTestCase
+from rest_framework.test import APITestCase
 
 from flowback.common.tests import generate_request
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
@@ -11,7 +11,7 @@ from flowback.schedule.services import create_event
 from flowback.schedule.tests.factories import ScheduleFactory, ScheduleEventFactory
 
 
-class TestSchedule(APITransactionTestCase):
+class TestSchedule(APITestCase):
     def setUp(self):
         self.group = GroupFactory()
         self.group_users = GroupUserFactory.create_batch(size=10, group=self.group)

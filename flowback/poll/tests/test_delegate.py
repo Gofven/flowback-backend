@@ -1,7 +1,7 @@
 import json
 from pprint import pprint
 
-from rest_framework.test import APITransactionTestCase, APIRequestFactory, force_authenticate
+from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupUserDelegateFactory
 from flowback.poll.tests.factories import PollFactory, PollProposalFactory, PollVotingTypeCardinalFactory, \
@@ -10,7 +10,7 @@ from flowback.poll.tests.utils import generate_poll_phase_kwargs
 from flowback.poll.views.vote import DelegatePollVoteListAPI
 
 
-class PollDelegateTests(APITransactionTestCase):
+class PollDelegateTests(APITestCase):
     def setUp(self):
         self.group = GroupFactory()
         self.group_user_creator = GroupUserFactory(group=self.group)

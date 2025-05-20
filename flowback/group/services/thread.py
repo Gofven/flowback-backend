@@ -5,11 +5,9 @@ from flowback.comment.services import comment_create, comment_update, comment_de
 from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
 from flowback.group.models import GroupThread, GroupThreadVote, WorkGroupUser
+from flowback.group.notify import notify_group_thread
 from flowback.group.selectors import group_user_permissions
-from flowback.group.services.group import group_notification
-from flowback.notification.services import NotificationManager
-
-group_thread_notification = NotificationManager(sender_type='group_thread', possible_categories=['comment'])
+from flowback.notification.models import NotificationChannel
 
 
 def group_thread_create(user_id: int,
@@ -39,18 +37,10 @@ def group_thread_create(user_id: int,
     thread.full_clean()
     thread.save()
 
-    # Notify users when thread is created
-    target_user_ids = None
-    if work_group_id:
-        target_user_ids = list(WorkGroupUser.objects.filter(id=work_group_id).values_list('group_user__user_id',
-                                                                                          flat=True))
-
-    group_notification.create(sender_id=group_id,
-                              action=group_notification.Action.create,
-                              category="thread",
-                              message=f'User "{group_user.user.username}" created thread "{title}"',
-                              related_id=thread.id,
-                              target_user_ids=target_user_ids)
+    # Notify users when a thread is created
+    notify_group_thread(message="A new thread has been posted",
+                        action=NotificationChannel.Action.CREATED,
+                        thread=thread)
 
     return thread
 
@@ -118,24 +108,7 @@ def group_thread_comment_create(author_id: int,
                              attachments=attachments,
                              attachment_upload_to="group/thread/attachments")
 
-    group_thread_notification.create(sender_id=thread.id,
-                                     related_id=comment.id,
-                                     action=group_thread_notification.Action.create,
-                                     category='comment',
-                                     message=f'User "{group_user.user.username}" commented on thread "{thread.title}"')
-
     return comment
-
-
-def group_thread_notification_subscribe(user_id: int, thread_id: int, categories: list[str]):
-    thread = get_object(GroupThread, id=thread_id)
-    group_user_permissions(user=user_id, group=thread.created_by.group, work_group=thread.work_group)
-
-    group_thread_notification.channel_subscribe(user_id=user_id,
-                                         sender_id=thread.id,
-                                         category=categories)
-
-    return True
 
 
 def group_thread_comment_update(fetched_by: int, thread_id: int, comment_id: int, data):

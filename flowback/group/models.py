@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import timezone
 
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q
@@ -13,6 +14,7 @@ from flowback.comment.models import CommentSection, comment_section_create, comm
 from flowback.common.models import BaseModel
 from flowback.files.models import FileCollection
 from flowback.kanban.models import Kanban, KanbanSubscription
+from flowback.notification.models import NotifiableModel, NotificationChannel
 from flowback.schedule.models import Schedule
 from flowback.user.models import User
 from django.db import models
@@ -26,7 +28,7 @@ class GroupFolder(BaseModel):
         return f'{self.id} - {self.name}'
 
 
-class Group(BaseModel):
+class Group(BaseModel, NotifiableModel):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
 
@@ -70,6 +72,83 @@ class Group(BaseModel):
         except GroupUser.DoesNotExist:
             raise ValidationError("Group creator has left the group..?")
 
+    # Notifications
+    @property
+    def notification_data(self):
+        return dict(group_id=self.id,
+                    group_name=self.name,
+                    group_image=self.image)
+
+    def notify_group(self, message: str, action: NotificationChannel.Action):
+        """Notify all users in the group about general events"""
+        return self.notification_channel.notify(action=action, message=message)
+
+    def notify_group_user(self, _user_id: int, message: str, action: NotificationChannel.Action):
+        """Notify users about changes to their group user profile"""
+        return self.notification_channel.notify(message=message,
+                                                action=action,
+                                                subscription_filters=dict(user_id=_user_id))
+
+    def notify_kanban(self, *,
+                      message: str,
+                      action: NotificationChannel.Action,
+                      kanban_entry_id: int,
+                      kanban_entry_title: str,
+                      work_group_id: int = None,
+                      work_group_name: str = None,
+                      subscription_filters: dict = None,
+                      subscription_q_filters: dict = None):
+        """Notify relevant users about important changes to the kanban board"""
+        params = locals()
+        params.pop('self')
+
+        # Send notifications to everyone
+        return self.notification_channel.notify(**params)
+
+    def notify_thread(self, *,
+                      message: str,
+                      action: NotificationChannel.Action,
+                      thread_id: int,
+                      thread_title: str,
+                      work_group_id: int = None,
+                      work_group_name: str = None,
+                      subscription_filters: dict = None,
+                      subscription_q_filters: dict = None):
+        """Notify relevant users about new threads"""
+        params = locals()
+        params.pop('self')
+
+        return self.notification_channel.notify(**params)
+
+    def notify_poll(self, *,
+                    message: str,
+                    action: NotificationChannel.Action,
+                    poll_id: int,
+                    poll_title: str,
+                    work_group_id: int = None,
+                    work_group_name: str = None,
+                    subscription_filters: dict = None):
+        """Notify relevant users about new polls"""
+        params = locals()
+        params.pop('self')
+
+        return self.notification_channel.notify(**params)
+
+    def notify_schedule_event(self, *,
+                              message: str,
+                              action: NotificationChannel.Action,
+                              schedule_event_id: int,
+                              schedule_event_title: str,
+                              work_group_id: int = None,
+                              work_group_name: str = None,
+                              subscription_filters: dict = None):
+        """Notify relevant users about new schedule events"""
+        params = locals()
+        params.pop('self')
+
+        return self.notification_channel.notify(**params)
+
+    # Signals
     @classmethod
     def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):
         if instance.pk is None:
@@ -198,7 +277,7 @@ class GroupUser(BaseModel):
                 user_permissions = model_to_dict(self.group.default_permission)
             else:
                 fields = [field for field in GroupPermissions._meta.get_fields() if not (field.auto_created
-                          or field.name in GroupPermissions.negate_field_perms())]
+                                                                                         or field.name in GroupPermissions.negate_field_perms())]
                 user_permissions = {field.name: field.default for field in fields}
 
         def validate_perms():
@@ -251,6 +330,10 @@ class WorkGroup(BaseModel):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     chat = models.ForeignKey(MessageChannel, on_delete=models.PROTECT)
 
+    @property
+    def group_users(self):
+        return GroupUser.objects.filter(group=self.group, workgroupuser__work_group=self, active=True)
+
     @classmethod
     def pre_save(cls, instance, raw, using, update_fields, *args, **kwargs):
         if instance.pk is None:
@@ -260,7 +343,9 @@ class WorkGroup(BaseModel):
 
             instance.chat = message_channel
 
+
 pre_save.connect(WorkGroup.pre_save, sender=WorkGroup)
+
 
 class WorkGroupUser(BaseModel):
     work_group = models.ForeignKey(WorkGroup, on_delete=models.CASCADE)
@@ -291,6 +376,7 @@ class WorkGroupUser(BaseModel):
     class Meta:
         constraints = [models.UniqueConstraint(name='WorkGroupUser_group_user_and_work_group_is_unique',
                                                fields=['work_group', 'group_user'])]
+
 
 pre_save.connect(WorkGroupUser.pre_save, sender=WorkGroupUser)
 post_save.connect(WorkGroupUser.post_save, sender=WorkGroupUser)

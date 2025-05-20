@@ -4,7 +4,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
+from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
 from .factories import PollFactory, PollProposalFactory, PollPredictionStatementFactory
 
 from .utils import generate_poll_phase_kwargs
@@ -20,7 +20,7 @@ from ...notification.models import NotificationChannel
 from ...user.models import User
 
 
-class PollTest(APITransactionTestCase):
+class PollTest(APITestCase):
     def setUp(self):
         self.group = GroupFactory()
         self.group_tag = GroupTagsFactory(group=self.group)
@@ -72,11 +72,6 @@ class PollTest(APITransactionTestCase):
         response = view(request, group_id=self.group.id)  # Success
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        # Check if group notification channel is being created properly
-        NotificationChannel.objects.get(category='poll',
-                                        sender_type='group',
-                                        sender_id=self.group.id)
 
     def test_create_poll_below_phase_space_minimum(self):
         phases = generate_poll_phase_kwargs('base')

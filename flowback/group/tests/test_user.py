@@ -1,13 +1,13 @@
 import json
 
 from rest_framework import status
-from rest_framework.test import APIRequestFactory, force_authenticate, APITransactionTestCase
+from rest_framework.test import APITestCase
 from .factories import GroupFactory, GroupUserFactory, GroupUserDelegateFactory
 from ..views.user import GroupUserListApi
 from ...common.tests import generate_request
 
 
-class GroupUserTest(APITransactionTestCase):
+class GroupUserTest(APITestCase):
     def setUp(self):
         self.group = GroupFactory()
         self.group_user_creator = self.group.group_user_creator
