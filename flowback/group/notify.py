@@ -68,6 +68,7 @@ def notify_group_schedule_event(message: str,
                                 user_id_list: list[int] = None):
     group = schedule_event.schedule.group_set.first()
     users = user_id_list
+
     if schedule_event.work_group and not user_id_list:
         users = list(schedule_event.work_group.group_users.values_list('user_id', flat=True))
 

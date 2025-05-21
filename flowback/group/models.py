@@ -80,11 +80,11 @@ class Group(BaseModel, NotifiableModel):
                     group_image=self.image)
 
     def notify_group(self, message: str, action: NotificationChannel.Action):
-        """Notify all users in the group about general events"""
+        """Notifies about general group events"""
         return self.notification_channel.notify(action=action, message=message)
 
     def notify_group_user(self, _user_id: int, message: str, action: NotificationChannel.Action):
-        """Notify users about changes to their group user profile"""
+        """Notifies about changes to their group user profile"""
         return self.notification_channel.notify(message=message,
                                                 action=action,
                                                 subscription_filters=dict(user_id=_user_id))
@@ -98,7 +98,7 @@ class Group(BaseModel, NotifiableModel):
                       work_group_name: str = None,
                       subscription_filters: dict = None,
                       subscription_q_filters: dict = None):
-        """Notify relevant users about important changes to the kanban board"""
+        """Notifies about important changes to the kanban board"""
         params = locals()
         params.pop('self')
 
@@ -114,7 +114,7 @@ class Group(BaseModel, NotifiableModel):
                       work_group_name: str = None,
                       subscription_filters: dict = None,
                       subscription_q_filters: dict = None):
-        """Notify relevant users about new threads"""
+        """Notifies about new threads"""
         params = locals()
         params.pop('self')
 
@@ -128,7 +128,7 @@ class Group(BaseModel, NotifiableModel):
                     work_group_id: int = None,
                     work_group_name: str = None,
                     subscription_filters: dict = None):
-        """Notify relevant users about new polls"""
+        """Notifies about new polls"""
         params = locals()
         params.pop('self')
 
@@ -142,7 +142,7 @@ class Group(BaseModel, NotifiableModel):
                               work_group_id: int = None,
                               work_group_name: str = None,
                               subscription_filters: dict = None):
-        """Notify relevant users about new schedule events"""
+        """Notifies about new schedule events"""
         params = locals()
         params.pop('self')
 
