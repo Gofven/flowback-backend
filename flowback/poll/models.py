@@ -232,6 +232,7 @@ class Poll(BaseModel, NotifiableModel):
             raise ValidationError(f'Poll is not in {" or ".join(phases)}, currently in {current_phase}')
 
     ## Notification
+    @property
     def notification_data(self) -> dict | None:
         return dict(poll_id=self.id,
                     poll_title=self.title,

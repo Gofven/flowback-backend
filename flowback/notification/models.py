@@ -189,7 +189,7 @@ class NotificationChannel(BaseModel, TreeNode):
 
         if self.content_object.notification_data is not None:
             data = data or {}
-            data = data | self.content_object.notification_data()
+            data = data | self.content_object.notification_data
 
         # A patchwork for django image fields due to them returning <ImageFieldFile: None> when empty
         for k, v in data.items():
