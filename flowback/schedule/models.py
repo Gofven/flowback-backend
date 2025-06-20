@@ -8,7 +8,7 @@ from django.core.validators import MaxValueValidator
 from django.db import models
 from django.db.models.signals import post_save, post_delete, pre_delete
 from django.utils import timezone
-from django_celery_beat.models import PeriodicTask, CrontabSchedule
+from django_celery_beat.models import PeriodicTask, CrontabSchedule, ClockedSchedule
 from rest_framework.exceptions import ValidationError
 
 from flowback.common.models import BaseModel
@@ -39,7 +39,7 @@ class ScheduleEvent(BaseModel):
 
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True, blank=True)
-    reminders = ArrayField(models.IntegerField(), size=10, null=True, blank=True)  # Max 10 reminders
+    reminders = ArrayField(models.DateTimeField(), size=10, null=True, blank=True)  # Max 10 reminders
     reminder_tasks = models.ManyToManyField(PeriodicTask)
     repeat_frequency = models.IntegerField(null=True, blank=True, choices=Frequency.choices)
     assignees = models.ManyToManyField('user.User')
@@ -68,31 +68,61 @@ class ScheduleEvent(BaseModel):
         if not instance.reminders:
             return
 
+        freq = instance.Frequency
+
+        # Verify all reminders are valid
+        failed_checks = []
         for i in instance.reminders:
-            start_date = instance.start_date - datetime.timedelta(seconds=i)
+            passed_check = True
+
+            # Monthly and yearly intersections may vary, so instead it's written to allow for such intersections
+            match instance.repeat_frequency:
+                case freq.DAILY: passed_check = (instance.start_date - i).seconds <= 86399
+                case freq.WEEKLY: passed_check = (instance.start_date - i).seconds <= 604799
+                case freq.MONTHLY: passed_check = (instance.start_date - i).seconds <= 2678399
+                case freq.YEARLY: passed_check = (instance.start_date - i).seconds <= 31556927
+
+            # Check if failed or reminder occurs after the start date
+            if not passed_check or (instance.start_date - i).seconds <= 0:
+                failed_checks.append(i)
+
+        if failed_checks:
+            raise ValidationError(f"Folllowing reminders are invalid: {', '.join(str(failed_checks))}")
+
+
+        for i in instance.reminders:
             repeat_frequency = instance.repeat_frequency
 
             data = None
 
-            # TODO add reminders for one-off events, verify reminders don't intersect during repeat
-            if repeat_frequency:  # Create scheduled notifications on repeat
-                freq = instance.Frequency
+            if not repeat_frequency:
+                schedule = ClockedSchedule.objects.create(clocked_time=i)
+                periodic_task = PeriodicTask.objects.create(name=f"schedule_event_{instance.id}_{i}",
+                                                            task="schedule.tasks.event_notify",
+                                                            one_off=True,
+                                                            kwargs=json.dumps(dict(event_id=instance.id)),
+                                                            clocked=schedule)
+
+                instance.reminder_tasks.add(periodic_task)
+                instance.save()
+
+            elif repeat_frequency:  # Create scheduled notifications on repeat
                 match repeat_frequency:
-                    case freq.DAILY: data = dict(minute=start_date.minute,
-                                                 hour=start_date.hour)
+                    case freq.DAILY: data = dict(minute=i.minute,
+                                                 hour=i.hour)
 
-                    case freq.WEEKLY: data = dict(minute=start_date.minute,
-                                                  hour=start_date.hour,
-                                                  day_of_week=int(start_date.today().strftime('%w')))
+                    case freq.WEEKLY: data = dict(minute=i.minute,
+                                                  hour=i.hour,
+                                                  day_of_week=int(i.today().strftime('%w')))
 
-                    case freq.MONTHLY: data = dict(minute=start_date.minute,
-                                                   hour=start_date.hour,
-                                                   day_of_month=start_date.day)
+                    case freq.MONTHLY: data = dict(minute=i.minute,
+                                                   hour=i.hour,
+                                                   day_of_month=i.day)
 
-                    case freq.YEARLY: data = dict(minute=start_date.minute,
-                                                  hour=start_date.hour,
-                                                  day_of_month=start_date.day,
-                                                  month_of_year=start_date.month)
+                    case freq.YEARLY: data = dict(minute=i.minute,
+                                                  hour=i.hour,
+                                                  day_of_month=i.day,
+                                                  month_of_year=i.month)
 
                 if data:
                     # TODO automatic purging of dangling CrontabSchedules
@@ -101,7 +131,6 @@ class ScheduleEvent(BaseModel):
                                                                 task="schedule.tasks.event_notify",
                                                                 kwargs=json.dumps(dict(event_id=instance.id)),
                                                                 crontab=schedule[0])
-                    periodic_task.save()
 
                     instance.reminder_tasks.add(periodic_task)
                     instance.save()

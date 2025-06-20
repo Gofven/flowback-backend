@@ -9,6 +9,7 @@ from django_celery_beat.models import PeriodicTask
 from flowback.schedule.models import ScheduleEvent
 
 
+# TODO notify users through some form of NotificationChannel
 @shared_task
 def event_notify(event_id: int, seconds_before_event: int = None):
     """
