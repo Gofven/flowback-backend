@@ -1,7 +1,7 @@
 import datetime
 import json
 
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MaxValueValidator
@@ -14,17 +14,53 @@ from rest_framework.exceptions import ValidationError
 from flowback.common.models import BaseModel
 from django.utils.translation import gettext_lazy as _
 
+from flowback.notification.models import NotifiableModel
+
 
 # Create your models here.
-class Schedule(BaseModel):
+class Schedule(BaseModel, NotifiableModel):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
 
     active = models.BooleanField(default=True)
 
+    def notification_data(self) -> dict | None:
+        return dict(id=self.id,
+                    source_model=self.content_object.__class__.__name__.lower(),
+                    source_id=self.object_id)
 
-class ScheduleEvent(BaseModel):
+    def notify_schedule_event(self,
+                              title: str,
+                              action: str,
+                              schedule_event_id: int,
+                              message: str):
+        data = locals()
+        data.pop('self')
+
+        return self.notification_channel.notify(**data)
+
+    def notify_schedule_assignment(self,
+                                   title: str,
+                                   action: str,
+                                   schedule_event_id: int,
+                                   message: str,
+                                   user_ids: list[int] | int | None = None):
+        data = locals()
+        data.pop('self')
+
+        if user_ids:
+            if isinstance(user_ids, int):
+                user_ids = [user_ids]
+
+            data.pop('user_ids')
+            data['subscription_filters'] = {'user_id__in': user_ids}
+
+        return self.notification_channel.notify(**data)
+
+
+# TODO decide how to separate reminders, per event or personal reminders, or perhaps both
+class ScheduleEvent(BaseModel, NotifiableModel):
     class Frequency(models.IntegerChoices):
         DAILY = 1, _("Daily")
         WEEKLY = 2, _("Weekly")
@@ -48,6 +84,25 @@ class ScheduleEvent(BaseModel):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
+
+    def notification_data(self) -> dict | None:
+        return dict(id=self.id,
+                    source_model=self.content_object.__class__.__name__.lower(),
+                    source_id=self.object_id,
+                    title=self.title)
+
+    def notify_schedule_event(self,
+                              action: str,
+                              message: str):
+        """Notifies when a schedule event reminders, as well as when it starts"""
+        data = locals()
+        data.pop('self')
+
+        return self.notification_channel.notify(**data)
+
+
+    # TODO get upcoming & previous start/end dates
+
 
     def clean(self):
         if self.end_date and self.start_date > self.end_date:
@@ -144,14 +199,41 @@ post_save.connect(ScheduleEvent.post_save, ScheduleEvent)
 pre_delete.connect(ScheduleEvent.pre_delete, ScheduleEvent)
 
 
-# TODO revise subscription
 class ScheduleSubscription(BaseModel):
-    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='schedule_subscription_schedule')
-    target = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='schedule_subscription_target')
-
-    def clean(self):
-        if self.schedule == self.target:
-            raise ValidationError('Schedule cannot be the same as the target')
+    user = models.ForeignKey(Schedule, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ('schedule', 'target')
+        constraints = [models.UniqueConstraint(fields=['user', 'schedule'], name='unique_schedule_subscription')]
+
+    @classmethod
+    def post_delete(cls, instance, *args, **kwargs):
+        # Unsubscribe all notification channels from Schedule and ScheduleEvents
+        instance.schedule.notification_channel.unsubscribe_all(instance.user)
+
+
+post_delete.connect(ScheduleSubscription.post_delete, ScheduleSubscription)
+
+
+def generate_schedule(sender, instance, created, *args, **kwargs):
+    if created:
+        Schedule.objects.create(content_object=instance)
+
+
+class SchedulePluginModel(models.Model):
+    """
+    A plugin for models, adding schedule functionality to the model.
+    """
+    related_schedules = GenericRelation(Schedule, on_delete=models.CASCADE)
+
+    @property
+    def schedule(self) -> Schedule:
+        return self.related_schedules.first()
+
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        models.signals.post_save.connect(generate_schedule, sender=cls)
