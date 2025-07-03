@@ -39,6 +39,9 @@ class NotificationObject(BaseModel):
         if self.tag not in self.channel.tags:
             raise ValidationError('Invalid tag, must be in channel tags')
 
+    # TODO Each notification object will be able to deliver multiple notifications to users as "reminders".
+    # TODO add reminder removal feature e.g. NotificationObject.objects.filter(...).clear_reminders(user_filters=dict(), user_q_filters=dict())
+
     @classmethod
     def post_save(cls, instance, created, *args, **kwargs):
         """
@@ -86,6 +89,7 @@ class Notification(BaseModel):
     user = models.ForeignKey('user.User', on_delete=models.CASCADE)
     notification_object = models.ForeignKey("notification.NotificationObject", on_delete=models.CASCADE)
     read = models.BooleanField(default=False)
+    reminder = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('user', 'notification_object')
