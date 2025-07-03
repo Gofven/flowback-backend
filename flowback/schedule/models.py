@@ -4,10 +4,8 @@ import json
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField
-from django.core.validators import MaxValueValidator
 from django.db import models
 from django.db.models.signals import post_save, post_delete, pre_delete
-from django.utils import timezone
 from django_celery_beat.models import PeriodicTask, CrontabSchedule, ClockedSchedule
 from rest_framework.exceptions import ValidationError
 
@@ -15,6 +13,11 @@ from flowback.common.models import BaseModel
 from django.utils.translation import gettext_lazy as _
 
 from flowback.notification.models import NotifiableModel
+from flowback.user.models import User
+
+
+# TODO Schedules should have user-defined tags as categories.
+#
 
 
 # Create your models here.
@@ -24,6 +27,12 @@ class Schedule(BaseModel, NotifiableModel):
     content_object = GenericForeignKey('content_type', 'object_id')
 
     active = models.BooleanField(default=True)
+
+    def subscribe(self, user: User):
+        ScheduleSubscription.objects.get_or_create(user=user, schedule=self)
+
+    def unsubscribe(self, user: User):
+        ScheduleSubscription.objects.filter(user=user, schedule=self).delete()
 
     def notification_data(self) -> dict | None:
         return dict(id=self.id,
@@ -59,7 +68,11 @@ class Schedule(BaseModel, NotifiableModel):
         return self.notification_channel.notify(**data)
 
 
-# TODO decide how to separate reminders, per event or personal reminders, or perhaps both
+# A list of tags for the schedule, also contains default reminders for events
+class ScheduleTag(BaseModel):
+    pass
+
+
 class ScheduleEvent(BaseModel, NotifiableModel):
     class Frequency(models.IntegerChoices):
         DAILY = 1, _("Daily")
@@ -179,7 +192,7 @@ class ScheduleEvent(BaseModel, NotifiableModel):
                                                   day_of_month=i.day,
                                                   month_of_year=i.month)
 
-                if data:
+                if data:  # Create a repeating cron schedule for the event task
                     # TODO automatic purging of dangling CrontabSchedules
                     schedule = CrontabSchedule.objects.get_or_create(**data)
                     periodic_task = PeriodicTask.objects.create(name=f"schedule_event_{instance.id}_{i}",
@@ -213,6 +226,12 @@ class ScheduleSubscription(BaseModel):
 
 
 post_delete.connect(ScheduleSubscription.post_delete, ScheduleSubscription)
+
+
+# A link between tag and subscription to override the usual reminders given to each tag
+class ScheduleSubscriptionTagReminders(BaseModel):
+    tag = models.ForeignKey(ScheduleTag, on_delete=models.CASCADE)
+    subscription = models.ForeignKey(ScheduleSubscription, on_delete=models.CASCADE)
 
 
 def generate_schedule(sender, instance, created, *args, **kwargs):

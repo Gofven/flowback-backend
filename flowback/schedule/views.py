@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.views import APIView
 from flowback.common.pagination import LimitOffsetPagination
 from flowback.group.serializers import WorkGroupSerializer, GroupUserSerializer
+from flowback.notification.views import NotificationSubscribeTemplateAPI
 from flowback.schedule.models import ScheduleEvent
 
 
@@ -100,3 +101,6 @@ class ScheduleUnsubscribeAPI(APIView):
     class InputSerializer(serializers.Serializer):
         target_type = serializers.CharField()
         target_id = serializers.IntegerField()
+
+
+# NOTE ScheduleNotificationSubscribeAPI is unnecessary, most should use NotificationSubscribeTemplateAPI directly.
