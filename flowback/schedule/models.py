@@ -12,7 +12,7 @@ from rest_framework.exceptions import ValidationError
 from flowback.common.models import BaseModel
 from django.utils.translation import gettext_lazy as _
 
-from flowback.notification.models import NotifiableMod
+from flowback.notification.models import NotifiableModel
 
 
 # TODO Schedules should have user-defined tags as categories.
