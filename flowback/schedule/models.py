@@ -12,8 +12,7 @@ from rest_framework.exceptions import ValidationError
 from flowback.common.models import BaseModel
 from django.utils.translation import gettext_lazy as _
 
-from flowback.notification.models import NotifiableModel
-from flowback.user.models import User
+from flowback.notification.models import NotifiableMod
 
 
 # TODO Schedules should have user-defined tags as categories.
@@ -28,10 +27,10 @@ class Schedule(BaseModel, NotifiableModel):
 
     active = models.BooleanField(default=True)
 
-    def subscribe(self, user: User):
+    def subscribe(self, user):
         ScheduleSubscription.objects.get_or_create(user=user, schedule=self)
 
-    def unsubscribe(self, user: User):
+    def unsubscribe(self, user):
         ScheduleSubscription.objects.filter(user=user, schedule=self).delete()
 
     def notification_data(self) -> dict | None:

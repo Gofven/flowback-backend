@@ -39,8 +39,52 @@ class NotificationObject(BaseModel):
         if self.tag not in self.channel.tags:
             raise ValidationError('Invalid tag, must be in channel tags')
 
+    def notify(self,
+               reminder: bool = False,
+               subscription_filters: dict = None,
+               subscription_q_filters: list[Q] = None,
+               exclude_subscription_filters: dict = None,
+               exclude_subscription_q_filters: list[Q] = None):
+        subscription_filters = subscription_filters or {}
+        subscription_q_filters = subscription_q_filters or []
+        exclude_subscription_filters = exclude_subscription_filters or {}
+        exclude_subscription_q_filters = exclude_subscription_q_filters or []
+
+        subscribers = NotificationSubscription.objects.filter(
+            *subscription_q_filters,
+            channel=self.channel,
+            tags__contains=[self.tag],
+            **subscription_filters
+        ).exclude(
+            *exclude_subscription_q_filters,
+            **exclude_subscription_filters
+        )
+
+        notifications = [Notification(user=x.user, notification_object=self, reminder=reminder) for x in subscribers]
+        Notification.objects.bulk_create(notifications)
+
     # TODO Each notification object will be able to deliver multiple notifications to users as "reminders".
     # TODO add reminder removal feature e.g. NotificationObject.objects.filter(...).clear_reminders(user_filters=dict(), user_q_filters=dict())
+    def send_reminders(self,
+                       subscription_filters: dict = None,
+                       subscription_q_filters: list[Q] = None,
+                       exclude_subscription_filters: dict = None,
+                       exclude_subscription_q_filters: list[Q] = None,
+                       seconds: int = 0,
+                       minutes: int = 0,
+                       hours: int = 0,
+                       days: int = 0,
+                       weeks: int = 0):
+        delta = timedelta(seconds=seconds, minutes=minutes, hours=hours, days=days, weeks=weeks)
+
+        if delta.total_seconds() <= 0:
+            raise ValueError('Delta must be greater than 0')
+
+        self.notify(reminder=True,
+                    subscription_filters=subscription_filters,
+                    subscription_q_filters=subscription_q_filters,
+                    exclude_subscription_filters=exclude_subscription_filters,
+                    exclude_subscription_q_filters=exclude_subscription_q_filters)
 
     @classmethod
     def post_save(cls, instance, created, *args, **kwargs):
@@ -66,18 +110,23 @@ class NotificationObject(BaseModel):
             exclude_subscription_q_filters = instance.exclude_subscription_q_filters
 
         if created:
-            subscribers = NotificationSubscription.objects.filter(
-                *subscription_q_filters,
-                channel=instance.channel,
-                tags__contains=[instance.tag],
-                **subscription_filters
-            ).exclude(
-                *exclude_subscription_q_filters,
-                **exclude_subscription_filters
-            )
-
-            notifications = [Notification(user=x.user, notification_object=instance) for x in subscribers]
-            Notification.objects.bulk_create(notifications)
+            instance.send_notifications(self=instance,
+                                        subscription_filters=subscription_filters,
+                                        subscription_q_filters=subscription_q_filters,
+                                        exclude_subscription_filters=exclude_subscription_filters,
+                                        exclude_subscription_q_filters=exclude_subscription_q_filters)
+            # subscribers = NotificationSubscription.objects.filter(
+            #     *subscription_q_filters,
+            #     channel=instance.channel,
+            #     tags__contains=[instance.tag],
+            #     **subscription_filters
+            # ).exclude(
+            #     *exclude_subscription_q_filters,
+            #     **exclude_subscription_filters
+            # )
+            #
+            # notifications = [Notification(user=x.user, notification_object=instance) for x in subscribers]
+            # Notification.objects.bulk_create(notifications)
 
 
 post_save.connect(NotificationObject.post_save, NotificationObject)
