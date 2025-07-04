@@ -3,7 +3,7 @@ from datetime import timedelta, datetime
 from inspect import getfullargspec
 
 from django.db import models
-from django.db.models import F, Q
+from django.db.models import F, Q, QuerySet
 from django.db.models.fields.files import ImageFieldFile
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -13,6 +13,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField
 from rest_framework.exceptions import ValidationError
+from sql_util.aggregates import Subquery
 from tree_queries.models import TreeNode
 
 from flowback.common.models import BaseModel
@@ -39,33 +40,54 @@ class NotificationObject(BaseModel):
         if self.tag not in self.channel.tags:
             raise ValidationError('Invalid tag, must be in channel tags')
 
+    def get_subscribers(self, subscription_filters: dict = None,
+                        subscription_q_filters: list[Q] = None,
+                        exclude_subscription_filters: dict = None,
+                        exclude_subscription_q_filters: list[Q] = None) -> QuerySet:
+        """
+        Returns a queryset of users receiving the NotificationObject.
+        :param subscription_filters: Filters to apply to the NotificationSubscription query.
+        :param subscription_q_filters: Q filters to apply to the NotificationSubscription query.
+        :param exclude_subscription_filters: Filters to exclude from the NotificationSubscription query.
+        :param exclude_subscription_q_filters: Q filters to exclude from the NotificationSubscription query.
+        :return: NotificationSubscription QuerySet
+        """
+        subscription_filters = subscription_filters or {}
+        subscription_q_filters = subscription_q_filters or []
+        exclude_subscription_filters = exclude_subscription_filters or {}
+        exclude_subscription_q_filters = exclude_subscription_q_filters or []
+
+        return NotificationSubscription.objects.filter(
+            *subscription_q_filters,
+            channel=self.channel,
+            tags__contains=[self.tag],
+            **subscription_filters
+        ).exclude(*exclude_subscription_q_filters, **exclude_subscription_filters)
+
     def notify(self,
                reminder: bool = False,
                subscription_filters: dict = None,
                subscription_q_filters: list[Q] = None,
                exclude_subscription_filters: dict = None,
                exclude_subscription_q_filters: list[Q] = None):
-        subscription_filters = subscription_filters or {}
-        subscription_q_filters = subscription_q_filters or []
-        exclude_subscription_filters = exclude_subscription_filters or {}
-        exclude_subscription_q_filters = exclude_subscription_q_filters or []
+        """
+        Send notifications to users about this NotificationObject.
+        :param reminder: Whether this is a reminder to the user or not.
+        :param subscription_filters: Filters to apply to the NotificationSubscription query.
+        :param subscription_q_filters: Q filters to apply to the NotificationSubscription query.
+        :param exclude_subscription_filters: Filters to exclude from the NotificationSubscription query.
+        :param exclude_subscription_q_filters: Q filters to exclude from the NotificationSubscription query.
+        """
 
-        subscribers = NotificationSubscription.objects.filter(
-            *subscription_q_filters,
-            channel=self.channel,
-            tags__contains=[self.tag],
-            **subscription_filters
-        ).exclude(
-            *exclude_subscription_q_filters,
-            **exclude_subscription_filters
-        )
+        subscribers = self.get_subscribers(subscription_filters,
+                                           subscription_q_filters,
+                                           exclude_subscription_filters,
+                                           exclude_subscription_q_filters)
 
         notifications = [Notification(user=x.user, notification_object=self, reminder=reminder) for x in subscribers]
         Notification.objects.bulk_create(notifications)
 
-    # TODO Each notification object will be able to deliver multiple notifications to users as "reminders".
-    # TODO add reminder removal feature e.g. NotificationObject.objects.filter(...).clear_reminders(user_filters=dict(), user_q_filters=dict())
-    def send_reminders(self,
+    def create_reminders(self,
                        subscription_filters: dict = None,
                        subscription_q_filters: list[Q] = None,
                        exclude_subscription_filters: dict = None,
@@ -75,6 +97,19 @@ class NotificationObject(BaseModel):
                        hours: int = 0,
                        days: int = 0,
                        weeks: int = 0):
+        """
+        Creates reminders to users. The seconds, minutes, hours, days, and weeks
+        are subtracted from the NotificationObject timestamp.
+        :param subscription_filters: Filters to apply to the NotificationSubscription query.
+        :param subscription_q_filters: Q filters to apply to the NotificationSubscription query.
+        :param exclude_subscription_filters: Filters to exclude from the NotificationSubscription query.
+        :param exclude_subscription_q_filters: Q filters to exclude from the NotificationSubscription query.
+        :param seconds: Seconds before the notification timestamp.
+        :param minutes: Minutes before the notification timestamp.
+        :param hours: Hours before the notification timestamp.
+        :param days: Days before the notification timestamp.
+        :param weeks: Weeks before the notification timestamp.
+        """
         delta = timedelta(seconds=seconds, minutes=minutes, hours=hours, days=days, weeks=weeks)
 
         if delta.total_seconds() <= 0:
@@ -85,6 +120,26 @@ class NotificationObject(BaseModel):
                     subscription_q_filters=subscription_q_filters,
                     exclude_subscription_filters=exclude_subscription_filters,
                     exclude_subscription_q_filters=exclude_subscription_q_filters)
+
+    def clear_reminders(self,
+                        subscription_filters: dict = None,
+                        subscription_q_filters: list[Q] = None,
+                        exclude_subscription_filters: dict = None,
+                        exclude_subscription_q_filters: list[Q] = None):
+        """
+        Clears all notification reminders associated with this object.
+        :param subscription_filters: Filters to apply to the NotificationSubscription query.
+        :param subscription_q_filters: Q filters to apply to the NotificationSubscription query.
+        :param exclude_subscription_filters: Filters to exclude from the NotificationSubscription query.
+        :param exclude_subscription_q_filters: Q filters to exclude from the NotificationSubscription query.
+        """
+
+        subscribers = self.get_subscribers(subscription_filters,
+                                           subscription_q_filters,
+                                           exclude_subscription_filters,
+                                           exclude_subscription_q_filters).values('user')
+
+        self.notification_set.filter(user__in=subscribers, reminder=True).delete()
 
     @classmethod
     def post_save(cls, instance, created, *args, **kwargs):
@@ -110,23 +165,10 @@ class NotificationObject(BaseModel):
             exclude_subscription_q_filters = instance.exclude_subscription_q_filters
 
         if created:
-            instance.send_notifications(self=instance,
-                                        subscription_filters=subscription_filters,
+            instance.send_notifications(subscription_filters=subscription_filters,
                                         subscription_q_filters=subscription_q_filters,
                                         exclude_subscription_filters=exclude_subscription_filters,
                                         exclude_subscription_q_filters=exclude_subscription_q_filters)
-            # subscribers = NotificationSubscription.objects.filter(
-            #     *subscription_q_filters,
-            #     channel=instance.channel,
-            #     tags__contains=[instance.tag],
-            #     **subscription_filters
-            # ).exclude(
-            #     *exclude_subscription_q_filters,
-            #     **exclude_subscription_filters
-            # )
-            #
-            # notifications = [Notification(user=x.user, notification_object=instance) for x in subscribers]
-            # Notification.objects.bulk_create(notifications)
 
 
 post_save.connect(NotificationObject.post_save, NotificationObject)
