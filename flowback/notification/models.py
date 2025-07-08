@@ -6,14 +6,12 @@ from django.db import models
 from django.db.models import F, Q, QuerySet
 from django.db.models.fields.files import ImageFieldFile
 from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils import timezone
 
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField
 from rest_framework.exceptions import ValidationError
-from sql_util.aggregates import Subquery
 from tree_queries.models import TreeNode
 
 from flowback.common.models import BaseModel
