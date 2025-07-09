@@ -33,16 +33,31 @@ class Schedule(BaseModel, NotifiableModel):
     def unsubscribe(self, user):
         ScheduleSubscription.objects.filter(user=user, schedule=self).delete()
 
+
+# A list of tags for the schedule also contains default reminders for events
+class ScheduleTag(BaseModel, NotifiableModel):
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
+    tag = models.CharField(max_length=255)
+
     def notification_data(self) -> dict | None:
         return dict(id=self.id,
-                    source_model=self.content_object.__class__.__name__.lower(),
-                    source_id=self.object_id)
+                    tag=self.tag,
+                    schedule_id=self.schedule.id,
+                    schedule_name=self.schedule.content_object.__str__())
 
-    def notify_schedule_event(self,
-                              title: str,
-                              action: str,
-                              schedule_event_id: int,
-                              message: str):
+    def notify_schedule_event_start(self,
+                                    action: str,
+                                    message: str):
+        """Notifies when an event begins, including reminders"""
+        data = locals()
+        data.pop('self')
+
+        return self.notification_channel.notify(**data)
+
+    def notify_schedule_event_update(self,
+                                     action: str,
+                                     message: str):
+        """Notifies when an event gets updated"""
         data = locals()
         data.pop('self')
 
@@ -67,12 +82,7 @@ class Schedule(BaseModel, NotifiableModel):
         return self.notification_channel.notify(**data)
 
 
-# A list of tags for the schedule, also contains default reminders for events
-class ScheduleTag(BaseModel):
-    pass
-
-
-class ScheduleEvent(BaseModel, NotifiableModel):
+class ScheduleEvent(BaseModel):
     class Frequency(models.IntegerChoices):
         DAILY = 1, _("Daily")
         WEEKLY = 2, _("Weekly")
@@ -87,8 +97,6 @@ class ScheduleEvent(BaseModel, NotifiableModel):
 
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True, blank=True)
-    reminders = ArrayField(models.DateTimeField(), size=10, null=True, blank=True)  # Max 10 reminders
-    reminder_tasks = models.ManyToManyField(PeriodicTask)
     repeat_frequency = models.IntegerField(null=True, blank=True, choices=Frequency.choices)
     assignees = models.ManyToManyField('user.User')
 
@@ -97,32 +105,11 @@ class ScheduleEvent(BaseModel, NotifiableModel):
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
 
-    def notification_data(self) -> dict | None:
-        return dict(id=self.id,
-                    source_model=self.content_object.__class__.__name__.lower(),
-                    source_id=self.object_id,
-                    title=self.title)
-
-    def notify_schedule_event(self,
-                              action: str,
-                              message: str):
-        """Notifies when a schedule event reminders, as well as when it starts"""
-        data = locals()
-        data.pop('self')
-
-        return self.notification_channel.notify(**data)
-
-
     # TODO get upcoming & previous start/end dates
-
 
     def clean(self):
         if self.end_date and self.start_date > self.end_date:
             raise ValidationError('Start date is greater than end date')
-
-        if self.reminders:
-            if list(set(self.reminders)) < self.reminders:  # TODO check if this works
-                raise ValidationError("Reminders can't have duplicates")
 
     @classmethod
     def post_save(cls, instance, created, *args, **kwargs):
@@ -144,10 +131,14 @@ class ScheduleEvent(BaseModel, NotifiableModel):
 
             # Monthly and yearly intersections may vary, so instead it's written to allow for such intersections
             match instance.repeat_frequency:
-                case freq.DAILY: passed_check = (instance.start_date - i).seconds <= 86399
-                case freq.WEEKLY: passed_check = (instance.start_date - i).seconds <= 604799
-                case freq.MONTHLY: passed_check = (instance.start_date - i).seconds <= 2678399
-                case freq.YEARLY: passed_check = (instance.start_date - i).seconds <= 31556927
+                case freq.DAILY:
+                    passed_check = (instance.start_date - i).seconds <= 86399
+                case freq.WEEKLY:
+                    passed_check = (instance.start_date - i).seconds <= 604799
+                case freq.MONTHLY:
+                    passed_check = (instance.start_date - i).seconds <= 2678399
+                case freq.YEARLY:
+                    passed_check = (instance.start_date - i).seconds <= 31556927
 
             # Check if failed or reminder occurs after the start date
             if not passed_check or (instance.start_date - i).seconds <= 0:
@@ -155,7 +146,6 @@ class ScheduleEvent(BaseModel, NotifiableModel):
 
         if failed_checks:
             raise ValidationError(f"Folllowing reminders are invalid: {', '.join(str(failed_checks))}")
-
 
         for i in instance.reminders:
             repeat_frequency = instance.repeat_frequency
@@ -175,21 +165,25 @@ class ScheduleEvent(BaseModel, NotifiableModel):
 
             elif repeat_frequency:  # Create scheduled notifications on repeat
                 match repeat_frequency:
-                    case freq.DAILY: data = dict(minute=i.minute,
-                                                 hour=i.hour)
+                    case freq.DAILY:
+                        data = dict(minute=i.minute,
+                                    hour=i.hour)
 
-                    case freq.WEEKLY: data = dict(minute=i.minute,
-                                                  hour=i.hour,
-                                                  day_of_week=int(i.today().strftime('%w')))
+                    case freq.WEEKLY:
+                        data = dict(minute=i.minute,
+                                    hour=i.hour,
+                                    day_of_week=int(i.today().strftime('%w')))
 
-                    case freq.MONTHLY: data = dict(minute=i.minute,
-                                                   hour=i.hour,
-                                                   day_of_month=i.day)
+                    case freq.MONTHLY:
+                        data = dict(minute=i.minute,
+                                    hour=i.hour,
+                                    day_of_month=i.day)
 
-                    case freq.YEARLY: data = dict(minute=i.minute,
-                                                  hour=i.hour,
-                                                  day_of_month=i.day,
-                                                  month_of_year=i.month)
+                    case freq.YEARLY:
+                        data = dict(minute=i.minute,
+                                    hour=i.hour,
+                                    day_of_month=i.day,
+                                    month_of_year=i.month)
 
                 if data:  # Create a repeating cron schedule for the event task
                     # TODO automatic purging of dangling CrontabSchedules
@@ -206,6 +200,7 @@ class ScheduleEvent(BaseModel, NotifiableModel):
     def pre_delete(cls, instance, *args, **kwargs):
         if instance.reminder_tasks.exists():
             instance.reminder_tasks.all().delete()
+
 
 post_save.connect(ScheduleEvent.post_save, ScheduleEvent)
 pre_delete.connect(ScheduleEvent.pre_delete, ScheduleEvent)
@@ -231,6 +226,21 @@ post_delete.connect(ScheduleSubscription.post_delete, ScheduleSubscription)
 class ScheduleSubscriptionTagReminders(BaseModel):
     tag = models.ForeignKey(ScheduleTag, on_delete=models.CASCADE)
     subscription = models.ForeignKey(ScheduleSubscription, on_delete=models.CASCADE)
+    reminders = ArrayField(models.DurationField(), size=10, null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['tag', 'subscription'],
+                                               name='unique_schedule_subscription_tag_reminders')]
+
+    @classmethod
+    def post_save(cls, instance, created, update_fields, *args, **kwargs):
+        update_fields = update_fields or []
+
+        if not created:
+            if 'reminders' in update_fields and instance.reminders is not None:
+                # Clear all reminders for the tag and schedule pair from current time, then recreate them with new reminders
+                # ArrayField can be [] and None, use it to determine whether to send notifications or not.
+                pass
 
 
 def generate_schedule(sender, instance, created, *args, **kwargs):

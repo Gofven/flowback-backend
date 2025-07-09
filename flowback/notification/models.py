@@ -2,8 +2,9 @@ import inspect
 from datetime import timedelta, datetime
 from inspect import getfullargspec
 
+import pgtrigger
 from django.db import models
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Q, QuerySet, UniqueConstraint
 from django.db.models.fields.files import ImageFieldFile
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -172,6 +173,28 @@ class NotificationObject(BaseModel):
 post_save.connect(NotificationObject.post_save, NotificationObject)
 
 
+class NotificationReminderPreset(BaseModel):
+    # Channel & tag combo for reminders.
+    channel = models.ForeignKey('notification.NotificationChannel', on_delete=models.CASCADE)
+
+    # Optional subscriber field to override the reminders set by the NotificationChannel by default.
+    subscriber = models.ForeignKey('notification.NotificationSubscription',
+                                     on_delete=models.CASCADE,
+                                     null=True,
+                                     blank=True)
+
+    tag = models.CharField(max_length=255)
+    reminders = ArrayField(models.IntegerField(), max_length=10, null=True, blank=True, default=[])
+
+    def clean(self):
+        if self.tag not in self.channel.tags:
+            raise ValidationError(f'Invalid tag. Available tags: {", ".join(self.channel.tags)}')
+
+    class Meta:
+        constraints = [UniqueConstraint(fields=['channel', 'tag', 'subscriber'],
+                                        name='unique_notification_channel_reminder_preset_subscriber')]
+
+
 # Notification is created for every user subscribed to a channel,
 # with a NotificationObject attached to it containing the data
 class Notification(BaseModel):
@@ -255,6 +278,7 @@ class NotificationChannel(BaseModel, TreeNode):
                message: str,
                tag: str = None,
                timestamp: datetime = None,
+               reminders: list[timedelta] = None,
                subscription_filters: dict = None,
                subscription_q_filters: list[Q] = None,
                exclude_subscription_filters: dict = None,
@@ -269,6 +293,8 @@ class NotificationChannel(BaseModel, TreeNode):
          the tag will take the calling function name (without the 'notify_' prefix) if it exists, otherwise
          it raises an error.
         :param timestamp: Timestamp when this notification becomes active. Defaults to timezone.now().
+        :param reminders: A list of timedeltas to create reminders for. Defaults to None, which will use the related
+        NotificationReminderPreset model as a template.
         :param data: Additional data to pass to the notification.
         :param subscription_filters: List of NotificationSubscription filters to pass onto the delivery of notifications.
         :param subscription_q_filters: List of NotificationSubscription Q filters to pass onto the delivery of notifications.
@@ -364,6 +390,23 @@ class NotificationChannel(BaseModel, TreeNode):
         Deletes all subscriptions for the given user, including related channels.
         """
         NotificationSubscription.objects.filter(channel__in=self.descendants(include_self=True)).delete()
+
+    def update_reminder_preset(self,
+                               tag: str,
+                               reminders: list[timedelta] = None,
+                               user = None,
+                               cascade: bool = True) -> NotificationReminderPreset:
+        """
+        Updates the NotificationReminderPreset for the given tag.
+        :param tag: The tag to update.
+        :param reminders: List of timedeltas to create reminders for. Defaults to None.
+        If reminders are None and the user is not set, by default the reminders will be removed.
+        If reminders are None and the user is set, the reminders will follow the channel's own reminder preset.
+        :param user: Update reminder preset for a specific user through NotificationSubscription.
+        :param cascade: Overwrites previously related reminders.
+        :return: NotificationReminderPreset
+        """
+        
 
 
 def generate_notification_channel(sender, instance, created, *args, **kwargs):
