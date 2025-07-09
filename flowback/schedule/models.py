@@ -98,6 +98,7 @@ class ScheduleEvent(BaseModel):
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True, blank=True)
     repeat_frequency = models.IntegerField(null=True, blank=True, choices=Frequency.choices)
+    periodic_task = models.ForeignKey(PeriodicTask, on_delete=models.CASCADE, null=True, blank=True, editable=False)
     assignees = models.ManyToManyField('user.User')
 
     # Relating ScheduleEvent to other models
@@ -113,88 +114,51 @@ class ScheduleEvent(BaseModel):
 
     @classmethod
     def post_save(cls, instance, created, *args, **kwargs):
-        # Offset start_date by the earliest reminder - 1 minute
+        repeat_frequency = instance.repeat_frequency
+        freq = cls.Frequency
+        data = {}
 
-        if not created:
-            if instance.reminder_tasks.exists():
-                instance.reminder_tasks.all().delete()
-
-        if not instance.reminders:
-            return
-
-        freq = instance.Frequency
-
-        # Verify all reminders are valid
-        failed_checks = []
-        for i in instance.reminders:
-            passed_check = True
-
-            # Monthly and yearly intersections may vary, so instead it's written to allow for such intersections
-            match instance.repeat_frequency:
+        if repeat_frequency:  # Create scheduled notifications on repeat
+            start_date = instance.start_date
+            match repeat_frequency:
                 case freq.DAILY:
-                    passed_check = (instance.start_date - i).seconds <= 86399
+                    data = dict(minute=start_date.minute,
+                                hour=start_date.hour)
+
                 case freq.WEEKLY:
-                    passed_check = (instance.start_date - i).seconds <= 604799
+                    data = dict(minute=start_date.minute,
+                                hour=start_date.hour,
+                                day_of_week=int(start_date.today().strftime('%w')))
+
                 case freq.MONTHLY:
-                    passed_check = (instance.start_date - i).seconds <= 2678399
+                    data = dict(minute=start_date.minute,
+                                hour=start_date.hour,
+                                day_of_month=start_date.day)
+
                 case freq.YEARLY:
-                    passed_check = (instance.start_date - i).seconds <= 31556927
+                    data = dict(minute=start_date.minute,
+                                hour=start_date.hour,
+                                day_of_month=start_date.day,
+                                month_of_year=start_date.month)
 
-            # Check if failed or reminder occurs after the start date
-            if not passed_check or (instance.start_date - i).seconds <= 0:
-                failed_checks.append(i)
+            # TODO automatic purging of dangling CrontabSchedules
+            if not data:
+                data = dict(minute=start_date.minute, hour=start_date.hour)
 
-        if failed_checks:
-            raise ValidationError(f"Folllowing reminders are invalid: {', '.join(str(failed_checks))}")
+            schedule = CrontabSchedule.objects.get_or_create(**data)
 
-        for i in instance.reminders:
-            repeat_frequency = instance.repeat_frequency
-
-            data = None
-
-            if not repeat_frequency:
-                schedule = ClockedSchedule.objects.create(clocked_time=i)
-                periodic_task = PeriodicTask.objects.create(name=f"schedule_event_{instance.id}_{i}",
-                                                            task="schedule.tasks.event_notify",
-                                                            one_off=True,
-                                                            kwargs=json.dumps(dict(event_id=instance.id)),
-                                                            clocked=schedule)
-
-                instance.reminder_tasks.add(periodic_task)
+            if instance.periodic_task:
+                instance.periodic_task.update(crontab=schedule[0],
+                                              start_time=instance.start_date,
+                                              one_off=instance.repeat_frequency is not None)
+            else:
+                instance.periodic_task = PeriodicTask.objects.create(name=f"schedule_event_{instance.id}",
+                                                                     task="schedule.tasks.event_notify",
+                                                                     kwargs=json.dumps(dict(event_id=instance.id)),
+                                                                     crontab=schedule[0],
+                                                                     start_time=instance.start_date,
+                                                                     one_off=instance.repeat_frequency is not None)
                 instance.save()
-
-            elif repeat_frequency:  # Create scheduled notifications on repeat
-                match repeat_frequency:
-                    case freq.DAILY:
-                        data = dict(minute=i.minute,
-                                    hour=i.hour)
-
-                    case freq.WEEKLY:
-                        data = dict(minute=i.minute,
-                                    hour=i.hour,
-                                    day_of_week=int(i.today().strftime('%w')))
-
-                    case freq.MONTHLY:
-                        data = dict(minute=i.minute,
-                                    hour=i.hour,
-                                    day_of_month=i.day)
-
-                    case freq.YEARLY:
-                        data = dict(minute=i.minute,
-                                    hour=i.hour,
-                                    day_of_month=i.day,
-                                    month_of_year=i.month)
-
-                if data:  # Create a repeating cron schedule for the event task
-                    # TODO automatic purging of dangling CrontabSchedules
-                    schedule = CrontabSchedule.objects.get_or_create(**data)
-                    periodic_task = PeriodicTask.objects.create(name=f"schedule_event_{instance.id}_{i}",
-                                                                task="schedule.tasks.event_notify",
-                                                                kwargs=json.dumps(dict(event_id=instance.id)),
-                                                                crontab=schedule[0])
-
-                    instance.reminder_tasks.add(periodic_task)
-                    instance.save()
 
     @classmethod  # Delete reminders
     def pre_delete(cls, instance, *args, **kwargs):
@@ -220,27 +184,6 @@ class ScheduleSubscription(BaseModel):
 
 
 post_delete.connect(ScheduleSubscription.post_delete, ScheduleSubscription)
-
-
-# A link between tag and subscription to override the usual reminders given to each tag
-class ScheduleSubscriptionTagReminders(BaseModel):
-    tag = models.ForeignKey(ScheduleTag, on_delete=models.CASCADE)
-    subscription = models.ForeignKey(ScheduleSubscription, on_delete=models.CASCADE)
-    reminders = ArrayField(models.DurationField(), size=10, null=True, blank=True)
-
-    class Meta:
-        constraints = [models.UniqueConstraint(fields=['tag', 'subscription'],
-                                               name='unique_schedule_subscription_tag_reminders')]
-
-    @classmethod
-    def post_save(cls, instance, created, update_fields, *args, **kwargs):
-        update_fields = update_fields or []
-
-        if not created:
-            if 'reminders' in update_fields and instance.reminders is not None:
-                # Clear all reminders for the tag and schedule pair from current time, then recreate them with new reminders
-                # ArrayField can be [] and None, use it to determine whether to send notifications or not.
-                pass
 
 
 def generate_schedule(sender, instance, created, *args, **kwargs):

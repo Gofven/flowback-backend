@@ -87,15 +87,15 @@ class NotificationObject(BaseModel):
         Notification.objects.bulk_create(notifications)
 
     def create_reminders(self,
-                       subscription_filters: dict = None,
-                       subscription_q_filters: list[Q] = None,
-                       exclude_subscription_filters: dict = None,
-                       exclude_subscription_q_filters: list[Q] = None,
-                       seconds: int = 0,
-                       minutes: int = 0,
-                       hours: int = 0,
-                       days: int = 0,
-                       weeks: int = 0):
+                         subscription_filters: dict = None,
+                         subscription_q_filters: list[Q] = None,
+                         exclude_subscription_filters: dict = None,
+                         exclude_subscription_q_filters: list[Q] = None,
+                         seconds: int = 0,
+                         minutes: int = 0,
+                         hours: int = 0,
+                         days: int = 0,
+                         weeks: int = 0):
         """
         Creates reminders to users. The seconds, minutes, hours, days, and weeks
         are subtracted from the NotificationObject timestamp.
@@ -164,27 +164,29 @@ class NotificationObject(BaseModel):
             exclude_subscription_q_filters = instance.exclude_subscription_q_filters
 
         if created:
-            instance.send_notifications(subscription_filters=subscription_filters,
-                                        subscription_q_filters=subscription_q_filters,
-                                        exclude_subscription_filters=exclude_subscription_filters,
-                                        exclude_subscription_q_filters=exclude_subscription_q_filters)
+            instance.notify(subscription_filters=subscription_filters,
+                            subscription_q_filters=subscription_q_filters,
+                            exclude_subscription_filters=exclude_subscription_filters,
+                            exclude_subscription_q_filters=exclude_subscription_q_filters)
 
 
 post_save.connect(NotificationObject.post_save, NotificationObject)
 
 
+# TODO make a selector API to get related reminder presets for the channel/subscriber
+# TODO make a service API to create/update reminder presets for the channel/subscriber
 class NotificationReminderPreset(BaseModel):
     # Channel & tag combo for reminders.
     channel = models.ForeignKey('notification.NotificationChannel', on_delete=models.CASCADE)
 
     # Optional subscriber field to override the reminders set by the NotificationChannel by default.
     subscriber = models.ForeignKey('notification.NotificationSubscription',
-                                     on_delete=models.CASCADE,
-                                     null=True,
-                                     blank=True)
+                                   on_delete=models.CASCADE,
+                                   null=True,
+                                   blank=True)
 
     tag = models.CharField(max_length=255)
-    reminders = ArrayField(models.IntegerField(), max_length=10, null=True, blank=True, default=[])
+    reminders = ArrayField(models.DurationField(), max_length=10, null=True, blank=True, default=[])
 
     def clean(self):
         if self.tag not in self.channel.tags:
@@ -391,10 +393,12 @@ class NotificationChannel(BaseModel, TreeNode):
         """
         NotificationSubscription.objects.filter(channel__in=self.descendants(include_self=True)).delete()
 
+    # TODO create update_reminder_preset, it'll update reminder preset for the channel/subscriber
+    #  and clear all previous reminders if cascade is selected
     def update_reminder_preset(self,
                                tag: str,
                                reminders: list[timedelta] = None,
-                               user = None,
+                               user=None,
                                cascade: bool = True) -> NotificationReminderPreset:
         """
         Updates the NotificationReminderPreset for the given tag.
@@ -403,10 +407,9 @@ class NotificationChannel(BaseModel, TreeNode):
         If reminders are None and the user is not set, by default the reminders will be removed.
         If reminders are None and the user is set, the reminders will follow the channel's own reminder preset.
         :param user: Update reminder preset for a specific user through NotificationSubscription.
-        :param cascade: Overwrites previously related reminders.
+        :param cascade: Delete previous reminders.
         :return: NotificationReminderPreset
         """
-        
 
 
 def generate_notification_channel(sender, instance, created, *args, **kwargs):
