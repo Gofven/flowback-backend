@@ -16,7 +16,8 @@ from ...common.tests import generate_request
 from ...files.tests.factories import FileSegmentFactory
 from ...group.models import GroupUser
 from ...group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
-from ...notification.models import NotificationChannel
+from ...notification.models import NotificationChannel, NotificationObject, Notification
+from ...notification.views import NotificationListAPI
 from ...user.models import User
 
 
@@ -30,8 +31,9 @@ class PollTest(APITestCase):
          self.group_user_three) = GroupUserFactory.create_batch(3, group=self.group)
         (self.poll_one,
          self.poll_two,
-         self.poll_three) = [PollFactory(created_by=x) for x in [self.group_user_creator, self.group_user_one,
-                                                                 self.group_user_two]]
+         self.poll_three) = [PollFactory(created_by=x, pinned=False) for x in
+                             [self.group_user_creator, self.group_user_one,
+                              self.group_user_two]]
         segment = FileSegmentFactory()
         self.poll_three.attachments = segment.collection
         self.poll_three.save()
@@ -59,6 +61,17 @@ class PollTest(APITestCase):
         self.assertEqual(response.data['results'][1]['total_proposals'], 12)
         self.assertEqual(response.data['results'][1]['total_predictions'], 15)
 
+    def test_list_polls_hide_users(self):
+        self.group.hide_poll_users = True
+        self.group.save()
+
+        response = generate_request(api=PollListApi,
+                                    data=dict(order_by='pinned,start_date_asc'),
+                                    user=self.group_user_creator.user)
+
+        self.assertTrue(all([not x['created_by'] for x in response.data['results']]),
+                        [[bool(x['created_by']), x['group_id']] for x in response.data['results']])
+
     def test_create_poll(self):
         factory = APIRequestFactory()
         user = self.group_user_creator.user
@@ -72,6 +85,46 @@ class PollTest(APITestCase):
         response = view(request, group_id=self.group.id)  # Success
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_create_poll_notification(self):
+        subscriber = self.group_user_one
+        poll_creator = self.group_user_two
+
+        # Subscribe group_user_one to the group notification channel
+        self.group.notification_channel.subscribe(user=subscriber.user, tags=['poll'])
+
+        data = dict(title='notification test poll', description='testing notifications',
+                    poll_type=4, public=True, tag=self.group_tag.id,
+                    pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.jpg', b'test')],
+                    **generate_poll_phase_kwargs('base'))
+
+        # Use generate_request to create the poll
+        response = generate_request(
+            api=PollCreateAPI,
+            data=data,
+            url_params=dict(group_id=self.group.id),
+            user=poll_creator.user,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check if the subscriber received a notification
+        notification = Notification.objects.get(
+            user=subscriber.user,
+            notification_object__channel=self.group.notification_channel,
+            notification_object__tag="poll",
+            notification_object__data__poll_id=response.data,
+            notification_object__action=NotificationObject.Action.CREATED,
+        )
+
+        # Also check if the API returns the Notification
+        response = generate_request(NotificationListAPI,
+                                    data=dict(order_by='timestamp_desc',
+                                              object_id=notification.notification_object.id),
+                                    user=subscriber.user)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['count'], 1)
 
     def test_create_poll_below_phase_space_minimum(self):
         phases = generate_poll_phase_kwargs('base')
@@ -117,12 +170,12 @@ class PollTest(APITestCase):
         user = self.group_user_one.user
         view = PollUpdateAPI.as_view()
 
-        data = dict(title='new_title', description='new_description', pinned=False)
+        data = dict(title='new_title', description='new_description')
         request = factory.post('', data=data)
         force_authenticate(request, user)
 
         response = view(request, poll=self.poll_two.id)
-        self.assertTrue(response.status_code == 200, response.rendered_content)
+        self.assertEqual(response.status_code, 200, response.rendered_content)
 
         self.poll_two.refresh_from_db()
         self.assertTrue(self.poll_two.title == 'new_title')

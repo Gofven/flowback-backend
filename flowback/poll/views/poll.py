@@ -67,7 +67,7 @@ class PollListApi(APIView):
             file = serializers.CharField()
             file_name = serializers.CharField()
 
-        created_by = GroupUserSerializer()
+        created_by = GroupUserSerializer(allow_null=True, hide_relevant_users=True)
         group_joined = serializers.BooleanField(required=False)
         group_id = serializers.IntegerField(source='created_by.group_id')
         group_name = serializers.CharField(source='created_by.group.name')
@@ -196,7 +196,7 @@ class PollCreateAPI(APIView):
 class PollUpdateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField(required=False)
-        pinned = serializers.BooleanField(required=False)
+        pinned = serializers.BooleanField(required=False, allow_null=True, default=None)
         description = serializers.CharField(required=False)
 
     def post(self, request, poll: int):
