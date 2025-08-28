@@ -18,6 +18,8 @@ def set_group_users_default_permissions_and_chat_titles(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    atomic = False
+
     dependencies = [
         ('group', '0049_alter_groupthread_public'),
     ]
@@ -38,6 +40,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='groupuser',
             name='permission',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='group.grouppermissions'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT,
+                                    to='group.grouppermissions',
+                                    null=True),
         ),
     ]
