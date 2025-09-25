@@ -177,7 +177,6 @@ def poll_prediction_bet_count(poll_id: int):
             to_delete.append(j)
 
     previous_outcomes = [j for n, j in enumerate(previous_outcomes) if n not in to_delete]
-    poll_statements = [j for n, j in enumerate(poll_statements) if n not in to_delete]
 
     for i in range(len(previous_bets)):
         previous_bets[i] = [j for n, j in enumerate(previous_bets[i]) if n not in to_delete]
@@ -196,8 +195,6 @@ def poll_prediction_bet_count(poll_id: int):
 
     # Calculation below
     # for i, statement in enumerate(poll_statements):
-    # TODO poll_statements does not include statements where outcome is 0.5, combined_bet should be set to
-    #  "None if all(bets[i] is None for bets in current_bets) else (sum(main_bets)) / len(main_bets)"
     for i, statement in enumerate(poll_statements):
         bias_adjustments = []
         predictor_errors = []
