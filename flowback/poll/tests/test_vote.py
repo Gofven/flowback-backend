@@ -1,4 +1,5 @@
-from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
+from rest_framework.test import APITestCase
+from rest_framework.exceptions import ValidationError
 from .factories import PollFactory, PollProposalFactory
 from .utils import generate_poll_phase_kwargs
 from ..models import PollDelegateVoting, PollVotingTypeCardinal, Poll, PollProposal, PollVoting, \
@@ -23,6 +24,7 @@ class PollVoteTest(APITestCase):
          self.group_user_two,
          self.group_user_three) = GroupUserFactory.create_batch(3, group=self.group)
         self.poll_schedule = PollFactory(created_by=self.group_user_one, poll_type=Poll.PollType.SCHEDULE,
+                                         dynamic=True,
                                          tag=GroupTagsFactory(group=self.group), **generate_poll_phase_kwargs('vote'))
         self.poll_cardinal = PollFactory(created_by=self.group_user_one, poll_type=Poll.PollType.CARDINAL,
                                          tag=GroupTagsFactory(group=self.group), **generate_poll_phase_kwargs('vote'))
@@ -133,12 +135,13 @@ class PollVoteTest(APITestCase):
 
     @staticmethod
     def schedule_vote_update(user: User, poll: Poll, proposals: list[PollProposal]):
-        factory = APIRequestFactory()
-        view = PollProposalVoteUpdateAPI.as_view()
         data = dict(proposals=[x.id for x in proposals])
-        request = factory.post('', data=data)
-        force_authenticate(request, user)
-        return view(request, poll=poll.id)
+        return generate_request(
+            api=PollProposalVoteUpdateAPI,
+            data=data,
+            url_params={'poll': poll.id},
+            user=user
+        )
 
     def test_vote_update_schedule(self):
         user = self.group_user_one.user
@@ -231,21 +234,22 @@ class PollDelegateVoteTest(APITestCase):
         self.poll_three.save()
 
     def test_delegate_vote(self):
-        factory = APIRequestFactory()
         user = self.delegate.group_user.user
-        view = PollProposalDelegateVoteUpdateAPI.as_view()
 
         (proposal_one,
          proposal_two) = [PollProposalFactory(created_by=self.group_user_creator, poll=self.poll_one) for x in range(2)]
 
         data = dict(proposals=[proposal_two.id, proposal_one.id], scores=[100, 25])
 
-        request = factory.post('', data)
-        force_authenticate(request, user=user)
-        view(request, poll=self.poll_one.id)
+        generate_request(
+            api=PollProposalDelegateVoteUpdateAPI,
+            data=data,
+            url_params={'poll': self.poll_one.id},
+            user=user
+        )
 
         votes = PollDelegateVoting.objects.get(created_by=self.delegate.pool).pollvotingtypecardinal_set
-        self.assertEqual(votes.filter(id__in=data['proposals']).count(), 2)
+        self.assertEqual(votes.filter(proposal_id__in=data['proposals']).count(), 2)
 
     def test_delegate_vote_count_with_permissions(self):
         """Test poll_proposal_vote_count where delegate has delegators with and without voting permissions"""
@@ -289,14 +293,15 @@ class PollDelegateVoteTest(APITestCase):
             delegator_pool.tags.add(tag)
 
         # Have the delegate vote
-        factory = APIRequestFactory()
         user = delegate.group_user.user
-        view = PollProposalDelegateVoteUpdateAPI.as_view()
         data = dict(proposals=[proposal_one.id, proposal_two.id], scores=[100, 50])
 
-        request = factory.post('', data)
-        force_authenticate(request, user=user)
-        response = view(request, poll=poll.id)
+        response = generate_request(
+            api=PollProposalDelegateVoteUpdateAPI,
+            data=data,
+            url_params={'poll': poll.id},
+            user=user
+        )
         self.assertEqual(response.status_code, 200)
 
         # Verify delegate voting record was created
@@ -363,14 +368,15 @@ class PollDelegateVoteTest(APITestCase):
             delegator_pool.tags.add(tag)
 
         # Have the delegate vote
-        factory = APIRequestFactory()
         user = delegate.group_user.user
-        view = PollProposalDelegateVoteUpdateAPI.as_view()
         data = dict(proposals=[proposal_one.id, proposal_two.id], scores=[100, 50])
 
-        request = factory.post('', data)
-        force_authenticate(request, user=user)
-        response = view(request, poll=poll.id)
+        response = generate_request(
+            api=PollProposalDelegateVoteUpdateAPI,
+            data=data,
+            url_params={'poll': poll.id},
+            user=user
+        )
         self.assertEqual(response.status_code, 200)
 
         # Change poll phase to result and call vote count
@@ -426,9 +432,12 @@ class PollDelegateVoteTest(APITestCase):
         user_2 = delegate_2.group_user.user
         data_2 = dict(proposals=[proposal_three.id, proposal_four.id], scores=[100, 50])
 
-        request_2 = factory.post('', data_2)
-        force_authenticate(request_2, user=user_2)
-        response_2 = view(request_2, poll=poll_2.id)
+        response_2 = generate_request(
+            api=PollProposalDelegateVoteUpdateAPI,
+            data=data_2,
+            url_params={'poll': poll_2.id},
+            user=user_2
+        )
         self.assertEqual(response_2.status_code, 200)
 
         # Change poll phase to result and call vote count for second poll
@@ -444,3 +453,81 @@ class PollDelegateVoteTest(APITestCase):
         proposal_four.refresh_from_db()
         self.assertEqual(proposal_three.score, 0, "Score should be 0 with no voting delegators")
         self.assertEqual(proposal_four.score, 0, "Score should be 0 with no voting delegators")
+
+    def test_delegator_cannot_vote_during_delegate_phase(self):
+        """Test that a delegator cannot vote through regular API during delegate voting phase,
+        but the delegate can vote through delegate API.
+
+        This test verifies the implemented restriction where delegators are prevented from
+        voting during the delegate_vote phase through the regular voting API.
+        """
+
+        # Create a poll in delegate voting phase
+        tag = GroupTagsFactory(group=self.group)
+        poll = PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.CARDINAL, tag=tag,
+                          **generate_poll_phase_kwargs('delegate_vote'))
+
+        # Create proposals for the poll
+        proposal_one = PollProposalFactory(created_by=self.group_user_creator, poll=poll)
+        proposal_two = PollProposalFactory(created_by=self.group_user_creator, poll=poll)
+
+        # Create a delegate
+        delegate = GroupUserDelegateFactory(group=self.group)
+
+        # Create permissions allowing vote
+        permission_allow_vote = GroupPermissionsFactory(author=self.group, allow_vote=True)
+
+        # Create a delegator with voting permission
+        delegator_user = GroupUserFactory(group=self.group, permission=permission_allow_vote)
+
+        # Create delegator relationship - delegator delegates to delegate
+        delegator_pool = GroupUserDelegatorFactory(group=self.group,
+                                                  delegator=delegator_user,
+                                                  delegate_pool=delegate.pool)
+
+        # Add tag to delegator
+        delegator_pool.tags.add(tag)
+
+        # Test 1: Delegator cannot vote through regular API during delegate phase
+        delegator_vote_data = dict(proposals=[proposal_one.id, proposal_two.id], scores=[100, 50])
+
+        # Delegator should be prevented from voting during delegate phase
+        delegator_response = generate_request(
+            api=PollProposalVoteUpdateAPI,
+            data=delegator_vote_data,
+            url_params={'poll': poll.id},
+            user=delegator_user.user
+        )
+        self.assertEqual(delegator_response.status_code, 400)
+        
+        # Verify the error message indicates the poll phase restriction
+        self.assertIn("not in", str(delegator_response.data).lower())
+
+        # Verify no delegator voting record was created
+        delegator_votes = PollVoting.objects.filter(created_by=delegator_user, poll=poll)
+        self.assertEqual(delegator_votes.count(), 0,
+                        "No delegator voting records should be created during delegate phase")
+
+        # Test 2: Verify delegate can vote through delegate API (this should always work)
+        delegate_vote_data = dict(proposals=[proposal_one.id, proposal_two.id], scores=[80, 40])
+
+        # The delegate should be able to vote through delegate API
+        delegate_response = generate_request(
+            api=PollProposalDelegateVoteUpdateAPI,
+            data=delegate_vote_data,
+            url_params={'poll': poll.id},
+            user=delegate.group_user.user
+        )
+        self.assertEqual(delegate_response.status_code, 200)
+
+        # Verify delegate voting record was created
+        delegate_vote = PollDelegateVoting.objects.get(created_by=delegate.pool, poll=poll)
+        self.assertIsNotNone(delegate_vote)
+
+        # Test 3: Verify delegate vote has correct scores
+        delegate_vote_cardinal = delegate_vote.pollvotingtypecardinal_set.all()
+        self.assertEqual(delegate_vote_cardinal.count(), 2, "Delegate should have voted on 2 proposals")
+
+        proposal_scores = {vote.proposal_id: vote.raw_score for vote in delegate_vote_cardinal}
+        self.assertEqual(proposal_scores[proposal_one.id], 80)
+        self.assertEqual(proposal_scores[proposal_two.id], 40)

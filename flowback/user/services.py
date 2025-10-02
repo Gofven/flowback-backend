@@ -1,7 +1,5 @@
 import logging
-import operator
 import uuid
-from functools import reduce
 
 from django.core.mail import send_mail
 from django.db.models import Q, Count
@@ -36,13 +34,14 @@ def user_create(*, email: str) -> OnboardUser | None:
             else:
                 raise ValidationError('Username already exists.')
 
-    onboard_user, created = OnboardUser.objects.update_or_create(email=email, defaults=dict(is_verified=False,
-                                                                                    verification_code=uuid.uuid4().hex))
+    onboard_user, created = OnboardUser.objects.update_or_create(email=email,
+                                                                 defaults=dict(is_verified=False,
+                                                                               verification_code=uuid.uuid4()))
 
     link = f'Use this code to create your account: {onboard_user.verification_code}'
     if URL_USER_CREATE:
         link = (f"Use this link to create your account: {URL_USER_CREATE}"
-                f"?email={email}&verification_code={onboard_user.verification_code}")
+                f"?verification_code={onboard_user.verification_code}")
 
     if EMAIL_HOST:
         send_mail('Flowback Verification Code', link, DEFAULT_FROM_EMAIL, [email])
