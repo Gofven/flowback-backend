@@ -73,11 +73,12 @@ def poll_prediction_bet_count(poll_id: int):
                              output_field=models.IntegerField())),
         outcome_scores=Case(When(outcome_sum__gt=0, then=1),
                             When(outcome_sum__lt=0, then=0),
-                            default=0.5,
-                            output_field=models.FloatField())
+                            default=None,
+                            output_field=models.FloatField(null=True))
     ).order_by('-created_at').all()
 
-    previous_outcomes = list(statements.filter(~Q(poll=poll)).values_list('outcome_scores', flat=True))
+    previous_outcomes = list(statements.filter(~Q(poll=poll) & Q(outcome_scores__isnull=False)
+                                               ).values_list('outcome_scores', flat=True))
     previous_outcome_avg = 0 if len(previous_outcomes) == 0 else sum(previous_outcomes) / len(previous_outcomes)
     poll_statements = statements.filter(poll=poll).all().values_list('id', flat=True)
 
@@ -105,11 +106,20 @@ def poll_prediction_bet_count(poll_id: int):
 
         current_bets.append(current_bet)
 
-        previous_bets.append(list(PollPredictionBet.objects.filter(
-            Q(created_by=predictor,
-              prediction_statement__in=statements)
+        unprocessed_previous_bets = PollPredictionBet.objects.filter(
+            Q(created_by=predictor, prediction_statement__in=statements.filter(outcome_scores__isnull=False))
             & ~Q(prediction_statement__poll=poll)).order_by('-prediction_statement__created_at').annotate(
-            real_score=Cast(F('score'), models.FloatField()) / 5).values_list('real_score', flat=True)))
+            real_score=Cast(F('score'), models.FloatField()) / 5)
+
+        bets = []
+        for statement in statements.filter(~Q(poll=poll) & Q(outcome_scores__isnull=False)):
+            try:
+                bets.append(unprocessed_previous_bets.get(prediction_statement=statement).real_score)
+
+            except PollPredictionBet.DoesNotExist:
+                bets.append(None)
+
+        previous_bets.append(bets)
 
     # Current
     # Bets: [[0.2, 0.2], [0.0, 0.0], [1.0, 0.0]]
@@ -118,16 +128,18 @@ def poll_prediction_bet_count(poll_id: int):
     # Previous
     # Bets: [[0.0], [0.2], [1.0]]
 
-    previous_bets = [[] for _ in range(len(predictors))]
-    for i, statement in enumerate(statements.filter(~Q(poll=poll))):
-        for j, predictor in enumerate(predictors):
-            try:
-                bet = PollPredictionBet.objects.get(Q(created_by=predictor)
-                                                    & Q(prediction_statement=statement))
-                previous_bets[j].append(bet.score / 5)
-
-            except PollPredictionBet.DoesNotExist:
-                previous_bets[j].append(None)
+    # previous_bets = [[] for _ in range(len(predictors))]
+    # for i, statement in enumerate(statements.filter(~Q(poll=poll) & Q(outcome_scores__isnull=False))):  # For each previous statement (fix? weed out outcome_scores=None)
+    #     for j, predictor in enumerate(predictors):  # For each predictor
+    #
+    #         # Could be optimized
+    #         try:
+    #             bet = PollPredictionBet.objects.get(Q(created_by=predictor)
+    #                                                 & Q(prediction_statement=statement))  # Get bets from predictor for each statement
+    #             previous_bets[j].append(bet.score / 5)  # Divide all bets by 5
+    #
+    #         except PollPredictionBet.DoesNotExist:
+    #             previous_bets[j].append(None)  # If the bet does not exist, add None as a placeholder
 
         # prediction_bets.append()
         # print(PollPredictionBet.objects.filter(
@@ -171,10 +183,10 @@ def poll_prediction_bet_count(poll_id: int):
         current_bets = [u for i, u in enumerate(current_bets) if i not in to_delete]
         previous_bets = [u for i, u in enumerate(previous_bets) if i not in to_delete]
 
-    # Delete any previous_outcomes where outcome is 0.5 (that is, undecided)
+    # Delete any previous_outcomes where all corresponding previous bets are None
     to_delete = []
     for j, previous_outcome in enumerate(previous_outcomes):
-        if previous_outcome == 0.5:
+        if all(bets[j] is None for bets in previous_bets):
             to_delete.append(j)
 
     previous_outcomes = [j for n, j in enumerate(previous_outcomes) if n not in to_delete]
@@ -217,8 +229,7 @@ def poll_prediction_bet_count(poll_id: int):
         dprint("Previous Bets Trimmed:", previous_bets_trimmed)
         for bets in previous_bets_trimmed:
             bets_trimmed = [i for i in bets if i is not None]
-            bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (0 if not bets_trimmed else
-                                                                                     sum(bets_trimmed) /
+            bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (sum(bets_trimmed) /
                                                                                      len(bets_trimmed)))
 
             predictor_errors.append(np.array([previous_outcomes[i] - bets[i]
