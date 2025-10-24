@@ -55,6 +55,7 @@ class MessageChannelPreviewAPI(APIView):
         order_by = serializers.ChoiceField(required=False, choices=['created_at_asc', 'created_at_desc'])
         origin_names = serializers.CharField(required=False, help_text="Comma-separated list of origins, "
                                                                        "e.g. 'user,user_group'")
+        title = serializers.CharField(required=False)
         username__icontains = serializers.CharField(required=False)
         id = serializers.IntegerField(required=False)
         user_id = serializers.IntegerField(required=False)
@@ -70,7 +71,8 @@ class MessageChannelPreviewAPI(APIView):
         participants = SerializerMethodField(help_text="List of Users who participated in the channel, max 20 displayed")
 
         def get_participants(self, obj):
-            return BasicUserSerializer(User.objects.filter(messagechannelparticipant__channel=obj.channel)[:20], many=True).data
+            participants = User.objects.filter(messagechannelparticipant__channel=obj.channel)[:20]
+            return BasicUserSerializer(participants, many=True).data
 
     def get(self, request):
         serializer = self.FilterSerializer(data=request.query_params)
