@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
     command: >
       bash -c "pip install --no-cache-dir -r requirements.txt
-      && celery -A backend worker --loglevel=info
+      && celery -A backend worker --loglevel=info"
     depends_on:
       - flowback-backend
       - flowback-redis
@@ -69,7 +69,7 @@ services:
     restart: unless-stopped
     command: >
       bash -c "pip install --no-cache-dir -r requirements.txt
-      && celery -A backend beat --loglevel=info
+      && celery -A backend beat --loglevel=info"
     depends_on:
       - flowback-backend
       - flowback-redis
