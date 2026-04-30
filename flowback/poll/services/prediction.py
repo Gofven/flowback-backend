@@ -275,11 +275,12 @@ def poll_proposal_kpi_bet(user_id: int,
 
     staged = []
     for i in range(len(values)):
-        staged.append(PollProposalKPIBet(created_by=group_user,
-                                         weight=weights[i],
-                                         proposal_kpi=PollProposalKPI.objects.get(proposal=proposal,
-                                                                                  kpi_value__kpi=kpi,
-                                                                                  kpi_value__value=values[i])))
+        if weights[i] > 0:
+            staged.append(PollProposalKPIBet(created_by=group_user,
+                                             weight=weights[i],
+                                             proposal_kpi=PollProposalKPI.objects.get(proposal=proposal,
+                                                                                      kpi_value__kpi=kpi,
+                                                                                      kpi_value__value=values[i])))
 
     bets = PollProposalKPIBet.objects.bulk_create(objs=staged)
     return bets
