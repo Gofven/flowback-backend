@@ -6,6 +6,7 @@ from rest_framework.views import APIView, Response
 
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.common.services import get_object
+
 from flowback.poll.models import Poll, PollProposal
 
 from ..selectors.proposal import poll_proposal_list

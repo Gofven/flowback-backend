@@ -7,12 +7,12 @@ from rest_framework.views import APIView, Response
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.common.services import get_object
 
-from flowback.poll.models import Poll, PollVotingTypeCardinal
+from flowback.poll.models import Poll, PollVotingTypeCardinal, PollVotingTypeForAgainst
+from flowback.poll.selectors.vote import poll_vote_list, delegate_poll_vote_list
+from flowback.poll.serializers import PollSerializer
+from flowback.poll.services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
 
-from ..selectors.vote import poll_vote_list, delegate_poll_vote_list
-from ..serializers import PollSerializer
-from ..services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
-from ...group.serializers import GroupUserSerializer
+from flowback.group.serializers import GroupUserSerializer
 
 
 @extend_schema(tags=['poll/vote'])
@@ -37,6 +37,17 @@ class PollProposalVoteListAPI(APIView):
                       'proposal',
                       'score',
                       'raw_score')
+
+    class OutputSerializerTypeForAgainst(serializers.ModelSerializer):
+        author = GroupUserSerializer(source='author.created_by', hide_relevant_users=True)
+
+        class Meta:
+            model = PollVotingTypeForAgainst
+            fields = ('author',
+                      'author_delegate',
+                      'proposal',
+                      'vote',
+                      'score')
 
     def get(self, request, poll: int):
         poll = get_object(Poll, id=poll)
@@ -161,8 +172,6 @@ class PollProposalDelegateVoteUpdateAPI(APIView):
             input_serializer = self.InputSerializerDefault
         elif poll.poll_type == Poll.PollType.CARDINAL:
             input_serializer = self.InputSerializerCardinal
-        else:
-            raise ValidationError('Unknown poll type')
 
         serializer = input_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

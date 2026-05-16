@@ -6,7 +6,8 @@ from flowback.common.services import get_object
 from flowback.group.models import GroupUserDelegatePool
 from flowback.group.notify import notify_group_user_delegate_pool_poll_vote_update
 from flowback.notification.models import NotificationChannel
-from flowback.poll.models import Poll, PollVoting, PollDelegateVoting, PollVotingTypeCardinal
+from flowback.poll.models import (Poll, PollVoting, PollDelegateVoting, PollVotingTypeCardinal,
+                                  PollVotingTypeForAgainst, PollProposalTypeSchedule)
 from flowback.group.selectors.permission import group_user_permissions
 
 
@@ -18,6 +19,37 @@ def poll_proposal_vote_update(*, user_id: int, poll_id: int, data: dict) -> None
 
     poll.check_phase('vote', 'dynamic', 'schedule')
 
+    if poll.poll_type == Poll.PollType.SCHEDULE:
+        if not data['proposals']:
+            PollVoting.objects.filter(created_by=group_user, poll=poll).delete()
+            return
+
+        if len(set(data['proposals'])) != len(data['proposals']):
+            raise ValidationError('Duplicate proposals are not allowed')
+
+        proposals = poll.pollproposal_set.filter(id__in=data['proposals']).all()
+        if len(proposals) != len(data['proposals']):
+            raise ValidationError('Not all proposals are available to vote for')
+
+        poll_vote, created = PollVoting.objects.get_or_create(created_by=group_user, poll=poll)
+        poll_vote_schedule = [PollVotingTypeForAgainst(author=poll_vote,
+                                                      proposal_id=proposal,
+                                                      vote=True)
+                              for proposal in data['proposals']]
+
+        old_proposal_ids = list(
+            PollVotingTypeForAgainst.objects.filter(author=poll_vote).values_list('proposal_id', flat=True)
+        )
+
+        PollVotingTypeForAgainst.objects.filter(author=poll_vote).delete()
+        PollVotingTypeForAgainst.objects.bulk_create(poll_vote_schedule)
+
+        PollProposalTypeSchedule.objects.filter(proposal_id__in=old_proposal_ids
+                                                ).update(preliminary_score=F('preliminary_score') - 1)
+
+        PollProposalTypeSchedule.objects.filter(proposal_id__in=data['proposals']
+                                                ).update(preliminary_score=F('preliminary_score') + 1)
+        return
 
     if FLOWBACK_SCORE_VOTE_CEILING is not None and any(
             [score > FLOWBACK_SCORE_VOTE_CEILING for score in data['scores']]):
@@ -112,7 +144,7 @@ def poll_proposal_delegate_vote_update(*, user_id: int, poll_id: int, data) -> N
         poll_vote_schedule = [PollVotingTypeForAgainst(author_delegate=poll_vote,
                                                        proposal_id=proposal,
                                                        vote=True)
-                              for proposal in enumerate(data['proposals'])]
+                              for proposal in data['proposals']]
         PollVotingTypeForAgainst.objects.filter(author_delegate=poll_vote).delete()
         PollVotingTypeForAgainst.objects.bulk_create(poll_vote_schedule)
 

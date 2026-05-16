@@ -105,7 +105,8 @@ class PollPredictionStatementTest(APITestCase):
     def test_delete_prediction_statement(self):
         response = self.generate_delete_prediction_request(group_user=self.user_prediction_creator,
                                                            prediction_statement=self.prediction_statement)
-        self.assertEqual(PollPredictionStatement.objects.filter(id=self.prediction_statement.id).count(), 0)
+        self.assertEqual(PollPredictionStatement.objects.filter(id=self.prediction_statement.id,
+                                                                active=False).count(), 1)
 
     def test_delete_prediction_statement_unpermitted(self):
         response = self.generate_delete_prediction_request(group_user=self.user_prediction_caster_one,
