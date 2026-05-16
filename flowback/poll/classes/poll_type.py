@@ -145,8 +145,8 @@ class PollType(ABC):
 
     # --- Proposal create ---
 
-    @abstractmethod
-    def create_proposal_type_data(self, proposal: PollProposal, data: dict) -> None: ...
+    def create_proposal_type_data(self, proposal: PollProposal, data: dict) -> None:
+        return None
 
     @abstractmethod
     def proposal_input_serializer_class(self) -> type[serializers.Serializer]: ...
@@ -154,14 +154,14 @@ class PollType(ABC):
     @abstractmethod
     def proposal_filter_class(self) -> type: ...
 
-    @abstractmethod
-    def proposal_start_date(self, proposal: PollProposal): ...
+    def proposal_start_date(self, proposal: PollProposal) -> None:
+        return None
 
-    @abstractmethod
-    def proposal_end_date(self, proposal: PollProposal): ...
+    def proposal_end_date(self, proposal: PollProposal) -> None:
+        return None
 
-    @abstractmethod
-    def proposal_preliminary_score(self, proposal: PollProposal): ...
+    def proposal_preliminary_score(self, proposal: PollProposal) -> None:
+        return None
 
     # --- Vote ---
 
@@ -186,8 +186,8 @@ class PollType(ABC):
     @abstractmethod
     def vote_list_qs(self, *, fetched_by, delegates: bool, filters: dict): ...
 
-    @abstractmethod
-    def on_poll_finalized(self, *, winning_proposal) -> None: ...
+    def on_poll_finalized(self, *, winning_proposal) -> None:
+        return None
 
 
 @register(Poll.PollType.SCORE)
