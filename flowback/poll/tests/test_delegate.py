@@ -25,7 +25,7 @@ class PollDelegateTests(APITestCase):
         self.another_regular_user = GroupUserFactory(group=self.group, is_admin=False)
         (self.poll_one,
          self.poll_two,
-         self.poll_three) = [PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.CARDINAL,
+         self.poll_three) = [PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.SCORE,
                                          **generate_poll_phase_kwargs('delegate_vote')) for x in range(3)]
 
         self.poll_one_proposals = [PollProposalFactory(poll=self.poll_one,

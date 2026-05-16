@@ -269,8 +269,8 @@ class PollPhaseTemplate(BaseModel):
 
     class Meta:
         constraints = [
-            # Check if cardinal polls that isn't dynamic don't have any null values
-            models.CheckConstraint(check=~Q(Q(Q(poll_type=Poll.PollType.CARDINAL) & Q(poll_is_dynamic=False))
+            # Check if score polls that aren't dynamic don't have any null values
+            models.CheckConstraint(check=~Q(Q(Q(poll_type=Poll.PollType.SCORE) & Q(poll_is_dynamic=False))
                                             & ~Q(Q(area_vote_time_delta__isnull=False)
                                                  | Q(proposal_time_delta__isnull=False)
                                                  | Q(prediction_statement_time_delta__isnull=False)
@@ -278,7 +278,18 @@ class PollPhaseTemplate(BaseModel):
                                                  | Q(delegate_vote_time_delta__isnull=False)
                                                  | Q(vote_time_delta__isnull=False)
                                                  | Q(end_time_delta__isnull=False))),
-                                   name='pollphasetemplatecardinalisvalid_check'),
+                                   name='pollphasetemplatescoreisvalid_check'),
+
+            # Check if v2 score polls have the reduced set of required phases
+            models.CheckConstraint(check=~Q(Q(Q(poll_type=Poll.PollType.V2_SCORE) & Q(poll_is_dynamic=False))
+                                            & Q(Q(area_vote_time_delta__isnull=False)
+                                                | Q(prediction_statement_time_delta__isnull=False)
+                                                | Q(vote_time_delta__isnull=False)
+                                                | Q(proposal_time_delta__isnull=True)
+                                                | Q(prediction_bet_time_delta__isnull=True)
+                                                | Q(delegate_vote_time_delta__isnull=True)
+                                                | Q(end_time_delta__isnull=True))),
+                                   name='pollphasetemplatev2scoreisvalid_check'),
 
             # Check if schedule poll or dynamic poll have null values except for vote_time_delta and end_time_delta
             models.CheckConstraint(check=~Q(Q(Q(poll_type=Poll.PollType.SCHEDULE) | Q(poll_is_dynamic=True))

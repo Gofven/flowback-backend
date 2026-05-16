@@ -34,7 +34,7 @@ class PollVoteTest(APITestCase):
         self.poll_schedule = PollFactory(created_by=self.group_user_one, poll_type=Poll.PollType.SCHEDULE,
                                          dynamic=True,
                                          tag=GroupTagsFactory(group=self.group), **generate_poll_phase_kwargs('vote'))
-        self.poll_cardinal = PollFactory(created_by=self.group_user_one, poll_type=Poll.PollType.CARDINAL,
+        self.poll_cardinal = PollFactory(created_by=self.group_user_one, poll_type=Poll.PollType.SCORE,
                                          tag=GroupTagsFactory(group=self.group), **generate_poll_phase_kwargs('vote'))
         self.group_users = [self.group_user_one, self.group_user_two, self.group_user_three]
         (self.poll_schedule_proposal_one,
@@ -324,7 +324,7 @@ class PollVoteTest(APITestCase):
         for i in range(200):
             poll = PollFactory(
                 created_by=all_users[i % len(all_users)],
-                poll_type=Poll.PollType.CARDINAL,
+                poll_type=Poll.PollType.SCORE,
                 tag=self.poll_cardinal.tag,
                 **generate_poll_phase_kwargs('result')
             )
@@ -391,7 +391,7 @@ class PollDelegateVoteTest(APITestCase):
         self.delegator = GroupUserFactory(group=self.group)
         (self.poll_one,
          self.poll_two,
-         self.poll_three) = [PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.CARDINAL,
+         self.poll_three) = [PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.SCORE,
                                          **generate_poll_phase_kwargs('delegate_vote')) for x in range(3)]
         segment = FileSegmentFactory()
         self.poll_three.attachments = segment.collection
@@ -419,7 +419,7 @@ class PollDelegateVoteTest(APITestCase):
         """Test poll_proposal_vote_count where delegate has delegators with and without voting permissions"""
         # Create a poll with tag
         tag = GroupTagsFactory(group=self.group)
-        poll = PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.CARDINAL, tag=tag,
+        poll = PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.SCORE, tag=tag,
                            **generate_poll_phase_kwargs('delegate_vote'))
 
         # Create proposals for the poll
@@ -507,7 +507,7 @@ class PollDelegateVoteTest(APITestCase):
         """Test that permission changes actually affect vote count outcomes"""
         # Create a poll with tag
         tag = GroupTagsFactory(group=self.group)
-        poll = PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.CARDINAL, tag=tag,
+        poll = PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.SCORE, tag=tag,
                            **generate_poll_phase_kwargs('delegate_vote'))
 
         # Create proposals for the poll
@@ -571,7 +571,7 @@ class PollDelegateVoteTest(APITestCase):
 
         # Now test Scenario 2: Create a new poll with delegators having no voting permission
         # Create a new poll for the second scenario
-        poll_2 = PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.CARDINAL, tag=tag,
+        poll_2 = PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.SCORE, tag=tag,
                              **generate_poll_phase_kwargs('delegate_vote'))
 
         # Create new proposals for the second poll
@@ -632,7 +632,7 @@ class PollDelegateVoteTest(APITestCase):
 
         # Create a poll in delegate voting phase
         tag = GroupTagsFactory(group=self.group)
-        poll = PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.CARDINAL, tag=tag,
+        poll = PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.SCORE, tag=tag,
                            **generate_poll_phase_kwargs('delegate_vote'))
 
         # Create proposals for the poll

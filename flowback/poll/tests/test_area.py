@@ -33,7 +33,7 @@ class PollAreaTest(APITestCase):
          self.group_tag_three) = [GroupTagsFactory(group=self.group) for x in range(3)]
 
         self.poll = PollFactory(created_by=self.group_user_creator,
-                                poll_type=Poll.PollType.CARDINAL,
+                                poll_type=Poll.PollType.SCORE,
                                 **generate_poll_phase_kwargs('area_vote'))
 
     @skip("poll_area_statement_vote_update rejects vote=False — separate ticket")
@@ -124,7 +124,7 @@ class PollAreaTest(APITestCase):
 
         # Setup a poll in area_vote phase
         poll = PollFactory(created_by=self.group_user_creator,
-                           poll_type=Poll.PollType.CARDINAL,
+                           poll_type=Poll.PollType.SCORE,
                            allow_fast_forward=True,
                            **generate_poll_phase_kwargs('area_vote'))
 

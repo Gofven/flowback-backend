@@ -14,16 +14,6 @@ class BaseDelegatePollVoteFilter(django_filters.FilterSet):
         fields = dict(poll_id=['exact'])
 
 
-class BasePollVoteCardinalFilter(django_filters.FilterSet):
-    delegate_pool_id = django_filters.NumberFilter(field_name='author_delegate__created_by')
-    delegate_user_id = django_filters.NumberFilter(
-        field_name='author_delegate__created_by__groupuserdelegate__group_user__user_id')
-
-    class Meta:
-        model = PollVotingTypeCardinal
-        fields = dict(proposal=['exact'])
-
-
 class BasePollDelegateVotingFilter(django_filters.FilterSet):
     delegate_pool_id = django_filters.NumberFilter(field_name='created_by_id')
 

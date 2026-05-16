@@ -170,19 +170,12 @@ class PollType(ABC):
         pass
 
 
-@register(Poll.PollType.CARDINAL)
-class CardinalPollType(PollType):
+@register(Poll.PollType.SCORE)
+class ScorePollType(PollType):
     def labels(self) -> tuple:
         poll = self.poll
         if poll.dynamic:
             return ((poll.start_date, 'start_date', 'dynamic'),
-                    (poll.end_date, 'end_date', 'result'))
-
-        if poll.version == 2:
-            return ((poll.start_date, 'start_date', 'proposal'),
-                    (poll.proposal_end_date, 'proposal_end_date', 'prediction_bet'),
-                    (poll.prediction_bet_end_date, 'prediction_bet_end_date', 'delegate_vote'),
-                    (poll.delegate_vote_end_date, 'delegate_vote_end_date', 'vote'),
                     (poll.end_date, 'end_date', 'result'))
 
         return ((poll.start_date, 'start_date', 'area_vote'),
@@ -197,71 +190,59 @@ class CardinalPollType(PollType):
     def finished(self) -> bool:
         poll = self.poll
         now = timezone.now()
-        if poll.version == 2:
-            return poll.end_date is not None and poll.end_date <= now
         return ((poll.vote_end_date is not None and poll.vote_end_date <= now)
                 or (poll.end_date is not None and poll.end_date <= now))
 
     def schedule_post_create_tasks(self) -> None:
         poll = self.poll
-        if poll.version == 2:
-            _tasks.poll_kpi_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
-        else:
-            _tasks.poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
-            _tasks.poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id),
-                                                         eta=poll.prediction_bet_end_date)
+        _tasks.poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
+        _tasks.poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id),
+                                                     eta=poll.prediction_bet_end_date)
 
         if not poll.dynamic:
-            eta = poll.end_date if poll.version == 2 else poll.vote_end_date
-            _tasks.poll_proposal_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=eta)
+            _tasks.poll_proposal_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.vote_end_date)
 
     def schedule_fast_forward_tasks(self) -> None:
         poll = self.poll
         now = timezone.now()
-        if poll.version == 2:
-            if poll.prediction_bet_end_date and poll.prediction_bet_end_date > now:
-                _tasks.poll_kpi_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
-            else:
-                _tasks.poll_kpi_count(poll_id=poll.id)
+        if poll.area_vote_end_date and poll.area_vote_end_date > now:
+            _tasks.poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
         else:
-            if poll.area_vote_end_date and poll.area_vote_end_date > now:
-                _tasks.poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
-            else:
-                _tasks.poll_area_vote_count(poll_id=poll.id)
+            _tasks.poll_area_vote_count(poll_id=poll.id)
 
-            if poll.prediction_bet_end_date and poll.prediction_bet_end_date > now:
-                _tasks.poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id),
-                                                             eta=poll.prediction_bet_end_date)
-            else:
-                _tasks.poll_prediction_bet_count(poll_id=poll.id)
+        if poll.prediction_bet_end_date and poll.prediction_bet_end_date > now:
+            _tasks.poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id),
+                                                         eta=poll.prediction_bet_end_date)
+        else:
+            _tasks.poll_prediction_bet_count(poll_id=poll.id)
 
     def proposal_input_serializer_class(self) -> type[serializers.Serializer]:
-        class InputSerializerCardinal(FileCollectionCreateSerializerMixin, serializers.ModelSerializer):
+        class InputSerializerScore(FileCollectionCreateSerializerMixin, serializers.ModelSerializer):
             class Meta:
                 model = PollProposal
                 fields = ('title', 'description', 'blockchain_id')
 
-        return InputSerializerCardinal
+        return InputSerializerScore
 
     def proposal_filter_class(self) -> type:
         return BasePollProposalFilter
 
     def vote_input_serializer_class(self) -> type[serializers.Serializer]:
-        class InputSerializerCardinal(serializers.Serializer):
+        class InputSerializerScore(serializers.Serializer):
             proposals = serializers.ListField(child=serializers.IntegerField())
             scores = serializers.ListField(child=serializers.IntegerField())
 
-        return InputSerializerCardinal
+        return InputSerializerScore
 
     def vote_output_serializer_class(self) -> type[serializers.Serializer]:
-        class OutputSerializerTypeCardinal(serializers.ModelSerializer):
+        class OutputSerializerTypeScore(serializers.ModelSerializer):
             author = GroupUserSerializer(source='author.created_by', hide_relevant_users=True)
 
             class Meta:
                 model = PollVotingTypeCardinal
                 fields = ('author', 'author_delegate', 'proposal', 'score', 'raw_score')
 
-        return OutputSerializerTypeCardinal
+        return OutputSerializerTypeScore
 
     def delegate_vote_input_serializer_class(self) -> type[serializers.Serializer]:
         return self.vote_input_serializer_class()
@@ -338,6 +319,37 @@ class CardinalPollType(PollType):
         ).values('proposal').annotate(total_score=Sum('score')).values('total_score')
 
         PollProposal.objects.filter(poll=poll, active=True).update(score=Subquery(proposal_scores))
+
+
+@register(Poll.PollType.V2_SCORE)
+class V2ScorePollType(ScorePollType):
+    def labels(self) -> tuple:
+        poll = self.poll
+        if poll.dynamic:
+            return super().labels()
+
+        return ((poll.start_date, 'start_date', 'proposal'),
+                (poll.proposal_end_date, 'proposal_end_date', 'prediction_bet'),
+                (poll.prediction_bet_end_date, 'prediction_bet_end_date', 'delegate_vote'),
+                (poll.delegate_vote_end_date, 'delegate_vote_end_date', 'vote'),
+                (poll.end_date, 'end_date', 'result'))
+
+    def finished(self) -> bool:
+        return self.poll.end_date is not None and self.poll.end_date <= timezone.now()
+
+    def schedule_post_create_tasks(self) -> None:
+        poll = self.poll
+        _tasks.poll_kpi_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
+        if not poll.dynamic:
+            _tasks.poll_proposal_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.end_date)
+
+    def schedule_fast_forward_tasks(self) -> None:
+        poll = self.poll
+        now = timezone.now()
+        if poll.prediction_bet_end_date and poll.prediction_bet_end_date > now:
+            _tasks.poll_kpi_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
+        else:
+            _tasks.poll_kpi_count(poll_id=poll.id)
 
 
 @register(Poll.PollType.SCHEDULE)
@@ -499,6 +511,7 @@ class SchedulePollType(PollType):
 
 
 def _poll_pre_save(sender, instance: Poll, *args, **kwargs):
+    instance.poll_type = Poll.normalize_poll_type(instance.poll_type, instance.version)
     labels = [x[1] for x in of(instance).labels()]
     for tt_entry in instance.time_table:
         if tt_entry[1] not in labels:

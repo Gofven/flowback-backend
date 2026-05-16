@@ -60,6 +60,8 @@ def poll_create(*, user_id: int,
     if quorum is not None and not group_user.check_permission(poll_quorum=True) and not group_user.is_admin:
         raise ValidationError("Permission denied for custom poll quorum")
 
+    poll_type = Poll.normalize_poll_type(poll_type, version)
+
     Poll(poll_type=poll_type).poll_type_new.validate_create(
         dynamic=dynamic, end_date=end_date, work_group_id=work_group_id)
 

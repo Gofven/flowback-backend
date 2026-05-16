@@ -257,7 +257,7 @@ def poll_proposal_kpi_bet(user_id: int,
                                         permissions=['admin', 'allow_vote'])
     kpi = GroupKPI.objects.get(id=kpi_id, group_id=group_user.group.id, active=True)
 
-    if not proposal.poll.version == 2:
+    if proposal.poll.poll_type != Poll.PollType.V2_SCORE:
         raise ValidationError('Poll does not support KPI')
 
     proposal.poll.check_phase('dynamic', 'prediction_bet')
@@ -300,7 +300,7 @@ def poll_proposal_kpi_vote(user_id: int,
 
     kpi = GroupKPI.objects.get(id=kpi_id, group=group_user.group, active=True)
 
-    if not proposal.poll.version == 2:
+    if proposal.poll.poll_type != Poll.PollType.V2_SCORE:
         raise ValidationError('Poll does not support KPI')
 
     proposal.poll.check_phase('result')

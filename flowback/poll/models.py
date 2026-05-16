@@ -23,9 +23,16 @@ class Poll(BaseModel, NotifiableModel):
     # Depricated class
     class PollType(models.TextChoices):
         SCHEDULE = 'schedule', _('schedule')
-        CARDINAL = 'cardinal', _('cardinal')
+        SCORE = 'score', _('score')
+        V2_SCORE = 'v2_score', _('v2 score')
 
     poll_type = models.CharField(max_length=32, choices=PollType.choices)
+
+    @staticmethod
+    def normalize_poll_type(poll_type: str, version: int) -> str:
+        if poll_type == Poll.PollType.SCORE and version == 2:
+            return Poll.PollType.V2_SCORE
+        return poll_type
 
     @property
     def poll_type_new(self) -> "PollTypeNew":

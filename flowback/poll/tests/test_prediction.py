@@ -41,7 +41,7 @@ class PollPredictionStatementTest(APITestCase):
          self.user_prediction_caster_three) = [GroupUserFactory(group=self.group) for _ in range(4)]
 
         self.poll = PollFactory(created_by=self.user_group_creator,
-                                poll_type=Poll.PollType.CARDINAL,
+                                poll_type=Poll.PollType.SCORE,
                                 version=1,
                                 dynamic=False,
                                 tag=GroupTagsFactory(group=self.user_group_creator.group),

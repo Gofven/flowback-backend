@@ -25,7 +25,7 @@ class ProposalTest(APITestCase):
         self.poll_schedule = PollFactory(created_by=self.group_user_one, poll_type=Poll.PollType.SCHEDULE,
                                          dynamic=True,
                                          **generate_poll_phase_kwargs('proposal'))
-        self.poll_cardinal = PollFactory(created_by=self.group_user_one, poll_type=Poll.PollType.CARDINAL,
+        self.poll_cardinal = PollFactory(created_by=self.group_user_one, poll_type=Poll.PollType.SCORE,
                                          **generate_poll_phase_kwargs('proposal'))
         group_users = [self.group_user_one, self.group_user_two, self.group_user_three]
         (self.poll_schedule_proposal_one,

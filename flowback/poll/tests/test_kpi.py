@@ -25,7 +25,7 @@ class TestPollProposalKPI(APITestCase):
 
         self.group_user_one, self.group_user_two = GroupUserFactory.create_batch(2, group=self.group)
         self.poll = PollFactory(created_by=self.group_user_creator,
-                                poll_type=Poll.PollType.CARDINAL,
+                                poll_type=Poll.PollType.SCORE,
                                 version=2,
                                 **generate_poll_phase_kwargs('prediction_bet'))
 
@@ -85,7 +85,7 @@ class TestPollProposalKPI(APITestCase):
 
     def generate_kpi_poll(self, group: Group) -> Poll:
         poll = PollFactory(created_by=group.group_user_creator,
-                           poll_type=Poll.PollType.CARDINAL,
+                           poll_type=Poll.PollType.SCORE,
                            version=2,
                            **generate_poll_phase_kwargs('prediction_bet'))
 

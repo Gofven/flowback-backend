@@ -34,7 +34,7 @@ class PollFactory(factory.django.DjangoModelFactory):
     created_by = factory.SubFactory(GroupUserFactory)
     title = factory.LazyAttribute(lambda _: fake.unique.first_name().lower())
     description = factory.LazyAttribute(lambda _: fake.bs())
-    poll_type = Poll.PollType.CARDINAL
+    poll_type = Poll.PollType.SCORE
     dynamic = False
 
     start_date = factory.LazyAttribute(lambda _: timezone.now())
