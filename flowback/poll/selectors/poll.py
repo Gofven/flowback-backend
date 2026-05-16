@@ -8,7 +8,8 @@ from django.utils import timezone
 from flowback.comment.models import Comment
 from flowback.common.filters import ExistsFilter, NumberInFilter
 from flowback.group.models import Group
-from flowback.poll.models import Poll, PollPhaseTemplate, PollPredictionStatement
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollPhaseTemplate, PollPredictionStatement
 from flowback.user.models import User, UserBookmark
 from flowback.group.selectors.permission import group_user_permissions
 

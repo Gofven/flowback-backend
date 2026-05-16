@@ -7,7 +7,8 @@ from rest_framework.test import APITestCase
 from flowback.common.tests import generate_request
 from flowback.group.models import GroupUser, GroupTags
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
-from flowback.poll.models import Poll, PollAreaStatementSegment, PollAreaStatementVote
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollAreaStatementSegment, PollAreaStatementVote
 from flowback.poll.selectors.area import poll_area_statement_list
 from flowback.poll.services.poll import poll_fast_forward
 from flowback.poll.tasks import poll_area_vote_count

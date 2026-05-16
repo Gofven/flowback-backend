@@ -2,7 +2,8 @@ import django_filters
 from rest_framework.exceptions import ValidationError
 
 from flowback.common.services import get_object
-from flowback.poll.models import Poll, PollDelegateVoting, PollVotingTypeCardinal, PollVotingTypeForAgainst
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollDelegateVoting, PollVotingTypeCardinal, PollVotingTypeForAgainst
 from flowback.user.models import User
 from flowback.group.selectors.permission import group_user_permissions
 

@@ -6,8 +6,12 @@ from rest_framework.test import APITestCase
 from .factories import (PollFactory, PollProposalFactory, PollVotingFactory, PollDelegateVotingFactory,
                         PollVotingTypeCardinalFactory)
 from .utils import generate_poll_phase_kwargs
-from ..models import PollDelegateVoting, PollVotingTypeCardinal, Poll, PollProposal, PollVoting, \
-    PollVotingTypeForAgainst
+from ..models import Poll
+from ..phases import (PollDelegateVoting,
+                      PollProposal,
+                      PollVoting,
+                      PollVotingTypeCardinal,
+                      PollVotingTypeForAgainst)
 from ..tasks import poll_proposal_vote_count
 from ..views.vote import (PollProposalDelegateVoteUpdateAPI,
                           PollProposalVoteUpdateAPI,

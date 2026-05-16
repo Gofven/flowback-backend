@@ -8,19 +8,22 @@ from flowback.common.tests import fake
 from flowback.group.tests.factories import GroupUserFactory, GroupUserDelegatePoolFactory, GroupTagsFactory, \
     GroupKPIFactory, GroupKPIValueFactory
 
-from flowback.poll.models import (Poll,
-                                  PollProposal,
-                                  PollProposalTypeSchedule,
-                                  PollVoting,
+from flowback.poll.models import Poll
+from flowback.poll.phases import (PollAreaStatement,
+                                  PollAreaStatementSegment,
+                                  PollAreaStatementVote,
                                   PollDelegateVoting,
-                                  PollVotingTypeCardinal,
                                   PollPredictionBet,
                                   PollPredictionStatement,
                                   PollPredictionStatementSegment,
                                   PollPredictionStatementVote,
-                                  PollAreaStatement,
-                                  PollAreaStatementSegment,
-                                  PollAreaStatementVote, PollProposalKPIBet, PollProposalKPI, PollProposalKPIVote)
+                                  PollProposal,
+                                  PollProposalKPI,
+                                  PollProposalKPIBet,
+                                  PollProposalKPIVote,
+                                  PollProposalTypeSchedule,
+                                  PollVoting,
+                                  PollVotingTypeCardinal)
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
 
 

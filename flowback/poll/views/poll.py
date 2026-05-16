@@ -9,7 +9,8 @@ from flowback.files.serializers import FileCollectionCreateSerializerMixin, File
 
 from flowback.group.serializers import GroupUserSerializer
 from flowback.notification.views import NotificationSubscribeTemplateAPI
-from flowback.poll.models import Poll, PollProposal
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollProposal
 from flowback.poll.selectors.poll import poll_list, poll_phase_template_list
 from flowback.poll.selectors.proposal import poll_user_schedule_list
 from flowback.poll.selectors.vote import poll_delegates_list

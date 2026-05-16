@@ -7,7 +7,8 @@ from rest_framework.views import APIView, Response
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.common.services import get_object
 
-from flowback.poll.models import Poll, PollProposal
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollProposal
 
 from ..selectors.proposal import poll_proposal_list
 from ..serializers import PollProposalSerializer

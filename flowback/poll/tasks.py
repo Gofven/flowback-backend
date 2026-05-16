@@ -11,9 +11,17 @@ from flowback.group.models import GroupTags, GroupUser, GroupUserDelegatePool, G
 from flowback.group.selectors.permission import permission_q
 from flowback.group.selectors.tags import group_tags_list
 from flowback.notification.models import NotificationChannel
-from flowback.poll.models import Poll, PollAreaStatement, PollPredictionBet, PollPredictionStatement, \
-    PollDelegateVoting, PollProposal, PollVoting, \
-    PollVotingTypeCardinal, PollVotingTypeForAgainst, PollProposalKPI, PollProposalKPIBet
+from flowback.poll.models import Poll
+from flowback.poll.phases import (PollAreaStatement,
+                                  PollDelegateVoting,
+                                  PollPredictionBet,
+                                  PollPredictionStatement,
+                                  PollProposal,
+                                  PollProposalKPI,
+                                  PollProposalKPIBet,
+                                  PollVoting,
+                                  PollVotingTypeCardinal,
+                                  PollVotingTypeForAgainst)
 
 import numpy as np
 

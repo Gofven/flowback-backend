@@ -3,7 +3,8 @@ from rest_framework.exceptions import ValidationError
 from flowback.common.services import get_object
 from flowback.files.services import upload_collection
 from flowback.group.selectors.permission import group_user_permissions
-from flowback.poll.models import PollProposal, Poll, PollProposalTypeSchedule, PollProposalKPI
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollProposal, PollProposalKPI, PollProposalTypeSchedule
 
 
 def poll_proposal_create(*, user_id: int,

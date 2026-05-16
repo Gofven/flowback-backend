@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import Poll, PollProposal, PollPredictionBet, PollPhaseTemplate, PollAreaStatement, PollAreaStatementVote, PollAreaStatementSegment, PollProposalKPI, PollProposalKPIBet, PollProposalKPIVote
+from .models import Poll
+from .phases import (PollAreaStatement,
+                     PollAreaStatementSegment,
+                     PollAreaStatementVote,
+                     PollPhaseTemplate,
+                     PollPredictionBet,
+                     PollProposal,
+                     PollProposalKPI,
+                     PollProposalKPIBet,
+                     PollProposalKPIVote)
 
 
 @admin.register(Poll)

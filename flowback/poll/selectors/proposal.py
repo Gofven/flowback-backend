@@ -1,63 +1,18 @@
-import django_filters
 from django.db.models import F
 
-from flowback.common.filters import NumberInFilter, ExistsFilter
 from flowback.common.services import get_object
-from flowback.poll.models import Poll, PollProposal
+from flowback.poll.classes import poll_type as pt
+from flowback.poll.filters import BasePollProposalScheduleFilter
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollProposal
 from flowback.user.models import User
 from flowback.group.selectors.permission import group_user_permissions
 
 
-class BasePollProposalFilter(django_filters.FilterSet):
-    group = django_filters.NumberFilter(field_name='created_by__group_id', lookup_expr='exact')
-    created_by_user_id_list = NumberInFilter(field_name='created_by__user_id')
-    order_by = django_filters.OrderingFilter(fields=(('created_at', 'created_at_asc'),
-                                                     ('-created_at', 'created_at_desc'),
-                                                     ('score', 'score_asc'),
-                                                     ('-score', 'score_desc')))
-    has_attachments = ExistsFilter(field_name='attachments')
-
-    class Meta:
-        model = PollProposal
-        fields = dict(id=['exact'],
-                      created_by=['exact'],
-                      title=['exact', 'icontains'])
-
-
-class BasePollProposalScheduleFilter(django_filters.FilterSet):
-    order_by = django_filters.OrderingFilter(
-        fields=(
-            ('start_date', 'start_date_asc'),
-            ('-start_date', 'start_date_desc'),
-            ('end_date', 'end_date_asc'),
-            ('-end_date', 'end_date_desc')
-        )
-    )
-
-    group = django_filters.NumberFilter(field_name='created_by.group_id', lookup_expr='exact')
-
-    start_date__lt = django_filters.DateTimeFilter(field_name='pollproposaltypeschedule.event_start_date',
-                                                   lookup_expr='lt')
-    start_date__gte = django_filters.DateTimeFilter(field_name='pollproposaltypeschedule.event_start_date',
-                                                   lookup_expr='gte')
-    end_date__lt = django_filters.DateTimeFilter(field_name='pollproposaltypeschedule.event_end_date',
-                                                 lookup_expr='lt')
-    end_date__gte = django_filters.DateTimeFilter(field_name='pollproposaltypeschedule.event_end_date',
-                                                 lookup_expr='gte')
-
-    poll_title = django_filters.CharFilter(field_name='poll.title', lookup_expr='exact')
-    poll_title__icontains = django_filters.CharFilter(field_name='poll.title', lookup_expr='icontains')
-
-    class Meta:
-        model = PollProposal
-        fields = dict(id=['exact'],
-                      created_by=['exact'],
-                      title=['exact', 'icontains'])
-
-
 def poll_proposal_list(*, fetched_by: User, poll_id: int, filters=None):
     filters = filters or {}
-    fieldset = ['id', 'poll_id', 'created_by', 'title', 'description', 'attachments', 'blockchain_id', 'score', 'pollproposaltypeschedule']
+    fieldset = ['id', 'poll_id', 'created_by', 'title', 'description', 'attachments', 'blockchain_id', 'score',
+                'pollproposaltypeschedule']
     admin = fetched_by.is_superuser
 
     if poll_id:
@@ -75,7 +30,7 @@ def poll_proposal_list(*, fetched_by: User, poll_id: int, filters=None):
             [filters.pop(key, None) for key in ['created_by_user_id_list', 'created_by']]
             qs = qs.defer('created_by').all()
 
-        return poll.poll_type_new.proposal_filter_class()(filters, qs).qs
+        return pt.of(poll).proposal_filter_class()(filters, qs).qs
 
 
 def poll_user_schedule_list(*, fetched_by: User, filters=None):

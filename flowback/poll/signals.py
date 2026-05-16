@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from flowback.poll.models import PollProposalKPI, PollProposal
+from flowback.poll.phases import PollProposal, PollProposalKPI
 
 
 # Generate KPIs for new proposals

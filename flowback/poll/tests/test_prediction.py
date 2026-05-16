@@ -9,8 +9,11 @@ from flowback.common.tests import generate_request
 from flowback.group.models import GroupUser, GroupTags
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
 from flowback.group.views.tag import GroupTagsListApi
-from flowback.poll.models import Poll, PollPredictionStatement, PollPredictionStatementSegment, PollPredictionBet, \
-    PollPredictionStatementVote
+from flowback.poll.models import Poll
+from flowback.poll.phases import (PollPredictionBet,
+                                  PollPredictionStatement,
+                                  PollPredictionStatementSegment,
+                                  PollPredictionStatementVote)
 from flowback.poll.services.prediction import update_poll_prediction_statement_outcomes
 from flowback.poll.tasks import poll_prediction_bet_count
 from flowback.poll.tests.factories import PollFactory, PollPredictionBetFactory, PollProposalFactory, \
@@ -425,7 +428,7 @@ class PollPredictionStatementTest(APITestCase):
     def test_poll_area_vote_count(self):
         """Test poll_area_vote_count task coverage."""
         from flowback.poll.tasks import poll_area_vote_count
-        from flowback.poll.models import PollAreaStatement, PollAreaStatementSegment, PollAreaStatementVote
+        from flowback.poll.phases import PollAreaStatement, PollAreaStatementSegment, PollAreaStatementVote
 
         # Create a poll in area phase
         area_poll = PollFactory(created_by=self.user_group_creator, tag=self.poll.tag,

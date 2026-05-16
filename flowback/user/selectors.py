@@ -5,7 +5,8 @@ from rest_framework.exceptions import ValidationError
 
 from flowback.common.filters import NumberInFilter
 from flowback.group.models import Group, GroupUser, GroupThread, GroupThreadVote
-from flowback.poll.models import Poll, PollVoting
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollVoting
 from flowback.kanban.selectors import kanban_entry_list
 from flowback.user.models import User, UserChatInvite, UserBookmark
 from backend.settings import env

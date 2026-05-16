@@ -3,7 +3,8 @@ from rest_framework.test import APITestCase
 from flowback.common.tests import generate_request
 from flowback.group.models import GroupKPI, GroupUser, Group, GroupKPIValue
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupKPIFactory, GroupKPIValueFactory
-from flowback.poll.models import PollProposalKPIVote, PollProposalKPIBet, Poll, PollProposalKPI, PollProposal
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollProposal, PollProposalKPI, PollProposalKPIBet, PollProposalKPIVote
 from flowback.poll.tasks import poll_kpi_count
 from flowback.poll.tests.factories import PollFactory, PollProposalFactory, PollProposalKPIBetFactory, \
     PollProposalKPIVoteFactory

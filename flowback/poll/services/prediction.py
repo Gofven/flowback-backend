@@ -6,11 +6,15 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from backend.settings import FLOWBACK_PREDICTION_VOTE_ON_RESULT_PHASE
-from ..models import (PollPredictionBet,
+from ..models import Poll
+from ..phases import (PollPredictionBet,
                       PollPredictionStatement,
                       PollPredictionStatementSegment,
                       PollPredictionStatementVote,
-                      Poll, PollProposal, PollProposalKPIBet, PollProposalKPIVote, PollProposalKPI)
+                      PollProposal,
+                      PollProposalKPI,
+                      PollProposalKPIBet,
+                      PollProposalKPIVote)
 from ...common.services import get_object, model_update
 from ...group.models import GroupKPI
 from ...group.selectors.permission import group_user_permissions

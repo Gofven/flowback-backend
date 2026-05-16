@@ -4,7 +4,8 @@ from django.db.models import OuterRef, Subquery
 
 from flowback.common.services import get_object
 from flowback.group.selectors.permission import group_user_permissions
-from flowback.poll.models import PollAreaStatement, PollAreaStatementVote, Poll
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollAreaStatement, PollAreaStatementVote
 from flowback.user.models import User
 
 

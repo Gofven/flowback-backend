@@ -2,7 +2,8 @@ from rest_framework import serializers
 
 from flowback.files.serializers import FileSerializer, FileCollectionListSerializerMixin
 from flowback.group.serializers import GroupUserSerializer
-from flowback.poll.models import PollProposal, Poll
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollProposal
 
 
 class PollSerializer(FileCollectionListSerializerMixin, serializers.Serializer):
