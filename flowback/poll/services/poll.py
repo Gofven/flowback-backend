@@ -59,15 +59,8 @@ def poll_create(*, user_id: int,
     if quorum is not None and not group_user.check_permission(poll_quorum=True) and not group_user.is_admin:
         raise ValidationError("Permission denied for custom poll quorum")
 
-    if poll_type == Poll.PollType.SCHEDULE:
-        if not end_date:
-            raise ValidationError('Missing required parameter(s) for schedule poll')
-
-        elif not dynamic:
-            raise ValidationError('Schedule poll must be dynamic')
-
-    elif work_group_id is not None:
-        raise ValidationError("Work groups are only assignable to date polls")
+    Poll(poll_type=poll_type).poll_type_new.validate_create(
+        dynamic=dynamic, end_date=end_date, work_group_id=work_group_id)
 
     collection = None
     if attachments:
@@ -103,22 +96,7 @@ def poll_create(*, user_id: int,
     poll.full_clean()
     poll.save()
 
-    if version == 2:
-        poll_kpi_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
-
-    else:
-        poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
-
-        if not poll_type == Poll.PollType.SCHEDULE:
-            poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id),
-                                                  eta=poll.prediction_bet_end_date)
-
-    if not poll.dynamic:
-        eta = poll.vote_end_date
-        if version == 2:
-            eta = end_date
-        poll_proposal_vote_count.apply_async(kwargs=dict(poll_id=poll.id),
-                                             eta=eta)
+    poll.poll_type_new.schedule_post_create_tasks()
 
     notify_group_poll(message="A new poll has been posted",
                       action=NotificationChannel.Action.CREATED,
@@ -209,28 +187,7 @@ def poll_fast_forward(*, user_id: int, poll_id: int, phase: str):
     poll.save()
 
     # TODO update/remove previous celery tasks
-    if not poll.poll_type == Poll.PollType.SCHEDULE:
-        # KPI Polls
-        if poll.version == 2:
-            if poll.prediction_bet_end_date and poll.prediction_bet_end_date > timezone.now():
-                poll_kpi_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
-
-            else:
-                poll_kpi_count(poll_id=poll.id)
-
-        # Classical Polls
-        else:
-            if poll.area_vote_end_date and poll.area_vote_end_date > timezone.now():
-                poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
-
-            else:
-                poll_area_vote_count(poll_id=poll.id)
-
-            if poll.prediction_bet_end_date and poll.prediction_bet_end_date > timezone.now():
-                poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
-
-            else:
-                poll_prediction_bet_count(poll_id=poll.id)
+    poll.poll_type_new.schedule_fast_forward_tasks()
 
     if ((poll.vote_end_date and poll.vote_end_date > timezone.now())
             or (poll.end_date and poll.end_date > timezone.now())):

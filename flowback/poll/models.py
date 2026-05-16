@@ -20,6 +20,7 @@ from flowback.common.models import BaseModel
 from flowback.common.validators import FieldNotBlankValidator
 from flowback.group.models import GroupUser, GroupUserDelegatePool, GroupTags, WorkGroup, GroupKPIValue
 from flowback.comment.models import CommentSection, comment_section_create_model_default
+from flowback.poll.classes import poll_type as poll_type_strategy
 from flowback.poll.classes.poll_type import PollType as PollTypeNew
 import pgtrigger
 
@@ -32,7 +33,10 @@ class Poll(BaseModel, NotifiableModel):
         CARDINAL = 4, _('cardinal')
 
     poll_type = models.IntegerField(choices=PollType.choices)
-    poll_type_new: PollTypeNew
+
+    @property
+    def poll_type_new(self) -> PollTypeNew:
+        return poll_type_strategy.resolve(self)
 
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
 
@@ -106,39 +110,11 @@ class Poll(BaseModel, NotifiableModel):
 
     @property
     def finished(self):
-        now = timezone.now()
-        if self.version == 2 or self.poll_type == self.PollType.SCHEDULE:
-            return self.end_date is not None and self.end_date <= now
-        return ((self.vote_end_date is not None and self.vote_end_date <= now)
-                or (self.end_date is not None and self.end_date <= now))
+        return self.poll_type_new.finished()
 
     @property
     def labels(self) -> tuple:
-        # Returns timetable based on the poll type and version
-        if self.dynamic:
-            if self.poll_type == self.PollType.SCHEDULE:
-                return ((self.start_date, 'start_date', 'schedule'),  # Schedule poll
-                        (self.end_date, 'end_date', 'result'))
-
-            else:
-                return ((self.start_date, 'start_date', 'dynamic'),  # Dynamic poll
-                        (self.end_date, 'end_date', 'result'))
-
-        if self.version == 2:  # KPI poll
-            return ((self.start_date, 'start_date', 'proposal'),
-                    (self.proposal_end_date, 'proposal_end_date', 'prediction_bet'),
-                    (self.prediction_bet_end_date, 'prediction_bet_end_date', 'delegate_vote'),
-                    (self.delegate_vote_end_date, 'delegate_vote_end_date', 'vote'),
-                    (self.end_date, 'end_date', 'result'))
-
-        return ((self.start_date, 'start_date', 'area_vote'),  # Prediction poll
-                (self.area_vote_end_date, 'area_vote_end_date', 'proposal'),
-                (self.proposal_end_date, 'proposal_end_date', 'prediction_statement'),
-                (self.prediction_statement_end_date, 'prediction_statement_end_date', 'prediction_bet'),
-                (self.prediction_bet_end_date, 'prediction_bet_end_date', 'delegate_vote'),
-                (self.delegate_vote_end_date, 'delegate_vote_end_date', 'vote'),
-                (self.vote_end_date, 'vote_end_date', 'result'),
-                (self.end_date, 'end_date', 'prediction_vote'))
+        return self.poll_type_new.labels()
 
     @property
     def time_table(self) -> list:  # TODO fix fast_forward, timestamps can be None

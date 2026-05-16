@@ -75,10 +75,7 @@ def poll_proposal_list(*, fetched_by: User, poll_id: int, filters=None):
             [filters.pop(key, None) for key in ['created_by_user_id_list', 'created_by']]
             qs = qs.defer('created_by').all()
 
-        if poll.poll_type == Poll.PollType.SCHEDULE:
-            return BasePollProposalScheduleFilter(filters, qs).qs
-        else:
-            return BasePollProposalFilter(filters, qs).qs
+        return poll.poll_type_new.proposal_filter_class()(filters, qs).qs
 
 
 def poll_user_schedule_list(*, fetched_by: User, filters=None):

@@ -54,34 +54,9 @@ class PollProposalListAPI(APIView):
 
 @extend_schema(tags=['poll/proposal'])
 class PollProposalCreateAPI(APIView):
-    class InputSerializerDefault(FileCollectionCreateSerializerMixin, serializers.ModelSerializer):
-
-        class Meta:
-            model = PollProposal
-            fields = ('title', 'description', 'blockchain_id')
-
-    class InputSerializerSchedule(FileCollectionCreateSerializerMixin, serializers.ModelSerializer):
-        start_date = serializers.DateTimeField()
-        end_date = serializers.DateTimeField()
-
-        def validate(self, data):
-            if data.get('start_date') >= data.get('end_date'):
-                raise ValidationError('Start date can\'t be the same or later than End date')
-
-            return data
-
-        class Meta:
-            model = PollProposal
-            fields = ('title', 'description', 'blockchain_id', 'start_date', 'end_date')
-
     def post(self, request, poll: int):
         poll = get_object(Poll, id=poll)
-        if poll.poll_type == Poll.PollType.SCHEDULE:
-            serializer = self.InputSerializerSchedule(data=request.data)
-
-        else:
-            serializer = self.InputSerializerDefault(data=request.data)
-
+        serializer = poll.poll_type_new.proposal_input_serializer_class()(data=request.data)
         serializer.is_valid(raise_exception=True)
         proposal = poll_proposal_create(user_id=request.user.id, poll_id=poll.id, **serializer.validated_data)
         return Response(status=status.HTTP_200_OK, data=proposal.id)

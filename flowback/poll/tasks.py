@@ -525,48 +525,7 @@ def poll_proposal_vote_count(poll_id: int) -> None:
     if poll.status:
         return
 
-    if poll.poll_type == Poll.PollType.CARDINAL:
-        # Update user vote scores
-        PollVotingTypeCardinal.objects.filter(
-            permission_q('author__created_by', 'allow_vote'),
-            proposal__active=True,
-            author__poll=poll).update(score=F('raw_score'))
-
-        # Update delegate vote scores
-        PollVotingTypeCardinal.objects.filter(author_delegate__poll=poll,
-                                              proposal__active=True,
-                                              ).update(score=F('raw_score') * Subquery(delegate_mandate))
-
-        # Update proposal scores
-        proposal_scores = PollVotingTypeCardinal.objects.filter(
-            proposal=OuterRef('id'),
-        ).values('proposal').annotate(
-            total_score=Sum('score')
-        ).values('total_score')
-
-        PollProposal.objects.filter(poll=poll, active=True).update(score=Subquery(proposal_scores))
-
-    if poll.poll_type == Poll.PollType.SCHEDULE:
-        # Update user vote scores
-        PollVotingTypeForAgainst.objects.filter(
-            permission_q('author__created_by', 'allow_vote'),
-            proposal__active=True,
-            author__poll=poll).update(score=Case(When(vote=True, then=1), default=-1))
-
-        # Update delegate vote scores
-        PollVotingTypeForAgainst.objects.filter(author_delegate__poll=poll,
-                                                proposal__active=True,
-                                                ).update(score=Case(When(vote=True, then=1), default=-1)
-                                                               * Subquery(delegate_mandate))
-
-        # Update proposal scores
-        proposal_scores = PollVotingTypeForAgainst.objects.filter(
-            proposal=OuterRef('id')
-        ).values('proposal').annotate(
-            total_score=Sum('score')
-        ).values('total_score')
-
-        PollProposal.objects.filter(poll=poll, active=True).update(score=Subquery(proposal_scores))
+    poll.poll_type_new.update_vote_scores(delegate_mandate_subquery=delegate_mandate)
 
     # Check if quorum is fulfilled
     total_group_users = GroupUser.objects.filter(group=group).count()
@@ -606,11 +565,4 @@ def poll_proposal_vote_count(poll_id: int) -> None:
                     action=NotificationChannel.Action.UPDATED,
                     poll=poll)
 
-        if poll.poll_type == Poll.PollType.SCHEDULE and poll.status == 1 and winning_proposal:
-            schedule = group.schedule if poll.work_group is None else poll.work_group.schedule
-            schedule.create_event(title=poll.title,
-                                  description=poll.description,
-                                  meeting_link=poll.schedule_poll_meeting_link,
-                                  start_date=winning_proposal.pollproposaltypeschedule.event_start_date,
-                                  end_date=winning_proposal.pollproposaltypeschedule.event_end_date,
-                                  created_by=poll)
+        poll.poll_type_new.on_poll_finalized(winning_proposal=winning_proposal)
