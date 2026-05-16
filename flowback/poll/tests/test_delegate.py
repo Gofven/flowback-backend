@@ -5,6 +5,7 @@ from rest_framework.test import APITestCase, APIRequestFactory, force_authentica
 
 from flowback.common.tests import generate_request
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupUserDelegateFactory
+from flowback.poll.models import Poll
 from flowback.poll.tests.factories import PollFactory, PollProposalFactory, PollVotingTypeCardinalFactory, \
     PollDelegateVotingFactory
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
@@ -24,7 +25,7 @@ class PollDelegateTests(APITestCase):
         self.another_regular_user = GroupUserFactory(group=self.group, is_admin=False)
         (self.poll_one,
          self.poll_two,
-         self.poll_three) = [PollFactory(created_by=self.group_user_creator, poll_type=4,
+         self.poll_three) = [PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.CARDINAL,
                                          **generate_poll_phase_kwargs('delegate_vote')) for x in range(3)]
 
         self.poll_one_proposals = [PollProposalFactory(poll=self.poll_one,

@@ -22,7 +22,7 @@ class PollSerializer(FileCollectionListSerializerMixin, serializers.Serializer):
 
     title = serializers.CharField()
     description = serializers.CharField()
-    poll_type = serializers.IntegerField()
+    poll_type = serializers.ChoiceField(choices=Poll.PollType.choices)
     allow_fast_forward = serializers.BooleanField()
     public = serializers.BooleanField()
 

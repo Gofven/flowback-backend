@@ -80,7 +80,7 @@ class PollTest(APITestCase):
         user = self.group_user_creator.user
         view = PollCreateAPI.as_view()
 
-        data = dict(title='test title', description='test description', poll_type=4, public=True, tag=self.group_tag.id,
+        data = dict(title='test title', description='test description', poll_type=Poll.PollType.CARDINAL, public=True, tag=self.group_tag.id,
                     pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.jpg', b'test')],
                     **generate_poll_phase_kwargs('base'))
         request = factory.post('', data=data)
@@ -93,7 +93,7 @@ class PollTest(APITestCase):
     def test_create_poll_pre_save(self):
         data = dict(title='test title',
                     description='test description',
-                    poll_type=4,
+                    poll_type=Poll.PollType.CARDINAL,
                     public=True,
                     tag=self.group_tag.id,
                     pinned=False,
@@ -131,7 +131,7 @@ class PollTest(APITestCase):
         self.assertEqual(response.data['count'], 0)
 
         data = dict(title='notification test poll', description='testing notifications',
-                    poll_type=4, public=True, tag=self.group_tag.id,
+                    poll_type=Poll.PollType.CARDINAL, public=True, tag=self.group_tag.id,
                     pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.txt',
                                                                                  b'test',
                                                                                  content_type='text/plain')],
@@ -169,7 +169,7 @@ class PollTest(APITestCase):
         phases = generate_poll_phase_kwargs('base')
         phases['proposal_end_date'] -= timezone.timedelta(hours=2)
 
-        data = dict(title='test title', description='test description', poll_type=4, public=True, tag=self.group_tag.id,
+        data = dict(title='test title', description='test description', poll_type=Poll.PollType.CARDINAL, public=True, tag=self.group_tag.id,
                     pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.jpg', b'test')])
 
         # Test phase in wrong order
@@ -194,7 +194,7 @@ class PollTest(APITestCase):
         user = self.group_user_creator.user
         view = PollCreateAPI.as_view()
 
-        data = dict(title='test title', description='test description', poll_type=3, public=True, tag=self.group_tag.id,
+        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCHEDULE, public=True, tag=self.group_tag.id,
                     pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.jpg', b'test')],
                     **generate_poll_phase_kwargs('base'))
         request = factory.post('', data=data)
@@ -257,7 +257,7 @@ class PollTest(APITestCase):
     def test_poll_phase_fast_forward(self):
         poll = PollFactory(created_by__is_admin=True,
                            allow_fast_forward=True,
-                           poll_type=4,
+                           poll_type=Poll.PollType.CARDINAL,
                            dynamic=False,
                            **generate_poll_phase_kwargs())
         poll_fast_forward(user_id=poll.created_by.user.id, poll_id=poll.id, phase='vote')
@@ -268,7 +268,7 @@ class PollTest(APITestCase):
     def test_poll_phase_fast_forward_dynamic(self):
         poll = PollFactory(created_by__is_admin=True,
                            allow_fast_forward=True,
-                           poll_type=4,
+                           poll_type=Poll.PollType.CARDINAL,
                            dynamic=True,
                            **generate_poll_phase_kwargs())
         poll_fast_forward(user_id=poll.created_by.user.id, poll_id=poll.id, phase='result')

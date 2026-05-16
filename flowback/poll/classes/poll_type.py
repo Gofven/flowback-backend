@@ -21,13 +21,13 @@ from flowback.poll.phases import (PollDelegateVoting,
                                   PollVotingTypeForAgainst)
 
 
-_REGISTRY: dict[int, type["PollType"]] = {}
+_REGISTRY: dict[str, type["PollType"]] = {}
 
 
 def register(poll_type: Poll.PollType):
     def decorator(cls):
         cls.poll_type = poll_type
-        _REGISTRY[int(poll_type)] = cls
+        _REGISTRY[str(poll_type)] = cls
         return cls
 
     return decorator

@@ -34,7 +34,7 @@ class PollFactory(factory.django.DjangoModelFactory):
     created_by = factory.SubFactory(GroupUserFactory)
     title = factory.LazyAttribute(lambda _: fake.unique.first_name().lower())
     description = factory.LazyAttribute(lambda _: fake.bs())
-    poll_type = 4
+    poll_type = Poll.PollType.CARDINAL
     dynamic = False
 
     start_date = factory.LazyAttribute(lambda _: timezone.now())
@@ -71,7 +71,7 @@ class PollProposalTypeScheduleFactory(factory.django.DjangoModelFactory):
 
     event_start_date = factory.LazyAttribute(lambda _: timezone.now() + timedelta(days=1))
     event_end_date = factory.LazyAttribute(lambda _: timezone.now() + timedelta(days=2))
-    proposal = factory.SubFactory(PollProposalFactory, poll__poll_type=3)
+    proposal = factory.SubFactory(PollProposalFactory, poll__poll_type=Poll.PollType.SCHEDULE)
 
 
 class PollVotingFactory(factory.django.DjangoModelFactory):

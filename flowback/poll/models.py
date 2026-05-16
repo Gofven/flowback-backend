@@ -21,11 +21,11 @@ if TYPE_CHECKING:
 # Create your models here.
 class Poll(BaseModel, NotifiableModel):
     # Depricated class
-    class PollType(models.IntegerChoices):
-        SCHEDULE = 3, _('schedule')
-        CARDINAL = 4, _('cardinal')
+    class PollType(models.TextChoices):
+        SCHEDULE = 'schedule', _('schedule')
+        CARDINAL = 'cardinal', _('cardinal')
 
-    poll_type = models.IntegerField(choices=PollType.choices)
+    poll_type = models.CharField(max_length=32, choices=PollType.choices)
 
     @property
     def poll_type_new(self) -> "PollTypeNew":
@@ -158,7 +158,7 @@ class Poll(BaseModel, NotifiableModel):
                                                       | Q(end_date__gte=F('vote_end_date'))),
                                               name='enddategreaterthanvoteenddate_check'),
 
-                       models.CheckConstraint(check=~Q(Q(poll_type=3) & Q(dynamic=False)),
+                       models.CheckConstraint(check=~Q(Q(poll_type='schedule') & Q(dynamic=False)),
                                               name='polltypeisscheduleanddynamic_check')]
 
     NOTIFICATION_DATA_FIELDS = (('poll_id', int),

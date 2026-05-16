@@ -37,7 +37,7 @@ class PollListApi(APIView):
         title__icontains = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
         description__icontains = serializers.ListField(child=serializers.CharField(), required=False)
-        poll_type = serializers.ChoiceField((0, 1, 2), required=False)
+        poll_type = serializers.ChoiceField(Poll.PollType.choices, required=False)
         tag_id = serializers.IntegerField(required=False)
         tag_name = serializers.CharField(required=False)
         tag_name__icontains = serializers.ListField(child=serializers.CharField(), required=False)
@@ -317,14 +317,14 @@ class PollPhaseTemplateListAPI(APIView):
         created_by_group_user_id = serializers.IntegerField(required=False)
         name = serializers.CharField(required=False)
         name__icontains = serializers.CharField(required=False)
-        poll_type = serializers.IntegerField(required=False, min_value=1, max_value=4)
+        poll_type = serializers.ChoiceField(required=False, choices=Poll.PollType.choices)
         poll_is_dynamic = serializers.BooleanField(required=False)
 
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
         created_by_group_user = GroupUserSerializer()
         name = serializers.CharField(max_length=255)
-        poll_type = serializers.IntegerField(max_value=4, min_value=1)
+        poll_type = serializers.ChoiceField(choices=Poll.PollType.choices)
         poll_is_dynamic = serializers.BooleanField()
         area_vote_time_delta = serializers.IntegerField(required=False)
         proposal_time_delta = serializers.IntegerField(required=False)
@@ -353,7 +353,7 @@ class PollPhaseTemplateListAPI(APIView):
 class PollPhaseTemplateCreateAPI(APIView):
     class InputSerializer(serializers.Serializer):
         name = serializers.CharField(max_length=255)
-        poll_type = serializers.IntegerField(max_value=4, min_value=1)
+        poll_type = serializers.ChoiceField(choices=Poll.PollType.choices)
         poll_is_dynamic = serializers.BooleanField()
         area_vote_time_delta = serializers.IntegerField(required=False)
         proposal_time_delta = serializers.IntegerField(required=False)

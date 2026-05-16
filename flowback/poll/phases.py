@@ -254,7 +254,7 @@ class PollProposalKPIVote(BaseModel):
 class PollPhaseTemplate(BaseModel):
     created_by_group_user = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     name = models.CharField(max_length=255, validators=[FieldNotBlankValidator])
-    poll_type = models.IntegerField(choices=Poll.PollType.choices)
+    poll_type = models.CharField(max_length=32, choices=Poll.PollType.choices)
     poll_is_dynamic = models.BooleanField(default=False)
 
     # We store integers that define seconds since previous phase in seconds
@@ -270,7 +270,7 @@ class PollPhaseTemplate(BaseModel):
     class Meta:
         constraints = [
             # Check if cardinal polls that isn't dynamic don't have any null values
-            models.CheckConstraint(check=~Q(Q(Q(poll_type=4) & Q(poll_is_dynamic=False))
+            models.CheckConstraint(check=~Q(Q(Q(poll_type=Poll.PollType.CARDINAL) & Q(poll_is_dynamic=False))
                                             & ~Q(Q(area_vote_time_delta__isnull=False)
                                                  | Q(proposal_time_delta__isnull=False)
                                                  | Q(prediction_statement_time_delta__isnull=False)
@@ -281,7 +281,7 @@ class PollPhaseTemplate(BaseModel):
                                    name='pollphasetemplatecardinalisvalid_check'),
 
             # Check if schedule poll or dynamic poll have null values except for vote_time_delta and end_time_delta
-            models.CheckConstraint(check=~Q(Q(Q(poll_type=3) | Q(poll_is_dynamic=True))
+            models.CheckConstraint(check=~Q(Q(Q(poll_type=Poll.PollType.SCHEDULE) | Q(poll_is_dynamic=True))
                                             & Q(Q(area_vote_time_delta__isnull=True)
                                                 | Q(proposal_time_delta__isnull=True)
                                                 | Q(prediction_statement_time_delta__isnull=True)

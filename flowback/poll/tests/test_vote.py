@@ -391,7 +391,7 @@ class PollDelegateVoteTest(APITestCase):
         self.delegator = GroupUserFactory(group=self.group)
         (self.poll_one,
          self.poll_two,
-         self.poll_three) = [PollFactory(created_by=self.group_user_creator, poll_type=4,
+         self.poll_three) = [PollFactory(created_by=self.group_user_creator, poll_type=Poll.PollType.CARDINAL,
                                          **generate_poll_phase_kwargs('delegate_vote')) for x in range(3)]
         segment = FileSegmentFactory()
         self.poll_three.attachments = segment.collection
