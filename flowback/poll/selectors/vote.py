@@ -1,9 +1,9 @@
 import django_filters
-from rest_framework.exceptions import ValidationError
 
 from flowback.common.services import get_object
+from flowback.poll.classes import poll_type as pt
 from flowback.poll.models import Poll
-from flowback.poll.phases import PollDelegateVoting, PollVotingTypeCardinal, PollVotingTypeForAgainst
+from flowback.poll.phases import PollDelegateVoting
 from flowback.user.models import User
 from flowback.group.selectors.permission import group_user_permissions
 
@@ -29,26 +29,10 @@ def delegate_poll_vote_list(*, fetched_by: User, group_id: int, **filters):
     return BaseDelegatePollVoteFilter(filters, qs).qs
 
 
-class BasePollVoteForAgainstFilter(django_filters.FilterSet):
-    created_by_user_id = django_filters.NumberFilter(field_name='author__created_by__user_id')
-
-    class Meta:
-        model = PollVotingTypeForAgainst
-        fields = dict(proposal_id=['exact'])
-
-
 def poll_vote_list(*, fetched_by: User, poll_id: int, delegates: bool = False, filters=None):
-    poll = get_object(Poll, id=poll_id)
-
     filters = filters or {}
-
-    # Schedule (For Against)
-    qs = PollVotingTypeForAgainst.objects.filter(proposal__poll=poll).order_by('-vote').all()
-    if poll.created_by.group.hide_poll_users:
-        filters['created_by_user_id'] = fetched_by.id
-
-    return BasePollVoteForAgainstFilter(filters, qs).qs
-
+    poll = get_object(Poll, id=poll_id)
+    return pt.of(poll).vote_list_qs(fetched_by=fetched_by, delegates=delegates, filters=filters)
 
 
 def poll_delegates_list(*, fetched_by: User, poll_id: int, filters=None):

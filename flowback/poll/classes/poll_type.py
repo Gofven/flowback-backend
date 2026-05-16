@@ -8,10 +8,13 @@ from rest_framework.exceptions import ValidationError
 
 from backend.settings import FLOWBACK_SCORE_VOTE_CEILING, FLOWBACK_SCORE_VOTE_FLOOR
 from flowback.files.serializers import FileCollectionCreateSerializerMixin
-from flowback.group.selectors.permission import permission_q
+from flowback.group.selectors.permission import group_user_permissions, permission_q
 from flowback.group.serializers import GroupUserSerializer
 from flowback.poll import tasks as _tasks
-from flowback.poll.filters import BasePollProposalFilter, BasePollProposalScheduleFilter
+from flowback.poll.filters import (BasePollProposalFilter,
+                                    BasePollProposalScheduleFilter,
+                                    BasePollVoteCardinalFilter,
+                                    BasePollVoteForAgainstFilter)
 from flowback.poll.models import Poll
 from flowback.poll.phases import (PollDelegateVoting,
                                   PollProposal,
@@ -166,6 +169,9 @@ class PollType(ABC):
     @abstractmethod
     def update_vote_scores(self, *, delegate_mandate_subquery) -> None: ...
 
+    @abstractmethod
+    def vote_list_qs(self, *, fetched_by, delegates: bool, filters: dict): ...
+
     def on_poll_finalized(self, *, winning_proposal) -> None:
         pass
 
@@ -319,6 +325,17 @@ class ScorePollType(PollType):
         ).values('proposal').annotate(total_score=Sum('score')).values('total_score')
 
         PollProposal.objects.filter(poll=poll, active=True).update(score=Subquery(proposal_scores))
+
+    def vote_list_qs(self, *, fetched_by, delegates: bool, filters: dict):
+        poll = self.poll
+        group_user = group_user_permissions(user=fetched_by, group=poll.created_by.group.id)
+        if delegates:
+            qs = PollVotingTypeCardinal.objects.filter(proposal__poll=poll,
+                                                       author_delegate__isnull=False).order_by('-score').all()
+        else:
+            qs = PollVotingTypeCardinal.objects.filter(proposal__poll=poll,
+                                                       author__created_by=group_user).order_by('-score').all()
+        return BasePollVoteCardinalFilter(filters, qs).qs
 
 
 @register(Poll.PollType.V2_SCORE)
@@ -496,6 +513,13 @@ class SchedulePollType(PollType):
         ).values('proposal').annotate(total_score=Sum('score')).values('total_score')
 
         PollProposal.objects.filter(poll=poll, active=True).update(score=Subquery(proposal_scores))
+
+    def vote_list_qs(self, *, fetched_by, delegates: bool, filters: dict):
+        poll = self.poll
+        qs = PollVotingTypeForAgainst.objects.filter(proposal__poll=poll).order_by('-vote').all()
+        if poll.created_by.group.hide_poll_users:
+            filters['created_by_user_id'] = fetched_by.id
+        return BasePollVoteForAgainstFilter(filters, qs).qs
 
     def on_poll_finalized(self, *, winning_proposal) -> None:
         poll = self.poll

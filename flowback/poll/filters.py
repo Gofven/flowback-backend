@@ -1,7 +1,25 @@
 import django_filters
 
 from flowback.common.filters import ExistsFilter, NumberInFilter
-from flowback.poll.phases import PollProposal
+from flowback.poll.phases import PollProposal, PollVotingTypeCardinal, PollVotingTypeForAgainst
+
+
+class BasePollVoteCardinalFilter(django_filters.FilterSet):
+    delegate_pool_id = django_filters.NumberFilter(field_name='author_delegate__created_by')
+    delegate_user_id = django_filters.NumberFilter(
+        field_name='author_delegate__created_by__groupuserdelegate__group_user__user_id')
+
+    class Meta:
+        model = PollVotingTypeCardinal
+        fields = dict(proposal=['exact'])
+
+
+class BasePollVoteForAgainstFilter(django_filters.FilterSet):
+    created_by_user_id = django_filters.NumberFilter(field_name='author__created_by__user_id')
+
+    class Meta:
+        model = PollVotingTypeForAgainst
+        fields = dict(proposal_id=['exact'])
 
 
 class BasePollProposalFilter(django_filters.FilterSet):
