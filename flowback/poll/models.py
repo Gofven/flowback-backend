@@ -2,14 +2,14 @@ from datetime import datetime
 
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
-from django.db.models import Q, F, Count, Sum
+from django.db.models import Q, F, Count
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 
-from backend.settings import FLOWBACK_SCORE_VOTE_CEILING, FLOWBACK_SCORE_VOTE_FLOOR, DEBUG, FLOWBACK_KPI_MAX_WEIGHT
+from backend.settings import FLOWBACK_SCORE_VOTE_CEILING, FLOWBACK_SCORE_VOTE_FLOOR
 from flowback.files.models import FileCollection
 from flowback.notification.models import NotifiableModel, NotificationChannel
 from flowback.prediction.models import (PredictionBet,
@@ -20,15 +20,19 @@ from flowback.common.models import BaseModel
 from flowback.common.validators import FieldNotBlankValidator
 from flowback.group.models import GroupUser, GroupUserDelegatePool, GroupTags, WorkGroup, GroupKPIValue
 from flowback.comment.models import CommentSection, comment_section_create_model_default
+from flowback.poll.classes.poll_type import PollType as PollTypeNew
 import pgtrigger
 
 
 # Create your models here.
 class Poll(BaseModel, NotifiableModel):
+    # Depricated class
     class PollType(models.IntegerChoices):
-        # 1 and 2 are depricated
         SCHEDULE = 3, _('schedule')
         CARDINAL = 4, _('cardinal')
+
+    poll_type = models.IntegerField(choices=PollType.choices)
+    poll_type_new: PollTypeNew
 
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
 
@@ -36,7 +40,6 @@ class Poll(BaseModel, NotifiableModel):
     title = models.CharField(max_length=255, validators=[FieldNotBlankValidator])
     description = models.TextField(null=True, blank=True, validators=[FieldNotBlankValidator])
     attachments = models.ForeignKey(FileCollection, on_delete=models.SET_NULL, null=True, blank=True)
-    poll_type = models.IntegerField(choices=PollType.choices)
     version = models.PositiveIntegerField(default=1, validators=[MaxValueValidator(2), MinValueValidator(1)])
     quorum = models.IntegerField(default=None, null=True, blank=True,
                                  validators=[MinValueValidator(0), MaxValueValidator(100)])
@@ -103,9 +106,11 @@ class Poll(BaseModel, NotifiableModel):
 
     @property
     def finished(self):
+        now = timezone.now()
         if self.version == 2 or self.poll_type == self.PollType.SCHEDULE:
-            return self.end_date <= timezone.now()
-        return self.vote_end_date <= timezone.now() or self.end_date <= timezone.now()
+            return self.end_date is not None and self.end_date <= now
+        return ((self.vote_end_date is not None and self.vote_end_date <= now)
+                or (self.end_date is not None and self.end_date <= now))
 
     @property
     def labels(self) -> tuple:
