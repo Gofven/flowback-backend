@@ -13,9 +13,7 @@ from flowback.poll.models import (Poll,
                                   PollProposalTypeSchedule,
                                   PollVoting,
                                   PollDelegateVoting,
-                                  PollVotingTypeRanking,
                                   PollVotingTypeCardinal,
-                                  PollVotingTypeForAgainst,
                                   PollPredictionBet,
                                   PollPredictionStatement,
                                   PollPredictionStatementSegment,
@@ -89,26 +87,12 @@ class PollDelegateVotingFactory(factory.django.DjangoModelFactory):
     poll = factory.SubFactory(PollFactory)
 
 
-class PollVotingTypeRankingFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = PollVotingTypeRanking
-
-    proposal = factory.SubFactory(PollProposalFactory)
-
-
 class PollVotingTypeCardinalFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = PollVotingTypeCardinal
 
     proposal = factory.SubFactory(PollProposalFactory)
     score = factory.LazyAttribute(lambda _: fake.pyint())
-
-
-class PollVotingTypeForAgainstFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = PollVotingTypeForAgainst
-
-    proposal = factory.SubFactory(PollProposalFactory)
 
 
 class PollPredictionStatementFactory(factory.django.DjangoModelFactory):

@@ -522,7 +522,7 @@ def poll_proposal_vote_count(poll_id: int) -> None:
         id=OuterRef('author_delegate'),
     ).values('mandate')
 
-    if poll.status or poll.poll_type == Poll.PollType.RANKING:
+    if poll.status:
         return
 
     if poll.poll_type == Poll.PollType.CARDINAL:

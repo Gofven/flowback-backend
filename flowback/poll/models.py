@@ -27,8 +27,6 @@ import pgtrigger
 class Poll(BaseModel, NotifiableModel):
     class PollType(models.IntegerChoices):
         # 1 and 2 are depricated
-        RANKING = 1, _('ranking')
-        FOR_AGAINST = 2, _('for_against')
         SCHEDULE = 3, _('schedule')
         CARDINAL = 4, _('cardinal')
 
@@ -377,30 +375,6 @@ class PollDelegateVoting(BaseModel):
 
     class Meta:
         unique_together = ('created_by', 'poll')
-
-
-class PollVotingTypeRanking(BaseModel):
-    author = models.ForeignKey(PollVoting, null=True, blank=True, on_delete=models.CASCADE)
-    author_delegate = models.ForeignKey(PollDelegateVoting, null=True, blank=True, on_delete=models.CASCADE)
-
-    proposal = models.ForeignKey(PollProposal, on_delete=models.CASCADE)
-    priority = models.IntegerField()  # Raw vote score
-    score = models.IntegerField(default=0)  # Calculated vote score (delegate only)
-
-    class Meta:
-        unique_together = (('author', 'priority'), ('author_delegate', 'priority'),
-                           ('author', 'proposal'), ('author_delegate', 'proposal'))
-
-        # Either author or author_delegate can be assigned, not both.
-
-        triggers = [
-            pgtrigger.Protect(
-                name='protects_author_or_author_delegate',
-                operation=pgtrigger.Insert | pgtrigger.Update,
-                condition=(pgtrigger.Q(new__author__isnull=True, new__author_delegate__isnull=True)
-                           | pgtrigger.Q(new__author__isnull=False, new__author_delegate__isnull=False))
-            )
-        ]
 
 
 class PollVotingTypeCardinal(BaseModel):

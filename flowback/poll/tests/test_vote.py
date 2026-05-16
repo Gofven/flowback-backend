@@ -3,12 +3,10 @@ from unittest import skip
 
 from django.contrib.contenttypes.models import ContentType
 from rest_framework.test import APITestCase
-from rest_framework.exceptions import ValidationError
 from .factories import (PollFactory, PollProposalFactory, PollVotingFactory, PollDelegateVotingFactory,
-                        PollVotingTypeCardinalFactory, PollVotingTypeForAgainstFactory)
+                        PollVotingTypeCardinalFactory)
 from .utils import generate_poll_phase_kwargs
-from ..models import PollDelegateVoting, PollVotingTypeCardinal, Poll, PollProposal, PollVoting, \
-    PollVotingTypeForAgainst
+from ..models import PollDelegateVoting, PollVotingTypeCardinal, Poll, PollProposal, PollVoting
 from ..tasks import poll_proposal_vote_count
 from ..views.vote import (PollProposalDelegateVoteUpdateAPI,
                           PollProposalVoteUpdateAPI,
@@ -16,7 +14,7 @@ from ..views.vote import (PollProposalDelegateVoteUpdateAPI,
 from ...common.tests import generate_request
 from ...files.tests.factories import FileSegmentFactory
 from ...group.tests.factories import GroupFactory, GroupUserFactory, GroupUserDelegateFactory, GroupTagsFactory, \
-    GroupUserDelegatePoolFactory, GroupUserDelegatorFactory, GroupPermissionsFactory
+    GroupUserDelegatorFactory, GroupPermissionsFactory
 from ...user.models import User
 
 
