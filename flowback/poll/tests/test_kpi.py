@@ -3,7 +3,8 @@ from rest_framework.test import APITestCase
 from flowback.common.tests import generate_request
 from flowback.group.models import GroupKPI, GroupUser, Group, GroupKPIValue
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupKPIFactory, GroupKPIValueFactory
-from flowback.poll.models import PollProposalKPIVote, PollProposalKPIBet, Poll, PollProposalKPI, PollProposal
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollProposal, PollProposalKPI, PollProposalKPIBet, PollProposalKPIVote
 from flowback.poll.tasks import poll_kpi_count
 from flowback.poll.tests.factories import PollFactory, PollProposalFactory, PollProposalKPIBetFactory, \
     PollProposalKPIVoteFactory
@@ -24,7 +25,7 @@ class TestPollProposalKPI(APITestCase):
 
         self.group_user_one, self.group_user_two = GroupUserFactory.create_batch(2, group=self.group)
         self.poll = PollFactory(created_by=self.group_user_creator,
-                                poll_type=4,
+                                poll_type=Poll.PollType.SCORE,
                                 version=2,
                                 **generate_poll_phase_kwargs('prediction_bet'))
 
@@ -84,7 +85,7 @@ class TestPollProposalKPI(APITestCase):
 
     def generate_kpi_poll(self, group: Group) -> Poll:
         poll = PollFactory(created_by=group.group_user_creator,
-                           poll_type=4,
+                           poll_type=Poll.PollType.SCORE,
                            version=2,
                            **generate_poll_phase_kwargs('prediction_bet'))
 

@@ -2,7 +2,8 @@ from rest_framework import serializers
 
 from flowback.files.serializers import FileSerializer, FileCollectionListSerializerMixin
 from flowback.group.serializers import GroupUserSerializer
-from flowback.poll.models import PollProposal, Poll
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollProposal
 
 
 class PollSerializer(FileCollectionListSerializerMixin, serializers.Serializer):
@@ -21,7 +22,7 @@ class PollSerializer(FileCollectionListSerializerMixin, serializers.Serializer):
 
     title = serializers.CharField()
     description = serializers.CharField()
-    poll_type = serializers.IntegerField()
+    poll_type = serializers.ChoiceField(choices=Poll.PollType.choices)
     allow_fast_forward = serializers.BooleanField()
     public = serializers.BooleanField()
 
@@ -62,21 +63,12 @@ class PollProposalSerializer(FileCollectionListSerializerMixin, serializers.Seri
 
     def get_start_date(self, obj):
         proposal = PollProposal.objects.get(id=obj.id)
-        if proposal.poll.poll_type == Poll.PollType.SCHEDULE:
-            return proposal.pollproposaltypeschedule.event_start_date
-
-        return None
+        return proposal.poll.poll_type_new.proposal_start_date(proposal)
 
     def get_end_date(self, obj):
         proposal = PollProposal.objects.get(id=obj.id)
-        if proposal.poll.poll_type == Poll.PollType.SCHEDULE:
-            return proposal.pollproposaltypeschedule.event_end_date
-
-        return None
+        return proposal.poll.poll_type_new.proposal_end_date(proposal)
 
     def get_preliminary_score(self, obj):
         proposal = PollProposal.objects.get(id=obj.id)
-        if proposal.poll.poll_type == Poll.PollType.SCHEDULE:
-            return proposal.pollproposaltypeschedule.preliminary_score
-
-        return None
+        return proposal.poll.poll_type_new.proposal_preliminary_score(proposal)

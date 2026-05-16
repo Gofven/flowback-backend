@@ -6,8 +6,12 @@ from django.utils import timezone
 
 from flowback.common.filters import NumberInFilter
 from flowback.group.selectors.permission import group_user_permissions
-from flowback.poll.models import PollPredictionStatement, PollPredictionBet, PollPredictionStatementVote, \
-    PollProposalKPI, PollProposalKPIBet, PollProposalKPIVote
+from flowback.poll.phases import (PollPredictionBet,
+                                  PollPredictionStatement,
+                                  PollPredictionStatementVote,
+                                  PollProposalKPI,
+                                  PollProposalKPIBet,
+                                  PollProposalKPIVote)
 from flowback.user.models import User
 
 

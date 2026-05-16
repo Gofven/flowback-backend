@@ -11,9 +11,17 @@ from flowback.group.models import GroupTags, GroupUser, GroupUserDelegatePool, G
 from flowback.group.selectors.permission import permission_q
 from flowback.group.selectors.tags import group_tags_list
 from flowback.notification.models import NotificationChannel
-from flowback.poll.models import Poll, PollAreaStatement, PollPredictionBet, PollPredictionStatement, \
-    PollDelegateVoting, PollProposal, PollVoting, \
-    PollVotingTypeCardinal, PollVotingTypeForAgainst, PollProposalKPI, PollProposalKPIBet
+from flowback.poll.models import Poll
+from flowback.poll.phases import (PollAreaStatement,
+                                  PollDelegateVoting,
+                                  PollPredictionBet,
+                                  PollPredictionStatement,
+                                  PollProposal,
+                                  PollProposalKPI,
+                                  PollProposalKPIBet,
+                                  PollVoting,
+                                  PollVotingTypeCardinal,
+                                  PollVotingTypeForAgainst)
 
 import numpy as np
 
@@ -57,7 +65,7 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
     poll = Poll.objects.get(id=poll_id)
 
     # Only for KPI polls
-    if poll.version != 2:
+    if poll.poll_type != Poll.PollType.V2_SCORE:
         return
 
     poll.status_prediction = 2
@@ -76,7 +84,7 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
         Q(Q(proposal__poll__end_date__lte=timestamp)
           & ~Q(proposal__poll=poll)) | Q(proposal__poll=poll),
         proposal__poll__created_by__group=poll.created_by.group,
-        proposal__poll__version=2,
+        proposal__poll__poll_type=Poll.PollType.V2_SCORE,
         kpi_value__kpi__active=True)
 
     winning_proposal_kpis = proposal_kpis.annotate(winner=pollproposalkpi_sq).filter(winner=F('id'))
@@ -179,7 +187,7 @@ def poll_prediction_bet_count(poll_id: int):
     timestamp = timezone.now()  # Avoid new bets causing list to be offset
     poll = Poll.objects.get(id=poll_id)
 
-    if poll.version != 1:
+    if poll.poll_type != Poll.PollType.SCORE:
         return
 
     poll.status_prediction = 2
@@ -188,7 +196,7 @@ def poll_prediction_bet_count(poll_id: int):
     # Get list of previous outcomes in a given area (poll)
     statements = PollPredictionStatement.objects.filter(
         Q(Q(poll__tag=poll.tag,
-            poll__version=1,
+            poll__poll_type=Poll.PollType.SCORE,
             poll__end_date__lte=timestamp,
             created_at__lte=timestamp) & ~Q(poll=poll)) | Q(poll=poll),
         active=True
@@ -522,51 +530,10 @@ def poll_proposal_vote_count(poll_id: int) -> None:
         id=OuterRef('author_delegate'),
     ).values('mandate')
 
-    if poll.status or poll.poll_type == Poll.PollType.RANKING:
+    if poll.status:
         return
 
-    if poll.poll_type == Poll.PollType.CARDINAL:
-        # Update user vote scores
-        PollVotingTypeCardinal.objects.filter(
-            permission_q('author__created_by', 'allow_vote'),
-            proposal__active=True,
-            author__poll=poll).update(score=F('raw_score'))
-
-        # Update delegate vote scores
-        PollVotingTypeCardinal.objects.filter(author_delegate__poll=poll,
-                                              proposal__active=True,
-                                              ).update(score=F('raw_score') * Subquery(delegate_mandate))
-
-        # Update proposal scores
-        proposal_scores = PollVotingTypeCardinal.objects.filter(
-            proposal=OuterRef('id'),
-        ).values('proposal').annotate(
-            total_score=Sum('score')
-        ).values('total_score')
-
-        PollProposal.objects.filter(poll=poll, active=True).update(score=Subquery(proposal_scores))
-
-    if poll.poll_type == Poll.PollType.SCHEDULE:
-        # Update user vote scores
-        PollVotingTypeForAgainst.objects.filter(
-            permission_q('author__created_by', 'allow_vote'),
-            proposal__active=True,
-            author__poll=poll).update(score=Case(When(vote=True, then=1), default=-1))
-
-        # Update delegate vote scores
-        PollVotingTypeForAgainst.objects.filter(author_delegate__poll=poll,
-                                                proposal__active=True,
-                                                ).update(score=Case(When(vote=True, then=1), default=-1)
-                                                               * Subquery(delegate_mandate))
-
-        # Update proposal scores
-        proposal_scores = PollVotingTypeForAgainst.objects.filter(
-            proposal=OuterRef('id')
-        ).values('proposal').annotate(
-            total_score=Sum('score')
-        ).values('total_score')
-
-        PollProposal.objects.filter(poll=poll, active=True).update(score=Subquery(proposal_scores))
+    poll.poll_type_new.update_vote_scores(delegate_mandate_subquery=delegate_mandate)
 
     # Check if quorum is fulfilled
     total_group_users = GroupUser.objects.filter(group=group).count()
@@ -606,11 +573,4 @@ def poll_proposal_vote_count(poll_id: int) -> None:
                     action=NotificationChannel.Action.UPDATED,
                     poll=poll)
 
-        if poll.poll_type == Poll.PollType.SCHEDULE and poll.status == 1 and winning_proposal:
-            schedule = group.schedule if poll.work_group is None else poll.work_group.schedule
-            schedule.create_event(title=poll.title,
-                                  description=poll.description,
-                                  meeting_link=poll.schedule_poll_meeting_link,
-                                  start_date=winning_proposal.pollproposaltypeschedule.event_start_date,
-                                  end_date=winning_proposal.pollproposaltypeschedule.event_end_date,
-                                  created_by=poll)
+        poll.poll_type_new.on_poll_finalized(winning_proposal=winning_proposal)

@@ -1,18 +1,22 @@
 from typing import Union
 
 from django.db import models
-from django.db.models import Sum, Case, When, F, OuterRef, Subquery, Count
+from django.db.models import Sum, Case, When, OuterRef, Subquery, Count
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from backend.settings import FLOWBACK_PREDICTION_VOTE_ON_RESULT_PHASE
-from ..models import (PollPredictionBet,
+from ..models import Poll
+from ..phases import (PollPredictionBet,
                       PollPredictionStatement,
                       PollPredictionStatementSegment,
                       PollPredictionStatementVote,
-                      Poll, PollProposal, PollProposalKPIBet, PollProposalKPIVote, PollProposalKPI)
+                      PollProposal,
+                      PollProposalKPI,
+                      PollProposalKPIBet,
+                      PollProposalKPIVote)
 from ...common.services import get_object, model_update
-from ...group.models import GroupKPI, GroupKPIValue
+from ...group.models import GroupKPI
 from ...group.selectors.permission import group_user_permissions
 from ...user.models import User
 
@@ -253,7 +257,7 @@ def poll_proposal_kpi_bet(user_id: int,
                                         permissions=['admin', 'allow_vote'])
     kpi = GroupKPI.objects.get(id=kpi_id, group_id=group_user.group.id, active=True)
 
-    if not proposal.poll.version == 2:
+    if proposal.poll.poll_type != Poll.PollType.V2_SCORE:
         raise ValidationError('Poll does not support KPI')
 
     proposal.poll.check_phase('dynamic', 'prediction_bet')
@@ -296,7 +300,7 @@ def poll_proposal_kpi_vote(user_id: int,
 
     kpi = GroupKPI.objects.get(id=kpi_id, group=group_user.group, active=True)
 
-    if not proposal.poll.version == 2:
+    if proposal.poll.poll_type != Poll.PollType.V2_SCORE:
         raise ValidationError('Poll does not support KPI')
 
     proposal.poll.check_phase('result')

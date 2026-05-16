@@ -8,21 +8,22 @@ from flowback.common.tests import fake
 from flowback.group.tests.factories import GroupUserFactory, GroupUserDelegatePoolFactory, GroupTagsFactory, \
     GroupKPIFactory, GroupKPIValueFactory
 
-from flowback.poll.models import (Poll,
-                                  PollProposal,
-                                  PollProposalTypeSchedule,
-                                  PollVoting,
+from flowback.poll.models import Poll
+from flowback.poll.phases import (PollAreaStatement,
+                                  PollAreaStatementSegment,
+                                  PollAreaStatementVote,
                                   PollDelegateVoting,
-                                  PollVotingTypeRanking,
-                                  PollVotingTypeCardinal,
-                                  PollVotingTypeForAgainst,
                                   PollPredictionBet,
                                   PollPredictionStatement,
                                   PollPredictionStatementSegment,
                                   PollPredictionStatementVote,
-                                  PollAreaStatement,
-                                  PollAreaStatementSegment,
-                                  PollAreaStatementVote, PollProposalKPIBet, PollProposalKPI, PollProposalKPIVote)
+                                  PollProposal,
+                                  PollProposalKPI,
+                                  PollProposalKPIBet,
+                                  PollProposalKPIVote,
+                                  PollProposalTypeSchedule,
+                                  PollVoting,
+                                  PollVotingTypeCardinal)
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
 
 
@@ -33,7 +34,7 @@ class PollFactory(factory.django.DjangoModelFactory):
     created_by = factory.SubFactory(GroupUserFactory)
     title = factory.LazyAttribute(lambda _: fake.unique.first_name().lower())
     description = factory.LazyAttribute(lambda _: fake.bs())
-    poll_type = 4
+    poll_type = Poll.PollType.SCORE
     dynamic = False
 
     start_date = factory.LazyAttribute(lambda _: timezone.now())
@@ -70,7 +71,7 @@ class PollProposalTypeScheduleFactory(factory.django.DjangoModelFactory):
 
     event_start_date = factory.LazyAttribute(lambda _: timezone.now() + timedelta(days=1))
     event_end_date = factory.LazyAttribute(lambda _: timezone.now() + timedelta(days=2))
-    proposal = factory.SubFactory(PollProposalFactory, poll__poll_type=3)
+    proposal = factory.SubFactory(PollProposalFactory, poll__poll_type=Poll.PollType.SCHEDULE)
 
 
 class PollVotingFactory(factory.django.DjangoModelFactory):
@@ -89,26 +90,12 @@ class PollDelegateVotingFactory(factory.django.DjangoModelFactory):
     poll = factory.SubFactory(PollFactory)
 
 
-class PollVotingTypeRankingFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = PollVotingTypeRanking
-
-    proposal = factory.SubFactory(PollProposalFactory)
-
-
 class PollVotingTypeCardinalFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = PollVotingTypeCardinal
 
     proposal = factory.SubFactory(PollProposalFactory)
     score = factory.LazyAttribute(lambda _: fake.pyint())
-
-
-class PollVotingTypeForAgainstFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = PollVotingTypeForAgainst
-
-    proposal = factory.SubFactory(PollProposalFactory)
 
 
 class PollPredictionStatementFactory(factory.django.DjangoModelFactory):

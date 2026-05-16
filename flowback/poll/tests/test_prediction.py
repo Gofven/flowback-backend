@@ -9,8 +9,11 @@ from flowback.common.tests import generate_request
 from flowback.group.models import GroupUser, GroupTags
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupTagsFactory
 from flowback.group.views.tag import GroupTagsListApi
-from flowback.poll.models import Poll, PollPredictionStatement, PollPredictionStatementSegment, PollPredictionBet, \
-    PollPredictionStatementVote
+from flowback.poll.models import Poll
+from flowback.poll.phases import (PollPredictionBet,
+                                  PollPredictionStatement,
+                                  PollPredictionStatementSegment,
+                                  PollPredictionStatementVote)
 from flowback.poll.services.prediction import update_poll_prediction_statement_outcomes
 from flowback.poll.tasks import poll_prediction_bet_count
 from flowback.poll.tests.factories import PollFactory, PollPredictionBetFactory, PollProposalFactory, \
@@ -38,7 +41,7 @@ class PollPredictionStatementTest(APITestCase):
          self.user_prediction_caster_three) = [GroupUserFactory(group=self.group) for _ in range(4)]
 
         self.poll = PollFactory(created_by=self.user_group_creator,
-                                poll_type=4,
+                                poll_type=Poll.PollType.SCORE,
                                 version=1,
                                 dynamic=False,
                                 tag=GroupTagsFactory(group=self.user_group_creator.group),
@@ -105,7 +108,8 @@ class PollPredictionStatementTest(APITestCase):
     def test_delete_prediction_statement(self):
         response = self.generate_delete_prediction_request(group_user=self.user_prediction_creator,
                                                            prediction_statement=self.prediction_statement)
-        self.assertEqual(PollPredictionStatement.objects.filter(id=self.prediction_statement.id).count(), 0)
+        self.assertEqual(PollPredictionStatement.objects.filter(id=self.prediction_statement.id,
+                                                                active=False).count(), 1)
 
     def test_delete_prediction_statement_unpermitted(self):
         response = self.generate_delete_prediction_request(group_user=self.user_prediction_caster_one,
@@ -424,7 +428,7 @@ class PollPredictionStatementTest(APITestCase):
     def test_poll_area_vote_count(self):
         """Test poll_area_vote_count task coverage."""
         from flowback.poll.tasks import poll_area_vote_count
-        from flowback.poll.models import PollAreaStatement, PollAreaStatementSegment, PollAreaStatementVote
+        from flowback.poll.phases import PollAreaStatement, PollAreaStatementSegment, PollAreaStatementVote
 
         # Create a poll in area phase
         area_poll = PollFactory(created_by=self.user_group_creator, tag=self.poll.tag,

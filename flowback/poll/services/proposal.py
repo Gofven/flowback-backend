@@ -3,7 +3,8 @@ from rest_framework.exceptions import ValidationError
 from flowback.common.services import get_object
 from flowback.files.services import upload_collection
 from flowback.group.selectors.permission import group_user_permissions
-from flowback.poll.models import PollProposal, Poll, PollProposalTypeSchedule, PollProposalKPI
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollProposal, PollProposalKPI, PollProposalTypeSchedule
 
 
 def poll_proposal_create(*, user_id: int,
@@ -36,23 +37,7 @@ def poll_proposal_create(*, user_id: int,
     proposal.attachments = collection
     proposal.save()
 
-    if poll.poll_type == Poll.PollType.SCHEDULE:
-        if not (data.get('start_date') and data.get('end_date')):
-            raise Exception('Missing start_date and/or end_date, for proposal schedule creation')
-
-        schedule_proposal = PollProposalTypeSchedule(proposal=proposal,
-                                                     event_start_date=data['start_date'],
-                                                     event_end_date=data['end_date'])
-
-        try:
-            schedule_proposal.full_clean()
-
-        except ValidationError as e:
-            proposal.delete()
-            raise e
-
-        schedule_proposal.save()
-
+    poll.poll_type_new.create_proposal_type_data(proposal, data)
     return proposal
 
 

@@ -5,7 +5,8 @@ from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
 from flowback.group.notify import notify_group_poll
 from flowback.notification.models import NotificationChannel
-from flowback.poll.models import Poll, PollPhaseTemplate
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollPhaseTemplate
 from flowback.group.selectors.permission import group_user_permissions
 from django.utils import timezone
 from datetime import datetime
@@ -19,7 +20,7 @@ from flowback.user.models import User
 def poll_create(*, user_id: int,
                 group_id: int,
                 title: str,
-                poll_type: int,
+                poll_type: str,
                 description: str = None,
                 blockchain_id: int = None,
                 start_date: datetime,
@@ -59,15 +60,10 @@ def poll_create(*, user_id: int,
     if quorum is not None and not group_user.check_permission(poll_quorum=True) and not group_user.is_admin:
         raise ValidationError("Permission denied for custom poll quorum")
 
-    if poll_type == Poll.PollType.SCHEDULE:
-        if not end_date:
-            raise ValidationError('Missing required parameter(s) for schedule poll')
+    poll_type = Poll.normalize_poll_type(poll_type, version)
 
-        elif not dynamic:
-            raise ValidationError('Schedule poll must be dynamic')
-
-    elif work_group_id is not None:
-        raise ValidationError("Work groups are only assignable to date polls")
+    Poll(poll_type=poll_type).poll_type_new.validate_create(
+        dynamic=dynamic, end_date=end_date, work_group_id=work_group_id)
 
     collection = None
     if attachments:
@@ -103,22 +99,7 @@ def poll_create(*, user_id: int,
     poll.full_clean()
     poll.save()
 
-    if version == 2:
-        poll_kpi_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
-
-    else:
-        poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
-
-        if not poll_type == Poll.PollType.SCHEDULE:
-            poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id),
-                                                  eta=poll.prediction_bet_end_date)
-
-    if not poll.dynamic:
-        eta = poll.vote_end_date
-        if version == 2:
-            eta = end_date
-        poll_proposal_vote_count.apply_async(kwargs=dict(poll_id=poll.id),
-                                             eta=eta)
+    poll.poll_type_new.schedule_post_create_tasks()
 
     notify_group_poll(message="A new poll has been posted",
                       action=NotificationChannel.Action.CREATED,
@@ -209,30 +190,10 @@ def poll_fast_forward(*, user_id: int, poll_id: int, phase: str):
     poll.save()
 
     # TODO update/remove previous celery tasks
-    if not poll.poll_type == Poll.PollType.SCHEDULE:
-        # KPI Polls
-        if poll.version == 2:
-            if poll.prediction_bet_end_date and poll.prediction_bet_end_date > timezone.now():
-                poll_kpi_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
+    poll.poll_type_new.schedule_fast_forward_tasks()
 
-            else:
-                poll_kpi_count(poll_id=poll.id)
-
-        # Classical Polls
-        else:
-            if poll.area_vote_end_date and poll.area_vote_end_date > timezone.now():
-                poll_area_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.area_vote_end_date)
-
-            else:
-                poll_area_vote_count(poll_id=poll.id)
-
-            if poll.prediction_bet_end_date and poll.prediction_bet_end_date > timezone.now():
-                poll_prediction_bet_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.prediction_bet_end_date)
-
-            else:
-                poll_prediction_bet_count(poll_id=poll.id)
-
-    if poll.end_date > timezone.now():
+    if ((poll.vote_end_date and poll.vote_end_date > timezone.now())
+            or (poll.end_date and poll.end_date > timezone.now())):
         poll_proposal_vote_count.apply_async(kwargs=dict(poll_id=poll.id), eta=poll.end_date)
 
     else:
@@ -247,7 +208,7 @@ def poll_fast_forward(*, user_id: int, poll_id: int, phase: str):
 def poll_phase_template_create(*, user_id: int,
                                group_id: int,
                                name: str,
-                               poll_type: int,
+                               poll_type: str,
                                poll_is_dynamic: bool,
                                area_vote_time_delta: int = None,
                                proposal_time_delta: int = None,
