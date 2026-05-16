@@ -1,7 +1,7 @@
 from typing import Union
 
 from django.db import models
-from django.db.models import Sum, Case, When, F, OuterRef, Subquery, Count
+from django.db.models import Sum, Case, When, OuterRef, Subquery, Count
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -12,7 +12,7 @@ from ..models import (PollPredictionBet,
                       PollPredictionStatementVote,
                       Poll, PollProposal, PollProposalKPIBet, PollProposalKPIVote, PollProposalKPI)
 from ...common.services import get_object, model_update
-from ...group.models import GroupKPI, GroupKPIValue
+from ...group.models import GroupKPI
 from ...group.selectors.permission import group_user_permissions
 from ...user.models import User
 
@@ -275,11 +275,12 @@ def poll_proposal_kpi_bet(user_id: int,
 
     staged = []
     for i in range(len(values)):
-        staged.append(PollProposalKPIBet(created_by=group_user,
-                                         weight=weights[i],
-                                         proposal_kpi=PollProposalKPI.objects.get(proposal=proposal,
-                                                                                  kpi_value__kpi=kpi,
-                                                                                  kpi_value__value=values[i])))
+        if weights[i] > 0:
+            staged.append(PollProposalKPIBet(created_by=group_user,
+                                             weight=weights[i],
+                                             proposal_kpi=PollProposalKPI.objects.get(proposal=proposal,
+                                                                                      kpi_value__kpi=kpi,
+                                                                                      kpi_value__value=values[i])))
 
     bets = PollProposalKPIBet.objects.bulk_create(objs=staged)
     return bets

@@ -35,9 +35,6 @@ class PollProposalListAPI(APIView):
         start_date = serializers.DateTimeField(required=False)
         end_date = serializers.DateTimeField(required=False)
 
-    class OutputSerializer(PollProposalSerializer):
-        pass
-
     def get(self, request, poll: int = None):
         poll = get_object(Poll, id=poll)
         serializer = self.FilterSerializer(data=request.query_params)
@@ -48,7 +45,7 @@ class PollProposalListAPI(APIView):
 
         return get_paginated_response(
             pagination_class=self.Pagination,
-            serializer_class=self.OutputSerializer,
+            serializer_class=PollProposalSerializer,
             queryset=proposals,
             request=request,
             view=self)

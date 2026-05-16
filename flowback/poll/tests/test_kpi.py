@@ -115,6 +115,7 @@ class TestPollProposalKPI(APITestCase):
         # group_kpi_one, [12, 22, 29]
         # group_kpi_two, [19, 99, 218, 227, 310, 827]
         # group_kpi_three, [12, 127, 198, 228]
+        print("KPI names in order: ", self.group_kpi_one.name, self.group_kpi_two.name, self.group_kpi_three.name)
 
         # Poll one
         poll_one = self.generate_kpi_poll(group=self.group)
@@ -124,12 +125,12 @@ class TestPollProposalKPI(APITestCase):
         self.generate_kpi_bet(self.group_user_two, self.group_kpi_one, proposal_one, 22, 10)
         self.generate_kpi_bet(self.group_user_two, self.group_kpi_one, proposal_one, 12, 16)
         Poll.objects.filter(id=poll_one.id).update(**generate_poll_phase_kwargs('prediction_vote'))
-        poll_kpi_count(poll_id=poll_one.id)
+        poll_kpi_count(poll_id=poll_one.id, disable_dprint=False)
 
-        print("Winner: ", PollProposalKPI.objects.get(proposal=proposal_one,
-                                                      kpi_value__kpi=self.group_kpi_one,
-                                                      kpi_value__value=22).kpi_value_id)
+        print("\n\n")
 
+        # User one won 10% on KPI 1, value 22
+        # User two won 10% on KPI 1, value 22
         self.generate_kpi_vote(self.group_user_two, self.group_kpi_one, proposal_one, 22)
 
         # Poll two
@@ -140,39 +141,50 @@ class TestPollProposalKPI(APITestCase):
         self.generate_kpi_bet(self.group_user_two, self.group_kpi_one, proposal_two, 22, 12)
         self.generate_kpi_bet(self.group_user_one, self.group_kpi_one, proposal_two, 12, 16)
         Poll.objects.filter(id=poll_two.id).update(**generate_poll_phase_kwargs('prediction_vote'))
-        poll_kpi_count(poll_id=poll_two.id)
+        poll_kpi_count(poll_id=poll_two.id, disable_dprint=False)
 
-        print("Winner: ", PollProposalKPI.objects.get(proposal=proposal_two,
-                                                      kpi_value__kpi=self.group_kpi_one,
-                                                      kpi_value__value=12).kpi_value_id)
+        print("\n\n")
 
+        # User one won 16% on KPI 1, value 12
         self.generate_kpi_vote(self.group_user_two, self.group_kpi_one, proposal_two, 12)
 
         # Poll three
         poll_three = self.generate_kpi_poll(group=self.group)
         proposal_three = PollProposalFactory(poll=poll_three, created_by=self.group_user_creator)
+        proposal_three_by_two = PollProposalFactory(poll=poll_three, created_by=self.group_user_creator)
 
+        self.generate_kpi_bet(self.group_user_one, self.group_kpi_one, proposal_three_by_two, 22, 21)
+        self.generate_kpi_bet(self.group_user_two, self.group_kpi_two, proposal_three_by_two, 227, 11)
+        self.generate_kpi_bet(self.group_user_one, self.group_kpi_two, proposal_three_by_two, 227, 15)
         self.generate_kpi_bet(self.group_user_one, self.group_kpi_one, proposal_three, 22, 22)
         self.generate_kpi_bet(self.group_user_two, self.group_kpi_two, proposal_three, 227, 12)
         self.generate_kpi_bet(self.group_user_one, self.group_kpi_two, proposal_three, 227, 16)
         Poll.objects.filter(id=poll_three.id).update(**generate_poll_phase_kwargs('prediction_vote'))
-        poll_kpi_count(poll_id=poll_three.id)
+        poll_kpi_count(poll_id=poll_three.id, disable_dprint=False)
 
-        print("Winner: ", PollProposalKPI.objects.get(proposal=proposal_three,
-                                                      kpi_value__kpi=self.group_kpi_two,
-                                                      kpi_value__value=227).kpi_value_id)
+        print("\n\n")
 
+        # User one won (22% on KPI 1, value 22) (16% on KPI 2, value 227)
+        # User two won (12% on KPI 2, value 227)
         self.generate_kpi_vote(self.group_user_two, self.group_kpi_one, proposal_three, 22)
+        self.generate_kpi_vote(self.group_user_two, self.group_kpi_two, proposal_three, 227)
 
         # Poll four
         poll_four = self.generate_kpi_poll(group=self.group)
         proposal_four = PollProposalFactory(poll=poll_four, created_by=self.group_user_creator)
+        proposal_four_by_two = PollProposalFactory(poll=poll_four, created_by=self.group_user_creator)
 
-        self.generate_kpi_bet(self.group_user_one, self.group_kpi_one, proposal_four, 22, 22)
-        self.generate_kpi_bet(self.group_user_two, self.group_kpi_one, proposal_four, 22, 12)
+        self.generate_kpi_bet(self.group_user_one, self.group_kpi_two, proposal_four, 310, 22)
+        self.generate_kpi_bet(self.group_user_two, self.group_kpi_two, proposal_four, 227, 12)
         self.generate_kpi_bet(self.group_user_two, self.group_kpi_one, proposal_four, 12, 16)
+        self.generate_kpi_bet(self.group_user_two, self.group_kpi_one, proposal_four, 22, 30)
+        self.generate_kpi_bet(self.group_user_one, self.group_kpi_two, proposal_four_by_two, 310, 21)
+        self.generate_kpi_bet(self.group_user_two, self.group_kpi_two, proposal_four_by_two, 227, 11)
+        self.generate_kpi_bet(self.group_user_two, self.group_kpi_one, proposal_four_by_two, 12, 15)
+        self.generate_kpi_bet(self.group_user_two, self.group_kpi_one, proposal_four_by_two, 22, 29)
 
-        poll_kpi_count(poll_id=poll_four.id)
+        poll_kpi_count(poll_id=poll_four.id, disable_dprint=False)
+        print("\n\n")
 
     def test_proposal_kpi_list(self):
         # TODO block users from accessing kpis they are not permitted to access (e.g. poll for specific workgroup)

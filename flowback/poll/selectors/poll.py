@@ -79,10 +79,6 @@ def poll_list(*, fetched_by: User, group_id: Union[int, None], filters=None):
         output_field=CharField()
     )
 
-    polls = Poll.objects.filter(
-
-        ).values('id')
-
     q = (Q(created_by__group__groupuser__user__in=[fetched_by])
          & Q(created_by__group__groupuser__active=True))  # User in group
 

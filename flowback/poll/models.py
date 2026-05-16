@@ -555,7 +555,7 @@ class PollProposalKPI(BaseModel):
 class PollProposalKPIBet(BaseModel):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     proposal_kpi = models.ForeignKey(PollProposalKPI, on_delete=models.CASCADE)
-    weight = models.IntegerField(default=0)
+    weight = models.PositiveIntegerField(validators=[MinValueValidator(1)])
 
     @property
     def proposal(self):
