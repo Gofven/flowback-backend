@@ -1,11 +1,19 @@
 import json
 from unittest import skip
 
+from backend.settings import FLOWBACK_POLL_VERSION_LOCK
+from flowback.poll.classes.poll_type import of
+from flowback.poll.models import Poll
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
+from django.test import TestCase
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
+
+requires_version_1 = skip("Version 1 not permitted") if (FLOWBACK_POLL_VERSION_LOCK is not None
+                                                          and FLOWBACK_POLL_VERSION_LOCK != 1) else lambda f: f
 from .factories import PollFactory, PollProposalFactory, PollPredictionStatementFactory
 
 from .utils import generate_poll_phase_kwargs
@@ -74,7 +82,7 @@ class PollTest(APITestCase):
         self.assertTrue(all([not x['created_by'] for x in response.data['results']]),
                         [[bool(x['created_by']), x['group_id']] for x in response.data['results']])
 
-    @skip("Assumes FLOWBACK_POLL_VERSION_LOCK=1; this instance locks to a different version")
+    @requires_version_1
     def test_create_poll(self):
         factory = APIRequestFactory()
         user = self.group_user_creator.user
@@ -89,7 +97,7 @@ class PollTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    @skip("Assumes FLOWBACK_POLL_VERSION_LOCK=1; this instance locks to a different version")
+    @requires_version_1
     def test_create_poll_pre_save(self):
         data = dict(title='test title',
                     description='test description',
@@ -111,7 +119,7 @@ class PollTest(APITestCase):
         for i in [i[1] for i in poll.time_table]:
             exec(f'self.assertEqual(bool(poll.{i}), {"False" if i not in labels else "True"})')
 
-    @skip("Assumes FLOWBACK_POLL_VERSION_LOCK=1; this instance locks to a different version")
+    @requires_version_1
     def test_create_poll_notification(self):
         subscriber = self.group_user_one
         poll_creator = self.group_user_two
@@ -165,6 +173,7 @@ class PollTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data['count'], 1)
 
+    @requires_version_1
     def test_create_poll_below_phase_space_minimum(self):
         phases = generate_poll_phase_kwargs('base')
         phases['proposal_end_date'] -= timezone.timedelta(hours=2)
@@ -188,7 +197,7 @@ class PollTest(APITestCase):
                         group_id=self.group_user_one.group.id,
                         **data, **phases)
 
-    @skip("Assumes FLOWBACK_POLL_VERSION_LOCK=1; this instance locks to a different version")
+    @requires_version_1
     def test_create_failing_poll(self):
         factory = APIRequestFactory()
         user = self.group_user_creator.user
@@ -305,3 +314,33 @@ class PollTest(APITestCase):
 
         self.assertTrue(response.status_code == 200)
         self.assertFalse(Poll.objects.get(id=poll.id).active)
+
+    def _poll(self, poll_type: str) -> Poll:
+        """
+        Regression: PollType subclasses must implement every @abstractmethod.
+        """
+
+        now = timezone.now()
+        return Poll(
+            poll_type=poll_type,
+            dynamic=False,
+            start_date=now,
+            area_vote_end_date=now + timezone.timedelta(hours=1),
+            proposal_end_date=now + timezone.timedelta(hours=2),
+            prediction_statement_end_date=now + timezone.timedelta(hours=3),
+            prediction_bet_end_date=now + timezone.timedelta(hours=4),
+            delegate_vote_end_date=now + timezone.timedelta(hours=5),
+            vote_end_date=now + timezone.timedelta(hours=6),
+            end_date=now + timezone.timedelta(hours=7),
+        )
+
+    def test_score_poll_type_instantiates(self):
+        of(self._poll(Poll.PollType.SCORE))
+
+    def test_v2_score_poll_type_instantiates(self):
+        of(self._poll(Poll.PollType.V2_SCORE))
+
+    def test_schedule_poll_type_instantiates(self):
+        poll = self._poll(Poll.PollType.SCHEDULE)
+        poll.dynamic = True
+        of(poll)
