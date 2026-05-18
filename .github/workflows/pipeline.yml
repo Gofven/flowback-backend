@@ -46,4 +46,4 @@ jobs:
           celery -A backend beat --loglevel=info &
 
       - name: Run tests
-        run: pytest
+        run: pytest --ignore-warnings
