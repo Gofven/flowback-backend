@@ -1,0 +1,49 @@
+name: Pipeline
+
+on:
+  push:
+    branches: [master, development]
+  pull_request:
+    branches: [master, development]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: flowback_test
+          POSTGRES_USER: flowback
+          POSTGRES_PASSWORD: flowback
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    env:
+      FLOWBACK_PSQL_NAME: flowback_test
+      FLOWBACK_PSQL_USER: flowback
+      FLOWBACK_PSQL_PASSWORD: flowback
+      FLOWBACK_PSQL_HOST: localhost
+      FLOWBACK_PSQL_PORT: "5432"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.13
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+
+      - name: Start Celery worker and beat
+        run: |
+          celery -A backend worker --loglevel=info &
+          celery -A backend beat --loglevel=info &
+
+      - name: Run tests
+        run: pytest --disable-warnings
