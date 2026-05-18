@@ -29,9 +29,9 @@ jobs:
       FLOWBACK_PSQL_HOST: localhost
       FLOWBACK_PSQL_PORT: "5432"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: 3.13
 
@@ -39,11 +39,11 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install --no-cache-dir -r requirements.txt
-          
+
       - name: Start Celery worker and beat
         run: |
           celery -A backend worker --loglevel=info &
           celery -A backend beat --loglevel=info &
 
       - name: Run tests
-        run: pytest --ignore-warnings
+        run: pytest --disable-warnings
