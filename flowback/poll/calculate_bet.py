@@ -41,6 +41,7 @@ def covariance(arr_1: list[float], arr_2: list[float]) -> float:
     """
     pre: len(arr_1) == len(arr_2)
     pre: len(arr_1) > 0
+    post: arr_1 != arr_2 or __return__ >= 0.0
     """
     covariance_array = [(arr_1[i] - np.mean(arr_1)) * (arr_2[i] - np.mean(arr_2)) for i in range(len(arr_1))]
     return (1 / len(arr_1)) * sum(covariance_array)

@@ -11,7 +11,7 @@ from flowback.group.models import GroupTags, GroupUser, GroupUserDelegatePool, G
 from flowback.group.selectors.permission import permission_q
 from flowback.group.selectors.tags import group_tags_list
 from flowback.notification.models import NotificationChannel
-from flowback.poll.calculate_bet import covariance, get_small_decimal, no_previous_bets_combined, previous_outcome_avg_calculate
+from flowback.poll.calculate_bet import covariance, get_small_decimal, previous_outcome_avg_calculate, no_previous_bets_combined
 from flowback.poll.models import Poll
 from flowback.poll.phases import (PollAreaStatement,
                                   PollDelegateVoting,
@@ -20,9 +20,7 @@ from flowback.poll.phases import (PollAreaStatement,
                                   PollProposal,
                                   PollProposalKPI,
                                   PollProposalKPIBet,
-                                  PollVoting,
-                                  PollVotingTypeCardinal,
-                                  PollVotingTypeForAgainst)
+                                  PollVoting)
 
 import numpy as np
 
@@ -161,7 +159,7 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
             dprint("Previous bets: ", previous_bets, disable_dprint=disable_dprint)
             dprint("Previous outcomes: ", previous_outcomes, disable_dprint=disable_dprint)
             dprint("Calculating for: ", kpi_val.kpi.name, disable_dprint=disable_dprint)
-            calculate_combined_bet(poll_statements=current_kpis,
+            calculate_combined_bet(current_kpis_or_statements=current_kpis,
                                    current_bets=[[float(i) if i is not None else None for i in x] for x in
                                                  current_bets],
                                    previous_bets=[[float(i) if i is not None else None for i in x] for x in
@@ -333,7 +331,7 @@ def poll_prediction_bet_count(poll_id: int):
 
     dprint("Total Statement:", statements.filter(poll=poll).all().count())
 
-    calculate_combined_bet(poll_statements=statements.filter(poll=poll).all(),
+    calculate_combined_bet(current_kpis_or_statements=statements.filter(poll=poll).all(),
                            current_bets=current_bets,
                            previous_bets=previous_bets,
                            previous_outcomes=previous_outcomes)
@@ -347,9 +345,10 @@ def poll_prediction_bet_count(poll_id: int):
 
 
 """
-This complicated function calculates the combined bet of any one KPI at any one proposal
+This complicated function calculates the combined bet of any one KPI at any one proposal for Score V2 polls,
+and any one prediction statement for any one proposal for Score polls.
 """
-def calculate_combined_bet(poll_statements: QuerySet[PollPredictionStatement] | QuerySet[PollProposalKPI],
+def calculate_combined_bet(current_kpis_or_statements: QuerySet[PollPredictionStatement] | QuerySet[PollProposalKPI],
                            current_bets: list[list[float | None]],
                            previous_outcomes: list[float],
                            previous_bets: list[list[float | None]],
@@ -371,7 +370,7 @@ def calculate_combined_bet(poll_statements: QuerySet[PollPredictionStatement] | 
     small_decimal = get_small_decimal(power_of=-7)
     previous_outcome_avg = previous_outcome_avg_calculate(previous_outcomes=previous_outcomes)
 
-    for i, statement in enumerate(poll_statements):
+    for i, statement in enumerate(current_kpis_or_statements):
         bias_adjustments = []
         predictor_errors = []
         # Clear None bets, a predictor might not have engaged with every KPI on every proposal
@@ -390,7 +389,7 @@ def calculate_combined_bet(poll_statements: QuerySet[PollPredictionStatement] | 
         if all(x[i] is None for x in current_bets):
             continue
 
-        previous_bets_trimmed = [previous_bets[j] for j in range(len(previous_bets)) if current_bets[j][i] is not None]
+        previous_bets_trimmed: list[list[float]] = [previous_bets[j] for j in range(len(previous_bets)) if current_bets[j][i] is not None]
         dprint("Previous Bets Trimmed:", previous_bets_trimmed, disable_dprint=disable_dprint)
         for bets in previous_bets_trimmed:
             bets_trimmed = [i for i in bets if i is not None]
