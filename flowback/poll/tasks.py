@@ -11,7 +11,7 @@ from flowback.group.models import GroupTags, GroupUser, GroupUserDelegatePool, G
 from flowback.group.selectors.permission import permission_q
 from flowback.group.selectors.tags import group_tags_list
 from flowback.notification.models import NotificationChannel
-from flowback.poll.calculate_bet import get_small_decimal
+from flowback.poll.calculate_bet import get_small_decimal, previous_outcome_avg_calculate
 from flowback.poll.models import Poll
 from flowback.poll.phases import (PollAreaStatement,
                                   PollDelegateVoting,
@@ -366,7 +366,7 @@ def calculate_combined_bet(poll_statements: QuerySet[PollPredictionStatement] | 
     """
 
     small_decimal = get_small_decimal(power_of=-7)
-    previous_outcome_avg = 0 if len(previous_outcomes) == 0 else sum(previous_outcomes) / len(previous_outcomes)
+    previous_outcome_avg = previous_outcome_avg_calculate(previous_outcomes=previous_outcomes)
 
     # Calculation below
     for i, statement in enumerate(poll_statements):
