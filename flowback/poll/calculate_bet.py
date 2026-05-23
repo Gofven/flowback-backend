@@ -39,9 +39,14 @@ def no_previous_bets_combined(current_bets_from_ith_user: list[float | None]) ->
 
 def covariance(arr_1: list[float], arr_2: list[float]) -> float:
     """
+    To calculate the covariance you need their mean to be 0 (and ig standard devasion of 1?) This normalization allows one to calculate covariance (and you can calculate correlation from covariance, you probably know roughly what correlation is)
+    so it changes every entry in both arrays to the mean of themselves, which is part of this normalization step so one can calculate the covariance (and thus in principle correlation)
+
+    This is ultimately used to calculate how much a predictors previous votes correlate with actual results, which is what we're ultiumately building (a non-monetary prediction market)
+
     pre: len(arr_1) == len(arr_2)
     pre: len(arr_1) > 0
     post: arr_1 != arr_2 or __return__ >= 0.0
     """
     covariance_array = [(arr_1[i] - np.mean(arr_1)) * (arr_2[i] - np.mean(arr_2)) for i in range(len(arr_1))]
-    return (1 / len(arr_1)) * sum(covariance_array)
+    return sum(covariance_array) / len(arr_1)
