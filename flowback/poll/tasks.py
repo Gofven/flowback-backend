@@ -11,6 +11,7 @@ from flowback.group.models import GroupTags, GroupUser, GroupUserDelegatePool, G
 from flowback.group.selectors.permission import permission_q
 from flowback.group.selectors.tags import group_tags_list
 from flowback.notification.models import NotificationChannel
+from flowback.poll.calculate_bet import get_small_decimal
 from flowback.poll.models import Poll
 from flowback.poll.phases import (PollAreaStatement,
                                   PollDelegateVoting,
@@ -63,10 +64,6 @@ def dprint(*args, disable_dprint: bool = False, **kwargs):
 def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
     timestamp = timezone.now()
     poll = Poll.objects.get(id=poll_id)
-
-    # Only for KPI polls
-    if poll.poll_type != Poll.PollType.V2_SCORE:
-        return
 
     poll.status_prediction = 2
     poll.save()
@@ -368,9 +365,7 @@ def calculate_combined_bet(poll_statements: QuerySet[PollPredictionStatement] | 
     :return: None
     """
 
-    # Small decimal (AT LEAST a magnitude below 10^(-6))
-    small_decimal = 10 ** -7
-
+    small_decimal = get_small_decimal(power_of=-7)
     previous_outcome_avg = 0 if len(previous_outcomes) == 0 else sum(previous_outcomes) / len(previous_outcomes)
 
     # Calculation below
