@@ -11,7 +11,7 @@ from flowback.group.models import GroupTags, GroupUser, GroupUserDelegatePool, G
 from flowback.group.selectors.permission import permission_q
 from flowback.group.selectors.tags import group_tags_list
 from flowback.notification.models import NotificationChannel
-from flowback.poll.calculate_bet import get_small_decimal, no_previous_bets_combined, previous_outcome_avg_calculate
+from flowback.poll.calculate_bet import covariance, get_small_decimal, no_previous_bets_combined, previous_outcome_avg_calculate
 from flowback.poll.models import Poll
 from flowback.poll.phases import (PollAreaStatement,
                                   PollDelegateVoting,
@@ -413,10 +413,6 @@ def calculate_combined_bet(poll_statements: QuerySet[PollPredictionStatement] | 
             arr_2 = np.delete(arr_2, drop_list)
 
             return arr_1, arr_2
-
-        def covariance(arr_1, arr_2):
-            covariance_array = [(arr_1[i] - np.mean(arr_1)) * (arr_2[i] - np.mean(arr_2)) for i in range(len(arr_1))]
-            return (1 / len(arr_1)) * sum(covariance_array)
 
         covariance_matrix = []
         for k in range(len(predictor_errors)):

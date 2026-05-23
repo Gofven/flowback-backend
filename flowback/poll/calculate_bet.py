@@ -1,6 +1,8 @@
 # Can use CrossHair for formal verification
 # crosshair check flowback/poll/calculate_bet.py
 
+import numpy as np
+
 # Small decimal (AT LEAST a magnitude below 10^(-6))
 def get_small_decimal(power_of: int):
     """
@@ -33,3 +35,12 @@ def no_previous_bets_combined(current_bets_from_ith_user: list[float | None]) ->
         return None
     else:
         return sum(current_bets_from_ith_user) / len(current_bets_from_ith_user)
+
+
+def covariance(arr_1: list[float], arr_2: list[float]) -> float:
+    """
+    pre: len(arr_1) == len(arr_2)
+    pre: len(arr_1) > 0
+    """
+    covariance_array = [(arr_1[i] - np.mean(arr_1)) * (arr_2[i] - np.mean(arr_2)) for i in range(len(arr_1))]
+    return (1 / len(arr_1)) * sum(covariance_array)
