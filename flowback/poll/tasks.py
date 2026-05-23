@@ -11,7 +11,7 @@ from flowback.group.models import GroupTags, GroupUser, GroupUserDelegatePool, G
 from flowback.group.selectors.permission import permission_q
 from flowback.group.selectors.tags import group_tags_list
 from flowback.notification.models import NotificationChannel
-from flowback.poll.calculate_bet import get_small_decimal, previous_outcome_avg_calculate
+from flowback.poll.calculate_bet import get_small_decimal, no_previous_bets_combined, previous_outcome_avg_calculate
 from flowback.poll.models import Poll
 from flowback.poll.phases import (PollAreaStatement,
                                   PollDelegateVoting,
@@ -346,6 +346,9 @@ def poll_prediction_bet_count(poll_id: int):
                 poll=poll)
 
 
+"""
+This complicated function calculates the combined bet of any one KPI at any one proposal
+"""
 def calculate_combined_bet(poll_statements: QuerySet[PollPredictionStatement] | QuerySet[PollProposalKPI],
                            current_bets: list[list[float | None]],
                            previous_outcomes: list[float],
@@ -368,15 +371,15 @@ def calculate_combined_bet(poll_statements: QuerySet[PollPredictionStatement] | 
     small_decimal = get_small_decimal(power_of=-7)
     previous_outcome_avg = previous_outcome_avg_calculate(previous_outcomes=previous_outcomes)
 
-    # Calculation below
     for i, statement in enumerate(poll_statements):
         bias_adjustments = []
         predictor_errors = []
+        # Clear None bets, a predictor might not have engaged with every KPI on every proposal
         main_bets = [bets[i] for bets in current_bets if bets[i] is not None]
 
-        # If there's no previous bets then do nothing
+        # If there's no previous bets, set combined bet to average of current bets
         if len(previous_bets) == 0 or len(previous_bets[0]) == 0:
-            combined_bet = None if all(bets[i] is None for bets in current_bets) else (sum(main_bets)) / len(main_bets)
+            combined_bet = no_previous_bets_combined(current_bets_from_ith_user=current_bets[i])
             dprint(f"No previous bets found, returning {combined_bet}", disable_dprint=disable_dprint)
             statement.combined_bet = combined_bet
             statement.save()
