@@ -35,7 +35,7 @@ class GroupUserTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 4)
         self.assertEqual(response.data['results'][0].get('delegate_pool_id'), None)
-        self.assertEqual(bool(response.data['results'][1].get('delegate_pool_id')), True)
+        self.assertTrue(response.data['results'][1].get('delegate_pool_id'))
         self.assertEqual(response.data['results'][2].get('delegate_pool_id'), None)
         self.assertEqual(response.data['results'][3].get('delegate_pool_id'), None)
 
