@@ -231,7 +231,7 @@ class GroupNotificationTest(TestCase):
         """Test notify_group_poll when work_group is None"""
         # Create a poll without a work group
         poll = PollFactory(
-            created_by=self.group_user,
+            created_by=GroupUserFactory(group=self.group),
             title="Test Poll Without Work Group",
             work_group=None
         )
