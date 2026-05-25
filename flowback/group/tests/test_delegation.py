@@ -340,7 +340,7 @@ class GroupDelegationTestCase(APITestCase):
         response = generate_request(api=GroupUserDelegateApi,
                                     data={'delegate_pool_id': second_pool.id, 'tags': [self.tag1.id]},
                                     url_params={'group': self.group.id},
-                                    user=self.user1)
+                                    user=self.group_user1.user)
 
         # Should not be permitted
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -349,13 +349,13 @@ class GroupDelegationTestCase(APITestCase):
         generate_request(api=GroupUserDelegateApi,
                          data={'delegate_pool_id': second_pool.id, 'tags': [self.tag2.id]},
                          url_params={'group': self.group.id},
-                         user=self.user1)
+                         user=self.group_user1.user)
 
-        response = generate_request(api=GroupUserDelegateUpdateApi,
+        response = generate_request(api=GroupUserDelegateApi,
                                     data={'delegate_pool_id': second_pool.id, 'tags': [self.tag1.id]},
                                     url_params={'group': self.group.id},
-                                    user=self.user1)
+                                    user=self.group_user1.user)
 
         # Should not be permitted
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data['detail'][0], 'User already delegated to same tag in another pool')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, response)
+        self.assertEqual(response.data['detail'][0], 'User has already subscribed to tag1')
