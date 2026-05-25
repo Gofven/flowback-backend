@@ -1,3 +1,5 @@
+from unittest import skip
+
 from rest_framework.test import APITestCase
 from rest_framework import status
 
@@ -213,7 +215,7 @@ class GroupDelegationTestCase(APITestCase):
         ).first()
 
         self.assertIsNotNone(subscription)
-        self.assertEqual(set(subscription.tags), set(tags))
+        self.assertEqual(set([i.name for i in subscription.notificationsubscriptiontag_set.all()]), set(tags))
 
         poll = PollFactory(created_by=self.group_user3, tag=self.tag1)
         notify_group_user_delegate_pool_poll_vote_update(message="Test test!",
