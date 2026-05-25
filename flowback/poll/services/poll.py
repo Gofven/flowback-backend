@@ -1,6 +1,6 @@
 from rest_framework.exceptions import ValidationError
 
-from backend.settings import DEBUG, FLOWBACK_POLL_VERSION_LOCK
+from backend.settings import FLOWBACK_POLL_VERSION_LOCK
 from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
 from flowback.group.notify import notify_group_poll
@@ -12,8 +12,7 @@ from django.utils import timezone
 from datetime import datetime
 
 from flowback.poll.notify import notify_poll, notify_poll_phase
-from flowback.poll.tasks import poll_area_vote_count, poll_prediction_bet_count, poll_proposal_vote_count, \
-    poll_kpi_count
+from flowback.poll.tasks import poll_proposal_vote_count
 from flowback.user.models import User
 
 
