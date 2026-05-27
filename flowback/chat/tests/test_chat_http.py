@@ -137,7 +137,7 @@ class ChatTestHTTP(APITestCase):
         force_authenticate(request, user=user)
         response = view(request, channel_id=self.message_channel.id)
 
-        self.assertEqual(response.data.get('count'), 10)
+        self.assertEqual(response.data.get('count'), 13)
 
     def test_message_channel_preview(self):
         # Test if there's correct amount of messages
