@@ -46,7 +46,7 @@ class GroupUserTest(APITestCase):
                                     data=dict(is_delegate=True))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
-        self.assertEqual(response.data['results'][0].get('delegate_pool_id'), True)
+        self.assertTrue(response.data['results'][0].get('delegate_pool_id'))
 
     def test_group_user_leave_cleans_up_subscriptions(self):
         # Arrange: pick a non-creator group user
