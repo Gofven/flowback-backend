@@ -70,10 +70,13 @@ class GroupUserTest(APITestCase):
         self.assertFalse(member.active)
 
         # Kanban subscription removed
-        self.assertFalse(KanbanSubscription.objects.filter(kanban=member.user.kanban, target=self.group.kanban).exists())
+        self.assertFalse(KanbanSubscription.objects.filter(kanban=member.user.kanban,
+                                                           target=self.group.kanban).exists())
 
         # Chat participant removed
-        self.assertFalse(MessageChannelParticipant.objects.filter(id=member.chat_participant_id, active=True).exists())
+        self.assertFalse(MessageChannelParticipant.objects.filter(id=member.chat_participant_id,
+                                                                  active=True).exists())
 
         # Notification subscriptions to this group's channel removed
-        self.assertFalse(NotificationSubscription.objects.filter(channel__in=self.group.notification_channel.descendants(include_self=True)).exists())
+        self.assertFalse(NotificationSubscription.objects.filter(
+            channel__in=self.group.notification_channel.descendants(include_self=True)).exists())
