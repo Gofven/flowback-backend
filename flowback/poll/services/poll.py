@@ -61,15 +61,6 @@ def poll_create(*, user_id: int,
 
     poll_type = Poll.normalize_poll_type(poll_type, version)
 
-    Poll(poll_type=poll_type).poll_type_new.validate_create(
-        dynamic=dynamic, end_date=end_date, work_group_id=work_group_id)
-
-    collection = None
-    if attachments:
-        collection = upload_collection(user_id=user_id,
-                                       file=attachments,
-                                       upload_to="group/poll/attachments")
-
     poll = Poll(created_by=group_user,
                 title=title,
                 description=description,
@@ -92,10 +83,17 @@ def poll_create(*, user_id: int,
                 dynamic=dynamic,
                 quorum=quorum,
                 work_group_id=work_group_id,
-                attachments=collection,
                 related_notification_channel=group_user.group.notification_channel)
 
     poll.full_clean()
+
+    collection = None
+    if attachments:
+        collection = upload_collection(user_id=user_id,
+                                       file=attachments,
+                                       upload_to="group/poll/attachments")
+
+    poll.attachments = collection
     poll.save()
 
     poll.poll_type_new.schedule_post_create_tasks()

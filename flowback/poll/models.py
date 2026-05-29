@@ -105,6 +105,12 @@ class Poll(BaseModel, NotifiableModel):
     participants = models.IntegerField(default=0)
     dynamic = models.BooleanField()
 
+    def clean(self):
+        self.poll_type_new.validate_create()
+        self.poll_type_new.validate_phases()
+
+        super().clean()
+
     @property
     def group(self):
         return self.created_by.group

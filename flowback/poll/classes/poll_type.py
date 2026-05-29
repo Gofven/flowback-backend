@@ -133,8 +133,8 @@ class PollType(ABC):
 
     # --- Create-time validation + post-create / fast-forward tasks ---
 
-    def validate_create(self, *, dynamic: bool, end_date, work_group_id) -> None:
-        if work_group_id is not None:
+    def validate_create(self) -> None:
+        if self.poll.work_group_id is not None and not self.poll.poll_type == self.poll.PollType.SCORE:
             raise ValidationError("Work groups are only assignable to date polls")
 
     @abstractmethod
