@@ -118,6 +118,7 @@ def message_channel_create(*, origin_name: str, title: str = None):
 
 def message_channel_delete(*, channel_id: int):
     channel = get_object(MessageChannel, id=channel_id)
+    MessageChannelParticipant.objects.filter(channel_id=channel_id).update(active=False)  # To avoid leave messages
     channel.delete()
 
 

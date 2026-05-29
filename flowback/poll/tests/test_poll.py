@@ -1,11 +1,17 @@
 import json
 from unittest import skip
 
+from backend.settings import FLOWBACK_POLL_VERSION_LOCK
+from flowback.poll.classes.poll_type import of
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
+
+requires_version_1 = skip("Version 1 not permitted") if (FLOWBACK_POLL_VERSION_LOCK is not None
+                                                         and FLOWBACK_POLL_VERSION_LOCK != 1) else lambda f: f
 from .factories import PollFactory, PollProposalFactory, PollPredictionStatementFactory
 
 from .utils import generate_poll_phase_kwargs
@@ -74,13 +80,14 @@ class PollTest(APITestCase):
         self.assertTrue(all([not x['created_by'] for x in response.data['results']]),
                         [[bool(x['created_by']), x['group_id']] for x in response.data['results']])
 
-    @skip("Assumes FLOWBACK_POLL_VERSION_LOCK=1; this instance locks to a different version")
+    @requires_version_1
     def test_create_poll(self):
         factory = APIRequestFactory()
         user = self.group_user_creator.user
         view = PollCreateAPI.as_view()
 
-        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCORE, public=True, tag=self.group_tag.id,
+        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCORE, public=True,
+                    tag=self.group_tag.id,
                     pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.jpg', b'test')],
                     **generate_poll_phase_kwargs('base'))
         request = factory.post('', data=data)
@@ -89,7 +96,7 @@ class PollTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    @skip("Assumes FLOWBACK_POLL_VERSION_LOCK=1; this instance locks to a different version")
+    @requires_version_1
     def test_create_poll_pre_save(self):
         data = dict(title='test title',
                     description='test description',
@@ -111,7 +118,7 @@ class PollTest(APITestCase):
         for i in [i[1] for i in poll.time_table]:
             exec(f'self.assertEqual(bool(poll.{i}), {"False" if i not in labels else "True"})')
 
-    @skip("Assumes FLOWBACK_POLL_VERSION_LOCK=1; this instance locks to a different version")
+    @requires_version_1
     def test_create_poll_notification(self):
         subscriber = self.group_user_one
         poll_creator = self.group_user_two
@@ -130,11 +137,16 @@ class PollTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data['count'], 0)
 
-        data = dict(title='notification test poll', description='testing notifications',
-                    poll_type=Poll.PollType.SCORE, public=True, tag=self.group_tag.id,
-                    pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.txt',
-                                                                                 b'test',
-                                                                                 content_type='text/plain')],
+        data = dict(title='notification test poll',
+                    description='testing notifications',
+                    poll_type=Poll.PollType.SCORE,
+                    public=True,
+                    tag=self.group_tag.id,
+                    pinned=False,
+                    dynamic=False,
+                    attachments=[SimpleUploadedFile('test.txt',
+                                                    b'test',
+                                                    content_type='text/plain')],
                     **generate_poll_phase_kwargs('base'))
 
         # Use generate_request to create the poll
@@ -143,6 +155,7 @@ class PollTest(APITestCase):
             data=data,
             url_params=dict(group_id=self.group.id),
             user=poll_creator.user,
+            multipart=True
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
@@ -165,11 +178,13 @@ class PollTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data['count'], 1)
 
+    @requires_version_1
     def test_create_poll_below_phase_space_minimum(self):
         phases = generate_poll_phase_kwargs('base')
         phases['proposal_end_date'] -= timezone.timedelta(hours=2)
 
-        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCORE, public=True, tag=self.group_tag.id,
+        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCORE, public=True,
+                    tag=self.group_tag.id,
                     pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.jpg', b'test')])
 
         # Test phase in wrong order
@@ -188,13 +203,14 @@ class PollTest(APITestCase):
                         group_id=self.group_user_one.group.id,
                         **data, **phases)
 
-    @skip("Assumes FLOWBACK_POLL_VERSION_LOCK=1; this instance locks to a different version")
+    @requires_version_1
     def test_create_failing_poll(self):
         factory = APIRequestFactory()
         user = self.group_user_creator.user
         view = PollCreateAPI.as_view()
 
-        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCHEDULE, public=True, tag=self.group_tag.id,
+        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCHEDULE, public=True,
+                    tag=self.group_tag.id,
                     pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.jpg', b'test')],
                     **generate_poll_phase_kwargs('base'))
         request = factory.post('', data=data)
@@ -276,7 +292,6 @@ class PollTest(APITestCase):
         poll.refresh_from_db()
         self.assertEqual('result', poll.current_phase)
 
-
     @staticmethod
     def delete_poll(poll: Poll, user: User):
         factory = APIRequestFactory()
@@ -305,3 +320,33 @@ class PollTest(APITestCase):
 
         self.assertTrue(response.status_code == 200)
         self.assertFalse(Poll.objects.get(id=poll.id).active)
+
+    def _poll(self, poll_type: str) -> Poll:
+        """
+        Regression: PollType subclasses must implement every @abstractmethod.
+        """
+
+        now = timezone.now()
+        return Poll(
+            poll_type=poll_type,
+            dynamic=False,
+            start_date=now,
+            area_vote_end_date=now + timezone.timedelta(hours=1),
+            proposal_end_date=now + timezone.timedelta(hours=2),
+            prediction_statement_end_date=now + timezone.timedelta(hours=3),
+            prediction_bet_end_date=now + timezone.timedelta(hours=4),
+            delegate_vote_end_date=now + timezone.timedelta(hours=5),
+            vote_end_date=now + timezone.timedelta(hours=6),
+            end_date=now + timezone.timedelta(hours=7),
+        )
+
+    def test_score_poll_type_instantiates(self):
+        of(self._poll(Poll.PollType.SCORE))
+
+    def test_v2_score_poll_type_instantiates(self):
+        of(self._poll(Poll.PollType.V2_SCORE))
+
+    def test_schedule_poll_type_instantiates(self):
+        poll = self._poll(Poll.PollType.SCHEDULE)
+        poll.dynamic = True
+        of(poll)

@@ -1,3 +1,6 @@
+import unittest
+
+from django.test.client import encode_multipart, BOUNDARY
 from django.utils import timezone
 from rest_framework.test import APITestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -42,10 +45,8 @@ class TestKanban(APITestCase):
         response = generate_request(
             api=UserKanbanEntryUpdateAPI,
             user=self.user,
-            data={
-                "entry_id": entry.id,
-                "attachments_add": [file1, file2]
-            }
+            data=dict(entry_id=entry.id, attachments_add=[file1, file2]),
+            multipart=True
         )
 
         self.assertEqual(response.status_code, 200, response.data)

@@ -1,6 +1,6 @@
 from rest_framework.exceptions import ValidationError
 
-from backend.settings import DEBUG, FLOWBACK_POLL_VERSION_LOCK
+from backend.settings import FLOWBACK_POLL_VERSION_LOCK
 from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
 from flowback.group.notify import notify_group_poll
@@ -12,8 +12,7 @@ from django.utils import timezone
 from datetime import datetime
 
 from flowback.poll.notify import notify_poll, notify_poll_phase
-from flowback.poll.tasks import poll_area_vote_count, poll_prediction_bet_count, poll_proposal_vote_count, \
-    poll_kpi_count
+from flowback.poll.tasks import poll_proposal_vote_count
 from flowback.user.models import User
 
 
@@ -62,15 +61,6 @@ def poll_create(*, user_id: int,
 
     poll_type = Poll.normalize_poll_type(poll_type, version)
 
-    Poll(poll_type=poll_type).poll_type_new.validate_create(
-        dynamic=dynamic, end_date=end_date, work_group_id=work_group_id)
-
-    collection = None
-    if attachments:
-        collection = upload_collection(user_id=user_id,
-                                       file=attachments,
-                                       upload_to="group/poll/attachments")
-
     poll = Poll(created_by=group_user,
                 title=title,
                 description=description,
@@ -93,10 +83,17 @@ def poll_create(*, user_id: int,
                 dynamic=dynamic,
                 quorum=quorum,
                 work_group_id=work_group_id,
-                attachments=collection,
                 related_notification_channel=group_user.group.notification_channel)
 
     poll.full_clean()
+
+    collection = None
+    if attachments:
+        collection = upload_collection(user_id=user_id,
+                                       file=attachments,
+                                       upload_to="group/poll/attachments")
+
+    poll.attachments = collection
     poll.save()
 
     poll.poll_type_new.schedule_post_create_tasks()

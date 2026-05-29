@@ -241,9 +241,14 @@ class Group(BaseModel, NotifiableModel, ScheduleModel):
 
     @classmethod
     def post_delete(cls, instance, *args, **kwargs):
-        instance.kanban.delete()
-        instance.chat.delete()
-        instance.schedule.delete()
+        if instance.kanban:
+            instance.kanban.delete()
+
+        if instance.chat:
+            instance.chat.delete()
+
+        if instance.schedule:
+            instance.schedule.delete()
 
 
 pre_save.connect(Group.pre_save, sender=Group)

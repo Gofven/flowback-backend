@@ -163,8 +163,10 @@ class WorkGroupTest(APITestCase):
                                     user=self.group_user_creator_one.user)
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT, response.data)
-        self.assertTrue(WorkGroupUser.objects.filter(id=work_group.id).exists())
-        self.assertFalse(WorkGroupUserJoinRequest.objects.filter(id=work_group.id).exists())
+        self.assertTrue(WorkGroupUser.objects.filter(work_group_id=work_group.id,
+                                                     group_user=self.group_user_creator_one).exists())
+        self.assertFalse(WorkGroupUserJoinRequest.objects.filter(work_group_id=work_group.id,
+                                                                 group_user=self.group_user_creator_one).exists())
         self.assertTrue(MessageChannelParticipant.objects.filter(channel=work_group.chat,
                                                                  user=self.group_user_creator_one.user).exists())
 
