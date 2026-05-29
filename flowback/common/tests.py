@@ -2,7 +2,7 @@ import inspect
 from typing import Type
 
 from faker import Faker
-from django.test.client import MULTIPART_CONTENT
+from django.test.client import MULTIPART_CONTENT, encode_multipart, BOUNDARY
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.views import APIView
 
@@ -29,6 +29,9 @@ def generate_request(api: Type[APIView],
 
     extra_kwargs = dict(format='json')
     if multipart:
+        if isinstance(data, dict):
+            data = encode_multipart(data=data, boundary=BOUNDARY)
+
         extra_kwargs = dict(content_type=MULTIPART_CONTENT)
 
 

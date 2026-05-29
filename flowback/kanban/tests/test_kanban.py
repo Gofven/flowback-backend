@@ -45,7 +45,7 @@ class TestKanban(APITestCase):
         response = generate_request(
             api=UserKanbanEntryUpdateAPI,
             user=self.user,
-            data=encode_multipart(data=dict(entry_id=entry.id, attachments_add=[file1, file2]), boundary=BOUNDARY),
+            data=dict(entry_id=entry.id, attachments_add=[file1, file2]),
             multipart=True
         )
 

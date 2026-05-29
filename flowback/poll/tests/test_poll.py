@@ -3,12 +3,9 @@ from unittest import skip
 
 from backend.settings import FLOWBACK_POLL_VERSION_LOCK
 from flowback.poll.classes.poll_type import of
-from flowback.poll.models import Poll
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
-from django.test import TestCase
-from django.test.client import encode_multipart, BOUNDARY
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
@@ -140,18 +137,17 @@ class PollTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data['count'], 0)
 
-        data = encode_multipart(data=dict(title='notification test poll',
-                                          description='testing notifications',
-                                          poll_type=Poll.PollType.SCORE,
-                                          public=True,
-                                          tag=self.group_tag.id,
-                                          pinned=False,
-                                          dynamic=False,
-                                          attachments=[SimpleUploadedFile('test.txt',
-                                                                          b'test',
-                                                                          content_type='text/plain')],
-                                          **generate_poll_phase_kwargs('base')),
-                                          boundary=BOUNDARY)
+        data = dict(title='notification test poll',
+                    description='testing notifications',
+                    poll_type=Poll.PollType.SCORE,
+                    public=True,
+                    tag=self.group_tag.id,
+                    pinned=False,
+                    dynamic=False,
+                    attachments=[SimpleUploadedFile('test.txt',
+                                                    b'test',
+                                                    content_type='text/plain')],
+                    **generate_poll_phase_kwargs('base'))
 
         # Use generate_request to create the poll
         response = generate_request(
