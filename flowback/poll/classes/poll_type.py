@@ -461,10 +461,10 @@ class SchedulePollType(PollType):
             (poll.end_date, "end_date", "result"),
         )
 
-    def validate_create(self, *, dynamic: bool, end_date, work_group_id) -> None:
-        if not end_date:
+    def validate_create(self) -> None:
+        if not self.poll.end_date:
             raise ValidationError("Missing required parameter(s) for schedule poll")
-        if not dynamic:
+        if not self.poll.dynamic:
             raise ValidationError("Schedule poll must be dynamic")
 
     def schedule_post_create_tasks(self) -> None:
