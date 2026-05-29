@@ -47,3 +47,34 @@ jobs:
 
       - name: Run tests
         run: pytest --disable-warnings
+
+  build:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+
+    - uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - uses: docker/build-push-action@v6
+      with:
+        push: ${{ github.event_name == 'push' }}
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/flowback-frontend:latest
+
+  publish:
+    needs: build
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute remote SSH commands using password
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: 22
+          script: |
+            cd flowback/flowback-docker-testing
+            docker compose pull && docker compose up -d
