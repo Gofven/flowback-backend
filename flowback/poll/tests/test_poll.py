@@ -8,12 +8,13 @@ from flowback.poll.models import Poll
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from django.test import TestCase
+from django.test.client import encode_multipart, BOUNDARY
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
 
 requires_version_1 = skip("Version 1 not permitted") if (FLOWBACK_POLL_VERSION_LOCK is not None
-                                                          and FLOWBACK_POLL_VERSION_LOCK != 1) else lambda f: f
+                                                         and FLOWBACK_POLL_VERSION_LOCK != 1) else lambda f: f
 from .factories import PollFactory, PollProposalFactory, PollPredictionStatementFactory
 
 from .utils import generate_poll_phase_kwargs
@@ -88,7 +89,8 @@ class PollTest(APITestCase):
         user = self.group_user_creator.user
         view = PollCreateAPI.as_view()
 
-        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCORE, public=True, tag=self.group_tag.id,
+        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCORE, public=True,
+                    tag=self.group_tag.id,
                     pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.jpg', b'test')],
                     **generate_poll_phase_kwargs('base'))
         request = factory.post('', data=data)
@@ -138,12 +140,18 @@ class PollTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data['count'], 0)
 
-        data = dict(title='notification test poll', description='testing notifications',
-                    poll_type=Poll.PollType.SCORE, public=True, tag=self.group_tag.id,
-                    pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.txt',
-                                                                                 b'test',
-                                                                                 content_type='text/plain')],
-                    **generate_poll_phase_kwargs('base'))
+        data = encode_multipart(data=dict(title='notification test poll',
+                                          description='testing notifications',
+                                          poll_type=Poll.PollType.SCORE,
+                                          public=True,
+                                          tag=self.group_tag.id,
+                                          pinned=False,
+                                          dynamic=False,
+                                          attachments=[SimpleUploadedFile('test.txt',
+                                                                          b'test',
+                                                                          content_type='text/plain')],
+                                          **generate_poll_phase_kwargs('base')),
+                                          boundary=BOUNDARY)
 
         # Use generate_request to create the poll
         response = generate_request(
@@ -151,6 +159,7 @@ class PollTest(APITestCase):
             data=data,
             url_params=dict(group_id=self.group.id),
             user=poll_creator.user,
+            multipart=True
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
@@ -178,7 +187,8 @@ class PollTest(APITestCase):
         phases = generate_poll_phase_kwargs('base')
         phases['proposal_end_date'] -= timezone.timedelta(hours=2)
 
-        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCORE, public=True, tag=self.group_tag.id,
+        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCORE, public=True,
+                    tag=self.group_tag.id,
                     pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.jpg', b'test')])
 
         # Test phase in wrong order
@@ -203,7 +213,8 @@ class PollTest(APITestCase):
         user = self.group_user_creator.user
         view = PollCreateAPI.as_view()
 
-        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCHEDULE, public=True, tag=self.group_tag.id,
+        data = dict(title='test title', description='test description', poll_type=Poll.PollType.SCHEDULE, public=True,
+                    tag=self.group_tag.id,
                     pinned=False, dynamic=False, attachments=[SimpleUploadedFile('test.jpg', b'test')],
                     **generate_poll_phase_kwargs('base'))
         request = factory.post('', data=data)
@@ -284,7 +295,6 @@ class PollTest(APITestCase):
 
         poll.refresh_from_db()
         self.assertEqual('result', poll.current_phase)
-
 
     @staticmethod
     def delete_poll(poll: Poll, user: User):
