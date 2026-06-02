@@ -37,8 +37,10 @@ def generate_request(api: Type[APIView],
 
     if 'get' in method:
         request = factory.get('', data=data, **extra_kwargs)
+
     elif 'post' in method:
         request = factory.post('', data=data, **extra_kwargs)
+
     else:
         raise NotImplementedError('Missing handling for APIView method besides get/post.')
 
