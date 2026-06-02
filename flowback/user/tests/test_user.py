@@ -435,7 +435,7 @@ class UserTest(APITestCase):
             user=user,
             channel=user.notification_channel
         )
-        self.assertEqual(set(subscription.tags), {'chat'})
+        self.assertTrue(subscription.notificationsubscriptiontag_set.filter(name='chat').exists())
 
         # Send a notification to the user
         notification = user.notify_chat(
