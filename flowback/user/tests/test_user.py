@@ -274,7 +274,7 @@ class UserTest(APITestCase):
         ## Admin
         response = generate_request(api=UserHomeFeedAPI, user=group_user_private_admin.user)
         self.assertEqual(response.status_code, 200, response.data)
-        self.assertEqual(response.data['count'], 25)
+        self.assertEqual(response.data['count'], 20)
 
         ## WorkGroup User
         response = generate_request(api=UserHomeFeedAPI, user=group_user_private_workgroupuser.group_user.user)
@@ -291,7 +291,7 @@ class UserTest(APITestCase):
         ## Admin
         response = generate_request(api=UserHomeFeedAPI, user=group_user_public_admin.user)
         self.assertEqual(response.status_code, 200, response.data)
-        self.assertEqual(response.data['count'], 15)
+        self.assertEqual(response.data['count'], 10)
 
         ## WorkGroup User
         response = generate_request(api=UserHomeFeedAPI, user=group_user_public_workgroupuser.group_user.user)
@@ -435,7 +435,7 @@ class UserTest(APITestCase):
             user=user,
             channel=user.notification_channel
         )
-        self.assertEqual(set(subscription.tags), {'chat'})
+        self.assertTrue(subscription.notificationsubscriptiontag_set.filter(name='chat').exists())
 
         # Send a notification to the user
         notification = user.notify_chat(

@@ -312,7 +312,7 @@ def user_chat_channel_update(*, user_id: int, channel_id: int, **data: dict) -> 
     return channel
 
 
-def report_create(*, user_id: int, title: str, description: str, group_id: int, post_id: int, post_type: str):
+def report_create(*, user_id: int, title: str, description: str, group_id: int = None, post_id: int = None, post_type: str = None):
     user = get_object(User, id=user_id)
 
     report = Report(user=user, title=title, description=description, group_id=group_id,

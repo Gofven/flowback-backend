@@ -1,3 +1,5 @@
+import unittest
+
 from asgiref.sync import sync_to_async
 from channels.testing import WebsocketCommunicator
 from knox.models import AuthToken
@@ -5,6 +7,7 @@ from rest_framework.test import APITransactionTestCase
 
 from backend.middleware import TokenAuthMiddleware
 from flowback.chat.consumers import ChatConsumer
+from flowback.chat.models import MessageChannel, Message
 from flowback.chat.tests.factories import MessageChannelFactory, MessageChannelParticipantFactory
 from flowback.group.models import GroupUser
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
@@ -115,6 +118,9 @@ class TestChatWebsocket(APITransactionTestCase):
         await communicator_three.disconnect()
         await communication_four.disconnect()
 
+    @unittest.skip("Testing Message Join requires async tests to be running, which makes other tests incompatible, "
+                   "additionally users won't be able to know whether they joined the channel or not "
+                   "due to missing send_channel_info_message for users private message channel")
     async def test_send_message_user_get_chat_channel(self):
         communicator_one = await self.connect(user=self.user_three)
         communicator_two = await self.connect(user=self.user_four)
