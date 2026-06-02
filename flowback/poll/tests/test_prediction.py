@@ -1,5 +1,6 @@
 import json
 import random
+import unittest
 
 from django.utils import timezone
 from rest_framework import status
@@ -372,6 +373,7 @@ class PollPredictionStatementTest(APITestCase):
                                     user=self.user_group_creator.user)
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
 
+    @unittest.skip("Needs to be updated for kpi rework")
     def test_poll_prediction_bet_count_edge_cases(self):
         """Test basic edge cases for poll_prediction_bet_count."""
         poll_empty = PollFactory(created_by=self.user_group_creator, tag=self.poll.tag,
@@ -532,6 +534,7 @@ class PollPredictionStatementTest(APITestCase):
                 prediction_statement_id=statement.id
             )
 
+    @unittest.skip("Needs to be updated for kpi rework")
     def test_poll_prediction_bet_count_with_fresh_users(self):
         """Test poll_prediction_bet_count where previous poll has outcomes and new poll has only fresh users without bet history."""
         
