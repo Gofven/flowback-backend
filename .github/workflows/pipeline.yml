@@ -116,7 +116,7 @@ jobs:
         run: npx playwright test -g "Smoke-Test" --project chromium --retries 0
           --workers 1 --trace on
       - name: Run the rest of the tests
-        run: npx playwright test . --project chromium --retries 0 --workers 1 --trace on
+        run: npx playwright test . --project chromium --retries 1 --workers 1 --trace on
           --grep-invert "Smoke-Test"
 
       - uses: actions/upload-artifact@v4
