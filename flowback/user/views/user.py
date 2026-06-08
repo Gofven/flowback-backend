@@ -80,7 +80,7 @@ class UserCreateVerifyApi(APIView):
         serializer.is_valid(raise_exception=True)
 
         user = user_create_verify(**serializer.validated_data)
-        token, created = AuthToken.objects.create(user=user)[1]
+        instance, token = AuthToken.objects.create(user=user)
         return Response(status=status.HTTP_201_CREATED, data=token)
 
 
