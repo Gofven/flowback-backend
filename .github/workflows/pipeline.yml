@@ -6,6 +6,23 @@ on:
   pull_request:
     branches: [master, development]
 
+env:
+  LINK: ${{ secrets.LINK }}
+  TEST_PASS: ${{ secrets.TEST_PASS }}
+  MAINUSER_PASS: "a"
+  MAINUSER_MAIL: "a@a.se"
+  MAINUSER_NAME: "a"
+  SECONDUSER_PASS: "b"
+  SECONDUSER_MAIL: "b@b.se"
+  SECONDUSER_NAME: "b"
+  THIRDUSER_PASS: "c"
+  THIRDUSER_MAIL: "c@c.org"
+  THIRDUSER_NAME: "c"
+  FOURTHUSER_PASS: "d"
+  FOURTHUSER_MAIL: "d@d.org"
+  FOURTHUSER_NAME: "d"
+  PUBLIC_POLL_VERSION: 2
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -69,7 +86,7 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - name: Execute remote SSH commands using password
+      - name: Execute remote SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.HOST }}
@@ -78,4 +95,51 @@ jobs:
           port: 22
           script: |
             cd flowback/flowback-docker-testing
+            docker compose pull && docker compose up -d
+
+  frontend-testing:
+    needs: publish
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Kattenelvis/flowback-interface-testing
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run Smoke tests (basic login functionality for all default users)
+        run: npx playwright test -g "Smoke-Test" --project chromium --retries 0
+          --workers 1 --trace on
+      - name: Run the rest of the tests
+        run: npx playwright test . --project chromium --retries 1 --workers 1 --trace on
+          --grep-invert "Smoke-Test"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          if: always()
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 30
+
+  publish-prod:
+    needs: frontend-testing
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute remote SSH commands using password
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: 22
+          script: |
+            cd flowback/flowback-docker
             docker compose pull && docker compose up -d
