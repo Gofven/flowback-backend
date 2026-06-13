@@ -51,7 +51,8 @@ env = environ.Env(DEBUG=(bool, True),
                   FLOWBACK_PREDICTION_VOTE_ON_RESULT_PHASE=(bool, False),
                   FLOWBACK_KPI_MAX_WEIGHT=(int, 100),
                   FLOWBACK_POLL_VERSION_LOCK=(int, 1),
-                  FLOWBACK_KANBAN_LANES=(list, ['Backlog', 'Chosen For Execution', 'In Progress', 'Evaluation', 'Finished'])
+                  FLOWBACK_KANBAN_LANES=(list, ['Backlog', 'Chosen For Execution', 'In Progress', 'Evaluation', 'Finished']),
+                  APPEND_SLASH=False
                   )
 
 
