@@ -24,9 +24,10 @@ from flowback.user.views.kanban import (UserKanbanEntryListAPI,
 from flowback.user.views.home import UserHomeFeedAPI
 
 user_patterns = [
-    path(r'login/', UserLoginAPI.as_view(), name='knox_login'),
-    path(r'logout/', knox_views.LogoutView.as_view(), name='knox_logout'),
-    path(r'logoutall/', knox_views.LogoutAllView.as_view(), name='knox_logoutall'),    path('forgot_password', UserForgotPasswordApi.as_view(), name='forgot_password'),
+    path('login', UserLoginAPI.as_view(), name='knox_login'),
+    path('logout', knox_views.LogoutView.as_view(), name='knox_logout'),
+    path('logoutall', knox_views.LogoutAllView.as_view(), name='knox_logoutall'),
+    path('forgot_password', UserForgotPasswordApi.as_view(), name='forgot_password'),
     path('forgot_password/verify', UserForgotPasswordVerifyApi.as_view(), name='forgot_password_verify'),
     path('users', UserListApi.as_view(), name='users'),
     path('user', UserGetApi.as_view(), name='user'),
