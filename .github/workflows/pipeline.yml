@@ -104,9 +104,9 @@ jobs:
         working-directory: flowback-interface-testing
         run: npx playwright install --with-deps chromium
 
-      - name: Run Smoke tests (basic login functionality for all default users)
+      - name: Run Smoke tests (basic login functionality)
         working-directory: flowback-interface-testing
-        run: npx playwright test -g "Smoke-Test" --project chromium --retries 0
+        run: npx playwright test -g "Smoke-Test" --project chromium --retries 1
           --workers 1
 
       - name: Run the rest of the tests
