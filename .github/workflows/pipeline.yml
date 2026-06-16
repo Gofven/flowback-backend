@@ -7,7 +7,7 @@ on:
     branches: [master, development]
 
 env:
-  LINK: ${{ secrets.LINK }}
+  LINK: http://localhost:8085
   TEST_PASS: ${{ secrets.TEST_PASS }}
   PUBLIC_POLL_VERSION: 2
 
