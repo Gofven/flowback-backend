@@ -15,14 +15,23 @@ from rest_framework.views import APIView
 from flowback.notification.views import NotificationSubscribeTemplateAPI
 from flowback.user.models import User
 from flowback.user.selectors import get_user, user_list, user_chat_invite_list
-from flowback.user.services import (user_create, user_create_verify, user_forgot_password,
-                                    user_forgot_password_verify, user_update, user_delete, user_get_chat_channel,
-                                    user_chat_invite, user_chat_channel_leave, user_chat_channel_update,
-                                    user_notification_subscribe, user_bookmark_create, user_bookmark_delete)
+from flowback.user.services import (user_create,
+                                    user_create_verify,
+                                    user_forgot_password,
+                                    user_forgot_password_verify,
+                                    user_update,
+                                    user_delete,
+                                    user_get_chat_channel,
+                                    user_chat_invite,
+                                    user_chat_channel_leave,
+                                    user_chat_channel_update,
+                                    user_notification_subscribe,
+                                    user_bookmark_create,
+                                    user_bookmark_delete)
 
 
 class UserLoginAPI(KnoxLoginView):
-    permission_classes = (AllowAny,)
+    permission_classes = (AllowAny, )
 
     class InputSerializer(serializers.Serializer):
         username = serializers.CharField()
@@ -44,8 +53,7 @@ class UserLoginAPI(KnoxLoginView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = AuthToken.objects.create(user=User.objects.get(username=serializer.data['username']))[1]
-        return Response(data=token,
-                        status=status.HTTP_200_OK)
+        return Response(data=token, status=status.HTTP_200_OK)
 
 
 class UserCreateApi(APIView):
@@ -121,6 +129,7 @@ class UserForgotPasswordVerifyApi(APIView):
 
 
 class UserListApi(APIView):
+
     class Pagination(LimitOffsetPagination):
         default_limit = 1
         max_limit = 1000
@@ -131,10 +140,10 @@ class UserListApi(APIView):
         username__icontains = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.ModelSerializer):
+
         class Meta:
             model = User
-            fields = ('id', 'username', 'profile_image', 'is_active',
-                      'banner_image', 'public_status', 'chat_status')
+            fields = ('id', 'username', 'profile_image', 'is_active', 'banner_image', 'public_status', 'chat_status')
 
     def get(self, request):
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -150,6 +159,7 @@ class UserListApi(APIView):
 
 
 class UserGetApi(APIView):
+
     class FilterSerializer(serializers.Serializer):
         user_id = serializers.IntegerField(required=False)
 
@@ -181,6 +191,7 @@ class UserGetApi(APIView):
 
 
 class UserUpdateApi(APIView):
+
     class InputSerializer(serializers.Serializer):
         username = serializers.CharField(required=False)
         profile_image = serializers.ImageField(required=False, allow_null=True)
@@ -204,6 +215,7 @@ class UserUpdateApi(APIView):
 
 
 class UserDeleteAPI(APIView):
+
     def post(self, request):
         user_delete(user_id=request.user.id)
 
@@ -216,16 +228,21 @@ class UserNotificationSubscribeAPI(NotificationSubscribeTemplateAPI):
 
 
 @extend_schema(description="Get/creates a message channel between user(s). "
-                           "If there are more than two target_user_ids or the target_user_id has direct_message turned "
-                           "into private/(protected and not in same group(s)), it'll create a MessageChannel, "
-                           "send/update UserChatInvite(s) to respective users, create/update their "
-                           "MessageChannelParticipant active field to False.")
+               "If there are more than two target_user_ids or the target_user_id has direct_message turned "
+               "into private/(protected and not in same group(s)), it'll create a MessageChannel, "
+               "send/update UserChatInvite(s) to respective users, create/update their "
+               "MessageChannelParticipant active field to False.")
 class UserGetChatChannelAPI(APIView):
+
     class FilterSerializer(serializers.Serializer):
         target_user_ids = serializers.ListField(child=serializers.IntegerField())
         title = serializers.CharField(required=False)
-        preview = serializers.BooleanField(default=False, help_text="Disabling preview will return 400 if there's no"
-                                                                    " MessageChannel found between the users.")
+        is_group = serializers.BooleanField(default=False,
+                                            help_text="Force a group channel (with invites) even when there "
+                                            "are only two participants, instead of a direct message.")
+        preview = serializers.BooleanField(default=False,
+                                           help_text="Disabling preview will return 400 if there's no"
+                                           " MessageChannel found between the users.")
 
     class OutputSerializer(serializers.Serializer):
         id = serializers.IntegerField()
@@ -240,9 +257,10 @@ class UserGetChatChannelAPI(APIView):
 
 
 class UserLeaveChatChannelAPI(APIView):
+
     class InputSerializer(serializers.Serializer):
         message_channel_id = serializers.IntegerField(help_text="You can only leave channels "
-                                                                "with the origin_name 'user_group'")
+                                                      "with the origin_name 'user_group'")
 
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
@@ -253,6 +271,7 @@ class UserLeaveChatChannelAPI(APIView):
 
 
 class UserChatInviteAPI(APIView):
+
     class InputSerializer(serializers.Serializer):
         invite_id = serializers.IntegerField()
         accept = serializers.BooleanField()
@@ -267,6 +286,7 @@ class UserChatInviteAPI(APIView):
 
 
 class UserChatInviteListAPI(APIView):
+
     class Pagination(LimitOffsetPagination):
         max_limit = 100
 
@@ -279,6 +299,7 @@ class UserChatInviteListAPI(APIView):
         id = serializers.IntegerField()
         message_channel_name = serializers.CharField(source='message_channel.title')
         message_channel_id = serializers.IntegerField()
+        message_channel_origin = serializers.CharField(source='message_channel.origin_name')
         rejected = serializers.BooleanField(allow_null=True)
 
     def get(self, request):
@@ -295,6 +316,7 @@ class UserChatInviteListAPI(APIView):
 
 
 class UserChatChannelUpdateAPI(APIView):
+
     class InputSerializer(serializers.Serializer):
         channel_id = serializers.IntegerField()
         title = serializers.CharField()
@@ -308,12 +330,14 @@ class UserChatChannelUpdateAPI(APIView):
 
 
 class UserLogoutAPI(APIView):
+
     def post(self, request):
         logout(request)
         return Response(status=status.HTTP_200_OK)
 
 
 class UserBookmarkCreateAPI(APIView):
+
     class InputSerializer(serializers.Serializer):
         object_id = serializers.IntegerField()
         content_type = serializers.CharField()
@@ -327,6 +351,7 @@ class UserBookmarkCreateAPI(APIView):
 
 
 class UserBookmarkDeleteAPI(APIView):
+
     class InputSerializer(serializers.Serializer):
         object_id = serializers.IntegerField()
         content_type = serializers.CharField()
