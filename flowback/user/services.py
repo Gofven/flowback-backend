@@ -199,7 +199,7 @@ def user_get_chat_channel(fetched_by: User,
                                   f"other(s)...")
                 break
             else:
-                channel_title += f", {user.username}" if i > 0 else u.username
+                channel_title += f", {user.username}" if i > 0 else user.username
 
         return channel_title
 
@@ -242,6 +242,15 @@ def user_get_chat_channel(fetched_by: User,
 
         for u in target_users:
             UserChatInvite.objects.filter(user=u, message_channel=channel, rejected=True).update(rejected=None)
+
+        # The requesting user opening the channel counts as accepting their own
+        # pending invite, otherwise they can neither read nor send messages in
+        # the channel they just asked for.
+        own_invite = UserChatInvite.objects.filter(user=fetched_by, message_channel=channel,
+                                                   rejected=None).first()
+        if own_invite:
+            own_invite.rejected = False
+            own_invite.save()
 
     except MessageChannel.DoesNotExist:
         if preview:
