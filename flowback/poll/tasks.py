@@ -7,20 +7,32 @@ from django.utils import timezone
 
 from backend.settings import DEBUG, FLOWBACK_KPI_MAX_WEIGHT
 from flowback.common.services import get_object
-from flowback.group.models import GroupTags, GroupUser, GroupUserDelegatePool, GroupKPIValue
+from flowback.group.models import (
+    GroupTags,
+    GroupUser,
+    GroupUserDelegatePool,
+    GroupKPIValue,
+)
 from flowback.group.selectors.permission import permission_q
 from flowback.group.selectors.tags import group_tags_list
 from flowback.notification.models import NotificationChannel
-from flowback.poll.calculate_bet import covariance, get_small_decimal, previous_outcome_avg_calculate, no_previous_bets_combined
+from flowback.poll.calculate_bet import (
+    covariance,
+    get_small_decimal,
+    previous_outcome_avg_calculate,
+    no_previous_bets_combined,
+)
 from flowback.poll.models import Poll
-from flowback.poll.phases import (PollAreaStatement,
-                                  PollDelegateVoting,
-                                  PollPredictionBet,
-                                  PollPredictionStatement,
-                                  PollProposal,
-                                  PollProposalKPI,
-                                  PollProposalKPIBet,
-                                  PollVoting)
+from flowback.poll.phases import (
+    PollAreaStatement,
+    PollDelegateVoting,
+    PollPredictionBet,
+    PollPredictionStatement,
+    PollProposal,
+    PollProposalKPI,
+    PollProposalKPIBet,
+    PollVoting,
+)
 
 import numpy as np
 
@@ -31,26 +43,44 @@ from flowback.poll.notify import notify_poll
 def poll_area_vote_count(poll_id: int):
     tag = None
     poll = get_object(Poll, id=poll_id)
-    statement = PollAreaStatement.objects.filter(poll=poll).annotate(
-        result=Count('pollareastatementvote', filter=Q(pollareastatementvote__vote=True)) -
-               Count('pollareastatementvote', filter=Q(pollareastatementvote__vote=False))
-    ).order_by('-result').first()
+    statement = (
+        PollAreaStatement.objects.filter(poll=poll)
+        .annotate(
+            result=Count(
+                "pollareastatementvote", filter=Q(pollareastatementvote__vote=True)
+            )
+            - Count(
+                "pollareastatementvote", filter=Q(pollareastatementvote__vote=False)
+            )
+        )
+        .order_by("-result")
+        .first()
+    )
 
     if statement:
-        tag = GroupTags.objects.filter(pollareastatementsegment__poll_area_statement=statement).first()
+        tag = GroupTags.objects.filter(
+            pollareastatementsegment__poll_area_statement=statement
+        ).first()
         poll.tag = tag
         poll.save()
 
         # Clean all area tag votes, we won't need it anymore
         PollAreaStatement.objects.filter(poll=poll).delete()
 
-    notify_poll(message="Poll area phase has ended and results have been counted",
-                action=NotificationChannel.Action.UPDATED,
-                poll=poll)
+    notify_poll(
+        message="Poll area phase has ended and results have been counted",
+        action=NotificationChannel.Action.UPDATED,
+        poll=poll,
+    )
 
-    return (f"Poll {poll_id} area task completed. "
-            f"{'No tags have won.' if not tag else
-            f'Tag: {tag.name} has won with {statement.pollareastatementvote_set.all().count()} points.'}")
+    return (
+        f"Poll {poll_id} area task completed. "
+        f"{
+            'No tags have won.'
+            if not tag
+            else f'Tag: {tag.name} has won with {statement.pollareastatementvote_set.all().count()} points.'
+        }"
+    )
 
 
 def dprint(*args, disable_dprint: bool = False, **kwargs):
@@ -67,112 +97,173 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
     poll.save()
 
     # Subquery to get the winning kpis per proposal
-    pollproposalkpi_sq = PollProposalKPI.objects.filter(proposal=OuterRef('proposal'),
-                                                        kpi_value__kpi=OuterRef('kpi_value__kpi')
-                                                        ).annotate(sum_score=Count('pollproposalkpivote')
-                                                                   ).exclude(Q(sum_score__isnull=True)
-                                                                             | Q(sum_score__lte=0)
-                                                                             ).order_by('-sum_score').values('id')[:1]
+    pollproposalkpi_sq = (
+        PollProposalKPI.objects.filter(
+            proposal=OuterRef("proposal"), kpi_value__kpi=OuterRef("kpi_value__kpi")
+        )
+        .annotate(sum_score=Count("pollproposalkpivote"))
+        .exclude(Q(sum_score__isnull=True) | Q(sum_score__lte=0))
+        .order_by("-sum_score")
+        .values("id")[:1]
+    )
 
     # List of eligible KPIs
     proposal_kpis = PollProposalKPI.objects.filter(
-        Q(Q(proposal__poll__end_date__lte=timestamp)
-          & ~Q(proposal__poll=poll)) | Q(proposal__poll=poll),
+        Q(Q(proposal__poll__end_date__lte=timestamp) & ~Q(proposal__poll=poll))
+        | Q(proposal__poll=poll),
         proposal__poll__created_by__group=poll.created_by.group,
         proposal__poll__poll_type=Poll.PollType.V2_SCORE,
-        kpi_value__kpi__active=True)
+        kpi_value__kpi__active=True,
+    )
 
-    winning_proposal_kpis = proposal_kpis.annotate(winner=pollproposalkpi_sq).filter(winner=F('id'))
-    dprint('Winning KPIs',
-           [f"KPI value {i.kpi_value.value} for KPI {i.kpi_value.kpi.name} "
-            f"for proposal {i.proposal_id}" for i in winning_proposal_kpis],
-           disable_dprint=disable_dprint)
+    winning_proposal_kpis = proposal_kpis.annotate(winner=pollproposalkpi_sq).filter(
+        winner=F("id")
+    )
+    dprint(
+        "Winning KPIs",
+        [
+            f"KPI value {i.kpi_value.value} for KPI {i.kpi_value.kpi.name} "
+            f"for proposal {i.proposal_id}"
+            for i in winning_proposal_kpis
+        ],
+        disable_dprint=disable_dprint,
+    )
 
     # Get current proposals and KPIs
     group_kpis = GroupKPIValue.objects.filter(kpi__active=True).all()
 
     for kpi_val in group_kpis:
-        dprint(f"Evaluating KPI value {kpi_val.value} for KPI {kpi_val.kpi.name}",
-               disable_dprint=disable_dprint)
+        dprint(
+            f"Evaluating KPI value {kpi_val.value} for KPI {kpi_val.kpi.name}",
+            disable_dprint=disable_dprint,
+        )
         current_kpis = proposal_kpis.filter(kpi_value=kpi_val, proposal__poll=poll)
-        previous_winning_kpis = winning_proposal_kpis.filter(kpi_value=kpi_val).exclude(proposal__poll=poll)
+        previous_winning_kpis = winning_proposal_kpis.filter(kpi_value=kpi_val).exclude(
+            proposal__poll=poll
+        )
         previous_outcomes = [1] * previous_winning_kpis.count()
 
         # Get users that are relevant for the kpi value
-        group_users_current_filter = list(PollProposalKPIBet.objects.filter(
-            proposal_kpi_id__in=current_kpis,
-            weight__gt=0
-        ).distinct('created_by').values_list('created_by', flat=True))
+        group_users_current_filter = list(
+            PollProposalKPIBet.objects.filter(
+                proposal_kpi_id__in=current_kpis, weight__gt=0
+            )
+            .distinct("created_by")
+            .values_list("created_by", flat=True)
+        )
 
         # Get relevant users by previous history
-        group_users_previous_filter = list(PollProposalKPIBet.objects.filter(
-            proposal_kpi_id__in=previous_winning_kpis,
-            weight__gt=0
-        ).distinct('created_by').values_list('created_by', flat=True))
+        group_users_previous_filter = list(
+            PollProposalKPIBet.objects.filter(
+                proposal_kpi_id__in=previous_winning_kpis, weight__gt=0
+            )
+            .distinct("created_by")
+            .values_list("created_by", flat=True)
+        )
 
-        group_users = GroupUser.objects.filter(id__in=group_users_current_filter
-                                               ).filter(id__in=group_users_previous_filter)
+        group_users = GroupUser.objects.filter(
+            id__in=group_users_current_filter
+        ).filter(id__in=group_users_previous_filter)
 
         # Helper for annotation
         def user_weight_annotation_dict(group_user: GroupUser) -> dict:
-            max_weight_sq = PollProposalKPIBet.objects.filter(
-                created_by=group_user,
-                proposal_kpi__kpi_value__kpi=OuterRef('kpi_value__kpi'),
-                proposal_kpi__proposal=OuterRef('proposal'),
-                weight__gt=0
-            ).values('created_by').annotate(sum_weight=Sum('weight'),
-                                            max_weight=Greatest('sum_weight', FLOWBACK_KPI_MAX_WEIGHT)
-                                            ).values('max_weight')[:1]
+            max_weight_sq = (
+                PollProposalKPIBet.objects.filter(
+                    created_by=group_user,
+                    proposal_kpi__kpi_value__kpi=OuterRef("kpi_value__kpi"),
+                    proposal_kpi__proposal=OuterRef("proposal"),
+                    weight__gt=0,
+                )
+                .values("created_by")
+                .annotate(
+                    sum_weight=Sum("weight"),
+                    max_weight=Greatest("sum_weight", FLOWBACK_KPI_MAX_WEIGHT),
+                )
+                .values("max_weight")[:1]
+            )
 
-            weight_sq = PollProposalKPIBet.objects.filter(created_by=group_user,
-                                                          proposal_kpi_id=OuterRef('id'),
-                                                          weight__gt=0).values('weight')
+            weight_sq = PollProposalKPIBet.objects.filter(
+                created_by=group_user, proposal_kpi_id=OuterRef("id"), weight__gt=0
+            ).values("weight")
 
             # Manage previous bets
             output_field = models.DecimalField(decimal_places=4, max_digits=12)
-            return dict(weight=Subquery(weight_sq), max_weight=Subquery(max_weight_sq),
-                        user_weight=Cast(F('weight'), output_field=output_field) / Cast(
-                            F('max_weight'), output_field=output_field))
+            return dict(
+                weight=Subquery(weight_sq),
+                max_weight=Subquery(max_weight_sq),
+                user_weight=Cast(F("weight"), output_field=output_field)
+                / Cast(F("max_weight"), output_field=output_field),
+            )
 
         previous_bets = []
         current_bets = []
         for group_user in group_users:
-            previous_user_bets = previous_winning_kpis.annotate(**user_weight_annotation_dict(group_user))
-            dprint([f'[{i + 1}] User {group_user} has weight '
-                    f'{round(x.user_weight, 2) if x.user_weight is not None else None}, '
-                    f'using max weight {x.max_weight} for KPI {kpi_val.value}' for i, x in
-                    enumerate(previous_user_bets)],
-                   disable_dprint=disable_dprint)
+            previous_user_bets = previous_winning_kpis.annotate(
+                **user_weight_annotation_dict(group_user)
+            )
+            dprint(
+                [
+                    f"[{i + 1}] User {group_user} has weight "
+                    f"{round(x.user_weight, 2) if x.user_weight is not None else None}, "
+                    f"using max weight {x.max_weight} for KPI {kpi_val.value}"
+                    for i, x in enumerate(previous_user_bets)
+                ],
+                disable_dprint=disable_dprint,
+            )
 
-            previous_bets.append(previous_user_bets.values_list('user_weight', flat=True))
-            current_bets.append(current_kpis.annotate(**user_weight_annotation_dict(group_user)
-                                                      ).values_list('user_weight', flat=True))
+            previous_bets.append(
+                previous_user_bets.values_list("user_weight", flat=True)
+            )
+            current_bets.append(
+                current_kpis.annotate(
+                    **user_weight_annotation_dict(group_user)
+                ).values_list("user_weight", flat=True)
+            )
 
-        dprint("KPI order: ", ", ".join(
-            [f"Proposal {i.proposal_id}, "
-             f"KPI {kpi_val.kpi.name}, "
-             f"Value {kpi_val.value}" for i in current_kpis]),
-               disable_dprint=disable_dprint)
+        dprint(
+            "KPI order: ",
+            ", ".join(
+                [
+                    f"Proposal {i.proposal_id}, "
+                    f"KPI {kpi_val.kpi.name}, "
+                    f"Value {kpi_val.value}"
+                    for i in current_kpis
+                ]
+            ),
+            disable_dprint=disable_dprint,
+        )
 
-        if current_bets and not all([all([j is None for j in i]) for i in current_bets]):
+        if current_bets and not all(
+            [all([j is None for j in i]) for i in current_bets]
+        ):
             dprint("Current bets: ", current_bets, disable_dprint=disable_dprint)
             dprint("Previous bets: ", previous_bets, disable_dprint=disable_dprint)
-            dprint("Previous outcomes: ", previous_outcomes, disable_dprint=disable_dprint)
+            dprint(
+                "Previous outcomes: ", previous_outcomes, disable_dprint=disable_dprint
+            )
             dprint("Calculating for: ", kpi_val.kpi.name, disable_dprint=disable_dprint)
-            calculate_combined_bet(current_kpis_or_statements=current_kpis,
-                                   current_bets=[[float(i) if i is not None else None for i in x] for x in
-                                                 current_bets],
-                                   previous_bets=[[float(i) if i is not None else None for i in x] for x in
-                                                  previous_bets],
-                                   previous_outcomes=previous_outcomes,
-                                   disable_dprint=disable_dprint)
+            calculate_combined_bet(
+                current_kpis_or_statements=current_kpis,
+                current_bets=[
+                    [float(i) if i is not None else None for i in x]
+                    for x in current_bets
+                ],
+                previous_bets=[
+                    [float(i) if i is not None else None for i in x]
+                    for x in previous_bets
+                ],
+                previous_outcomes=previous_outcomes,
+                disable_dprint=disable_dprint,
+            )
 
     poll.status_prediction = 1
     poll.save()
 
-    notify_poll(message="Poll prediction phase has ended and results have been counted",
-                action=NotificationChannel.Action.UPDATED,
-                poll=poll)
+    notify_poll(
+        message="Poll prediction phase has ended and results have been counted",
+        action=NotificationChannel.Action.UPDATED,
+        poll=poll,
+    )
 
 
 @shared_task
@@ -189,39 +280,68 @@ def poll_prediction_bet_count(poll_id: int):
     poll.save()
 
     # Get list of previous outcomes in a given area (poll)
-    statements = PollPredictionStatement.objects.filter(
-        Q(Q(poll__tag=poll.tag,
-            poll__poll_type=Poll.PollType.SCORE,
-            poll__end_date__lte=timestamp,
-            created_at__lte=timestamp) & ~Q(poll=poll)) | Q(poll=poll),
-        active=True
-    ).annotate(
-        outcome_sum=Sum(Case(When(pollpredictionstatementvote__vote=True, then=1),
-                             When(pollpredictionstatementvote__vote=False, then=-1),
-                             default=0,
-                             output_field=models.IntegerField())),
-        outcome_scores=Case(When(outcome_sum__gt=0, then=1),
-                            When(outcome_sum__lt=0, then=0),
-                            default=None,
-                            output_field=models.FloatField(null=True))
-    ).order_by('-created_at').all()
+    statements = (
+        PollPredictionStatement.objects.filter(
+            Q(
+                Q(
+                    poll__tag=poll.tag,
+                    poll__poll_type=Poll.PollType.SCORE,
+                    poll__end_date__lte=timestamp,
+                    created_at__lte=timestamp,
+                )
+                & ~Q(poll=poll)
+            )
+            | Q(poll=poll),
+            active=True,
+        )
+        .annotate(
+            outcome_sum=Sum(
+                Case(
+                    When(pollpredictionstatementvote__vote=True, then=1),
+                    When(pollpredictionstatementvote__vote=False, then=-1),
+                    default=0,
+                    output_field=models.IntegerField(),
+                )
+            ),
+            outcome_scores=Case(
+                When(outcome_sum__gt=0, then=1),
+                When(outcome_sum__lt=0, then=0),
+                default=None,
+                output_field=models.FloatField(null=True),
+            ),
+        )
+        .order_by("-created_at")
+        .all()
+    )
 
-    previous_outcomes = list(statements.filter(~Q(poll=poll) & Q(outcome_scores__isnull=False)
-                                               ).values_list('outcome_scores', flat=True))
-    poll_statements = statements.filter(poll=poll).all().values_list('id', flat=True)
+    previous_outcomes = list(
+        statements.filter(~Q(poll=poll) & Q(outcome_scores__isnull=False)).values_list(
+            "outcome_scores", flat=True
+        )
+    )
+    poll_statements = statements.filter(poll=poll).all().values_list("id", flat=True)
 
     # Get group users associated with the relevant poll
-    predictors = GroupUser.objects.filter(pollpredictionbet__prediction_statement__poll=poll).all().distinct()
+    predictors = (
+        GroupUser.objects.filter(pollpredictionbet__prediction_statement__poll=poll)
+        .all()
+        .distinct()
+    )
 
     current_bets = []
     previous_bets = []
     for predictor in predictors:
         # TODO check if statements include the current poll's statements
-        bets = list(PollPredictionBet.objects.filter(
-            created_by=predictor,
-            prediction_statement__in=statements,
-            prediction_statement__poll=poll).order_by('-prediction_statement__created_at').annotate(
-            real_score=Cast(F('score'), models.FloatField()) / 5).values_list('prediction_statement_id', 'real_score'))
+        bets = list(
+            PollPredictionBet.objects.filter(
+                created_by=predictor,
+                prediction_statement__in=statements,
+                prediction_statement__poll=poll,
+            )
+            .order_by("-prediction_statement__created_at")
+            .annotate(real_score=Cast(F("score"), models.FloatField()) / 5)
+            .values_list("prediction_statement_id", "real_score")
+        )
 
         bets_statements = [i[0] for i in bets]
         current_bet = []
@@ -234,15 +354,30 @@ def poll_prediction_bet_count(poll_id: int):
 
         current_bets.append(current_bet)
 
-        unprocessed_previous_bets = PollPredictionBet.objects.filter(
-            Q(created_by=predictor, prediction_statement__in=statements.filter(outcome_scores__isnull=False))
-            & ~Q(prediction_statement__poll=poll)).order_by('-prediction_statement__created_at').annotate(
-            real_score=Cast(F('score'), models.FloatField()) / 5)
+        unprocessed_previous_bets = (
+            PollPredictionBet.objects.filter(
+                Q(
+                    created_by=predictor,
+                    prediction_statement__in=statements.filter(
+                        outcome_scores__isnull=False
+                    ),
+                )
+                & ~Q(prediction_statement__poll=poll)
+            )
+            .order_by("-prediction_statement__created_at")
+            .annotate(real_score=Cast(F("score"), models.FloatField()) / 5)
+        )
 
         bets = []
-        for statement in statements.filter(~Q(poll=poll) & Q(outcome_scores__isnull=False)):
+        for statement in statements.filter(
+            ~Q(poll=poll) & Q(outcome_scores__isnull=False)
+        ):
             try:
-                bets.append(unprocessed_previous_bets.get(prediction_statement=statement).real_score)
+                bets.append(
+                    unprocessed_previous_bets.get(
+                        prediction_statement=statement
+                    ).real_score
+                )
 
             except PollPredictionBet.DoesNotExist:
                 bets.append(None)
@@ -300,7 +435,9 @@ def poll_prediction_bet_count(poll_id: int):
 
     # Delete any predictors with no previous history, if there is at least one user with a previous history
     to_delete = []
-    if not all([all(i is None for i in predictor_bets) for predictor_bets in previous_bets]):
+    if not all(
+        [all(i is None for i in predictor_bets) for predictor_bets in previous_bets]
+    ):
         for j, predictor_bets in enumerate(previous_bets):
             if all(i is None for i in predictor_bets):
                 to_delete.append(j)
@@ -314,10 +451,14 @@ def poll_prediction_bet_count(poll_id: int):
         if all(bets[j] is None for bets in previous_bets):
             to_delete.append(j)
 
-    previous_outcomes = [j for n, j in enumerate(previous_outcomes) if n not in to_delete]
+    previous_outcomes = [
+        j for n, j in enumerate(previous_outcomes) if n not in to_delete
+    ]
 
     for i in range(len(previous_bets)):
-        previous_bets[i] = [j for n, j in enumerate(previous_bets[i]) if n not in to_delete]
+        previous_bets[i] = [
+            j for n, j in enumerate(previous_bets[i]) if n not in to_delete
+        ]
 
     dprint("\n\n" + "#" * 50)
 
@@ -331,28 +472,37 @@ def poll_prediction_bet_count(poll_id: int):
 
     dprint("Total Statement:", statements.filter(poll=poll).all().count())
 
-    calculate_combined_bet(current_kpis_or_statements=statements.filter(poll=poll).all(),
-                           current_bets=current_bets,
-                           previous_bets=previous_bets,
-                           previous_outcomes=previous_outcomes)
+    calculate_combined_bet(
+        current_kpis_or_statements=statements.filter(poll=poll).all(),
+        current_bets=current_bets,
+        previous_bets=previous_bets,
+        previous_outcomes=previous_outcomes,
+    )
 
     poll.status_prediction = 1
     poll.save()
 
-    notify_poll(message="Poll prediction phase has ended and results have been counted",
-                action=NotificationChannel.Action.UPDATED,
-                poll=poll)
+    notify_poll(
+        message="Poll prediction phase has ended and results have been counted",
+        action=NotificationChannel.Action.UPDATED,
+        poll=poll,
+    )
 
 
 """
 This complicated function calculates the combined bet of any one KPI at any one proposal for Score V2 polls,
 and any one prediction statement for any one proposal for Score polls.
 """
-def calculate_combined_bet(current_kpis_or_statements: QuerySet[PollPredictionStatement] | QuerySet[PollProposalKPI],
-                           current_bets: list[list[float | None]],
-                           previous_outcomes: list[float],
-                           previous_bets: list[list[float | None]],
-                           disable_dprint: bool = True):
+
+
+def calculate_combined_bet(
+    current_kpis_or_statements: QuerySet[PollPredictionStatement]
+    | QuerySet[PollProposalKPI],
+    current_bets: list[list[float | None]],
+    previous_outcomes: list[float],
+    previous_bets: list[list[float | None]],
+    disable_dprint: bool = True,
+):
     """
     :param poll_statements: Queryset of valid statements
 
@@ -368,7 +518,9 @@ def calculate_combined_bet(current_kpis_or_statements: QuerySet[PollPredictionSt
     """
 
     small_decimal = get_small_decimal(power_of=-7)
-    previous_outcome_avg = previous_outcome_avg_calculate(previous_outcomes=previous_outcomes)
+    previous_outcome_avg = previous_outcome_avg_calculate(
+        previous_outcomes=previous_outcomes
+    )
 
     for i, statement in enumerate(current_kpis_or_statements):
         bias_adjustments = []
@@ -378,8 +530,13 @@ def calculate_combined_bet(current_kpis_or_statements: QuerySet[PollPredictionSt
 
         # If there's no previous bets, set combined bet to average of current bets
         if len(previous_bets) == 0 or len(previous_bets[0]) == 0:
-            combined_bet = no_previous_bets_combined(current_bets_from_ith_user=current_bets[i])
-            dprint(f"No previous bets found, returning {combined_bet}", disable_dprint=disable_dprint)
+            combined_bet = no_previous_bets_combined(
+                current_bets_from_ith_user=current_bets[i]
+            )
+            dprint(
+                f"No previous bets found, returning {combined_bet}",
+                disable_dprint=disable_dprint,
+            )
             statement.combined_bet = combined_bet
             statement.save()
 
@@ -389,16 +546,32 @@ def calculate_combined_bet(current_kpis_or_statements: QuerySet[PollPredictionSt
         if all(x[i] is None for x in current_bets):
             continue
 
-        previous_bets_trimmed: list[list[float]] = [previous_bets[j] for j in range(len(previous_bets)) if current_bets[j][i] is not None]
-        dprint("Previous Bets Trimmed:", previous_bets_trimmed, disable_dprint=disable_dprint)
+        previous_bets_trimmed: list[list[float]] = [
+            previous_bets[j]
+            for j in range(len(previous_bets))
+            if current_bets[j][i] is not None
+        ]
+        dprint(
+            "Previous Bets Trimmed:",
+            previous_bets_trimmed,
+            disable_dprint=disable_dprint,
+        )
         for bets in previous_bets_trimmed:
             bets_trimmed = [i for i in bets if i is not None]
-            bias_adjustments.append(0 if len(bets) == 0 else previous_outcome_avg - (sum(bets_trimmed) /
-                                                                                     len(bets_trimmed)))
+            bias_adjustments.append(
+                0
+                if len(bets) == 0
+                else previous_outcome_avg - (sum(bets_trimmed) / len(bets_trimmed))
+            )
 
-            predictor_errors.append(np.array([previous_outcomes[i] - bets[i]
-                                              if bets[i] is not None
-                                              else None for i in range(len(previous_outcomes))]))
+            predictor_errors.append(
+                np.array(
+                    [
+                        previous_outcomes[i] - bets[i] if bets[i] is not None else None
+                        for i in range(len(previous_outcomes))
+                    ]
+                )
+            )
 
         # If a predictor has not bet on a certain prediction then their bet will be None for said prediction
         def drop_incomparable_values(arr_1, arr_2):
@@ -418,7 +591,9 @@ def calculate_combined_bet(current_kpis_or_statements: QuerySet[PollPredictionSt
             row = []
 
             for j in range(len(predictor_errors)):
-                comparable_errors = drop_incomparable_values(predictor_errors[k], predictor_errors[j])
+                comparable_errors = drop_incomparable_values(
+                    predictor_errors[k], predictor_errors[j]
+                )
                 row.append(covariance(comparable_errors[0], comparable_errors[1]))
 
             covariance_matrix.append(row)
@@ -437,7 +612,9 @@ def calculate_combined_bet(current_kpis_or_statements: QuerySet[PollPredictionSt
             while determinant_is_zero:
                 for m in range(np_covariance_matrix.shape[0]):
                     for j in range(np_covariance_matrix.shape[0]):
-                        np_covariance_matrix[m][j] += small_decimal * [-1, 1][random.randint(0, 1)]
+                        np_covariance_matrix[m][j] += (
+                            small_decimal * [-1, 1][random.randint(0, 1)]
+                        )
 
                 det = np.linalg.det(np_covariance_matrix)
                 if det != 0:
@@ -459,7 +636,11 @@ def calculate_combined_bet(current_kpis_or_statements: QuerySet[PollPredictionSt
         bet_weights = nominator * (1 / denominator)
         transposed_bet_weights = np.transpose(bet_weights)
 
-        dprint("Transposed_bet_weights:", transposed_bet_weights, disable_dprint=disable_dprint)
+        dprint(
+            "Transposed_bet_weights:",
+            transposed_bet_weights,
+            disable_dprint=disable_dprint,
+        )
         dprint("Main bets:", main_bets, disable_dprint=disable_dprint)
         dprint("Bias_adjustments:", bias_adjustments, disable_dprint=disable_dprint)
 
@@ -470,14 +651,19 @@ def calculate_combined_bet(current_kpis_or_statements: QuerySet[PollPredictionSt
         # For main bets is list of bets per predictor
         # Bias adjustments is adjustments per predictor
         #
-        bias_adjusted_bet = [main_bets[j] + bias_adjustments[j] for j in range(len(main_bets))]
+        bias_adjusted_bet = [
+            main_bets[j] + bias_adjustments[j] for j in range(len(main_bets))
+        ]
         for j in range(len(bias_adjusted_bet)):
             if bias_adjusted_bet[j] < 0:
                 bias_adjusted_bet[j] = 0.0
             elif bias_adjusted_bet[j] > 1:
                 bias_adjusted_bet[j] = 1.0
 
-        dprint(f"Results: {np.matmul(transposed_bet_weights, bias_adjusted_bet)}", disable_dprint=disable_dprint)
+        dprint(
+            f"Results: {np.matmul(transposed_bet_weights, bias_adjusted_bet)}",
+            disable_dprint=disable_dprint,
+        )
         combined_bet = float(np.matmul(transposed_bet_weights, bias_adjusted_bet)[0])
 
         if combined_bet < 0:
@@ -506,22 +692,29 @@ def poll_proposal_vote_count(poll_id: int) -> None:
 
     # Update the delegate's mandate.
     # Mandate is set to 0 by default
-    mandate = GroupUserDelegatePool.objects.filter(id=OuterRef('created_by')).annotate(
-        mandate=Count('groupuserdelegator',
-                      filter=~Q(groupuserdelegator__delegator__pollvoting__poll=poll)
-                             & Q(groupuserdelegator__tags__in=[poll.tag])
-                             & Q(groupuserdelegator__delegator__active=True)
-                             & permission_q('groupuserdelegator__delegator', 'allow_vote')
-                      )).values('mandate')
+    mandate = (
+        GroupUserDelegatePool.objects.filter(id=OuterRef("created_by"))
+        .annotate(
+            mandate=Count(
+                "groupuserdelegator",
+                filter=~Q(groupuserdelegator__delegator__pollvoting__poll=poll)
+                & Q(groupuserdelegator__tags__in=[poll.tag])
+                & Q(groupuserdelegator__delegator__active=True)
+                & permission_q("groupuserdelegator__delegator", "allow_vote"),
+            )
+        )
+        .values("mandate")
+    )
 
     PollDelegateVoting.objects.filter(
-        permission_q('created_by__groupuserdelegate__group_user', 'allow_vote'),
-        poll=poll).update(mandate=Subquery(mandate))
+        permission_q("created_by__groupuserdelegate__group_user", "allow_vote"),
+        poll=poll,
+    ).update(mandate=Subquery(mandate))
 
     # Query to get a delegate's mandate
     delegate_mandate = PollDelegateVoting.objects.filter(
-        id=OuterRef('author_delegate'),
-    ).values('mandate')
+        id=OuterRef("author_delegate"),
+    ).values("mandate")
 
     if poll.status:
         return
@@ -534,19 +727,28 @@ def poll_proposal_vote_count(poll_id: int) -> None:
 
     # TODO participants will include dangling participants
     #  (participants with only proposal votes that are active=False and removed votes)
-    user_participants = PollVoting.objects.filter(permission_q('created_by', 'allow_vote'),
-                                                  poll=poll).count()
-    delegate_participants = PollDelegateVoting.objects.filter(poll=poll).aggregate(mandate=Sum('mandate'))['mandate']
-    participants = ((user_participants if user_participants is not None else 0)
-                    + (delegate_participants if delegate_participants is not None else 0))
+    user_participants = PollVoting.objects.filter(
+        permission_q("created_by", "allow_vote"), poll=poll
+    ).count()
+    delegate_participants = PollDelegateVoting.objects.filter(poll=poll).aggregate(
+        mandate=Sum("mandate")
+    )["mandate"]
+    participants = (user_participants if user_participants is not None else 0) + (
+        delegate_participants if delegate_participants is not None else 0
+    )
     poll.participants = participants
     poll.save()
 
-    winning_proposal_score = PollProposal.objects.filter(poll_id=poll_id,
-                                                         active=True).aggregate(score=Max('score'))['score']
-    winning_proposal = PollProposal.objects.filter(poll_id=poll_id,
-                                                   active=True,
-                                                   score=winning_proposal_score).order_by('?').first()
+    winning_proposal_score = PollProposal.objects.filter(
+        poll_id=poll_id, active=True
+    ).aggregate(score=Max("score"))["score"]
+    winning_proposal = (
+        PollProposal.objects.filter(
+            poll_id=poll_id, active=True, score=winning_proposal_score
+        )
+        .order_by("?")
+        .first()
+    )
 
     if poll.finished and not poll.result:
         print(f"Total Participants: {participants}")
@@ -555,15 +757,113 @@ def poll_proposal_vote_count(poll_id: int) -> None:
         poll.status = 1 if poll.participants >= total_group_users * quorum else -1
 
         # Save IMAC value if tag exists
-        tag = group_tags_list(group_id=poll.created_by.group_id, filters=dict(id=poll.tag_id)).first()
+        tag = group_tags_list(
+            group_id=poll.created_by.group_id, filters=dict(id=poll.tag_id)
+        ).first()
         if tag:
             poll.interval_mean_absolute_correctness = tag.imac
 
         poll.result = winning_proposal
         poll.save()
 
-        notify_poll(message="Poll has ended and results have been counted",
-                    action=NotificationChannel.Action.UPDATED,
-                    poll=poll)
+        notify_poll(
+            message="Poll has ended and results have been counted",
+            action=NotificationChannel.Action.UPDATED,
+            poll=poll,
+        )
 
         poll.poll_type_new.on_poll_finalized(winning_proposal=winning_proposal)
+
+
+def newer_kpi_betting():
+    """
+    This code was primarily written by Loke Hagberg 2026-06-12
+    This work was made possible by my wonderful best friend: Emil Svenberg
+
+    Track record handling 1 (might be a second track record handling or more later)
+
+    When calculating the combined probability, pick the largest set of participating predictors with longest (within some max number)
+    and fully overlapping track records are there multiple, pick one uniformly randomly.
+
+    Example: If 1 predictor has participated 3 times on winning polls, and 5 predictors has participated 2 times, then this calculation
+    takes the 1 predictor only as input.
+
+    It is valuable to know what the value of the determinant is, one can use numpy.linalg.det(matrix) for that purpose
+    Save all determinants as how near one is to a singular matrix the more sensitive the method chosen is to input data
+
+    Methods for calculating the combined probability
+
+    The DCP rules in cvxpy require that the problem objective have one of two forms: Minimize(convex) or Maximize(concave)
+
+    Long term TODO: Formal verification in an functional language (Haskell? F#? Scala?).
+    Also a compiled program/binary with this can avoid numpy and cvxpy bloat in the rest of flowback without a microservice.
+    """
+    import cvxpy as cp
+
+    def quadratic_programming_solver(covariance_matrix, test=False):
+        # The covariance matrix shape
+        n = covariance_matrix.shape[0]
+        # No negative probabilities
+        G = -np.identity(n)
+        h = np.zeros(n)
+        # All probabilities add to one
+        q = np.ones(n)
+
+        # Define and solve the CVXPY problem.
+        x = cp.Variable(n)
+        prob = cp.Problem(
+            # @ is matmul
+            # .T is transpose
+            # With method 1, the covariance matricies that can be inputed are always convex
+            cp.Minimize(cp.quad_form(x, covariance_matrix)),
+            [G @ x <= h, q.T @ x == 1],
+        )
+
+        try:
+            # Convex case
+            prob.solve()
+        except Exception:
+            # Concave case
+            print("Concave minimization")
+            # TODO: for Emil: extend the algorithm to include the concave minimization case
+
+        solution = x.value
+        optimal_value = prob.value
+        dual_solution = prob.constraints[0].dual_value
+
+        if test:
+            print("\nThe optimal value is", optimal_value)
+            print("A solution x is")
+            print(solution)
+
+        # solution is a vector (np.array) that sums up to 1.
+        return [solution, optimal_value, dual_solution]
+
+    # The covariance matrix
+
+    def method_1(input_matrix):
+        # Might be always convex
+        P_1 = np.cov(input_matrix)
+        result_1 = quadratic_programming_solver(P_1)[0]
+
+    def django_queries():
+
+        # These are some tests that turned out correctly with equi-weighed solutions
+        # quadratic_programming_solver(np.array([[0,0],[0,0]]), test=True)
+        # quadratic_programming_solver(np.array([[0,0,0],[0,0,0],[0,0,0]]), test=True)
+        # quadratic_programming_solver(np.array([[0,0,0],[0,0,0],[0,0,1]]), test=True)
+
+        # Method 1
+        # Each row is a predictor and each column the error in that category during that prediction
+        # The following input vector is a test example
+        # Let's say predictor 1 has set 0.1 and 0.9 on a proposal. The winning KPI category adds -1, so 0.9-1
+        # Then the next category they set 0.3 and 0.7, then 0.3 -0.3
+        # All categories
+        # input_matrix = np.array(
+        #     [
+        #         [0.1, -0.1, 0.3, -0.3],
+        #         [0.5, -0.5, 0.4, -0.4],
+        #         [0.8, -0.8, 0.1, -0.1],
+        #         [0.25, -0.25, 0.33, -0.33],
+        #     ]
+        # )
