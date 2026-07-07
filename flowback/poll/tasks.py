@@ -1,7 +1,19 @@
 import random
 from celery import shared_task
 from django.db import models
-from django.db.models import Count, Q, Sum, OuterRef, Case, When, F, Subquery, Max, QuerySet, Value
+from django.db.models import (
+    Count,
+    Q,
+    Sum,
+    OuterRef,
+    Case,
+    When,
+    F,
+    Subquery,
+    Max,
+    QuerySet,
+    Value,
+)
 from django.db.models.functions import Cast, Greatest
 from django.utils import timezone
 
@@ -31,6 +43,7 @@ from flowback.poll.phases import (
     PollProposal,
     PollProposalKPI,
     PollProposalKPIBet,
+    PollProposalKPIVote,
     PollVoting,
 )
 
@@ -775,6 +788,29 @@ def poll_proposal_vote_count(poll_id: int) -> None:
         poll.poll_type_new.on_poll_finalized(winning_proposal=winning_proposal)
 
 
+def poll_kpi_prediction_history(group_id: int):
+    outcomes = PollProposalKPIVote.objects.filter(
+        proposal_kpi__proposal__poll__end_date__lte=timezone.now(),
+        proposal_kpi__proposal__poll__created_by__group_id=group_id,
+    )
+
+    history = []
+    for outcome in outcomes:
+        bets = PollProposalKPIBet.objects.filter(
+            proposal_kpi__proposal=outcome.proposal_kpi.proposal,
+            proposal_kpi__kpi_value__kpi=outcome.proposal_kpi.kpi_value.kpi,
+        ).select_related(
+            "created_by",
+            "proposal_kpi",
+            "proposal_kpi__kpi_value",
+            "proposal_kpi__kpi_value__kpi",
+        )
+        print(bets, outcome)
+        history.append({"outcome": outcome, "bets": bets})
+
+    return history
+
+
 def newer_kpi_betting():
     """
     This code was primarily written by Loke Hagberg 2026-06-12
@@ -847,23 +883,4 @@ def newer_kpi_betting():
         result_1 = quadratic_programming_solver(P_1)[0]
 
     def django_queries():
-
-        # These are some tests that turned out correctly with equi-weighed solutions
-        # quadratic_programming_solver(np.array([[0,0],[0,0]]), test=True)
-        # quadratic_programming_solver(np.array([[0,0,0],[0,0,0],[0,0,0]]), test=True)
-        # quadratic_programming_solver(np.array([[0,0,0],[0,0,0],[0,0,1]]), test=True)
-
-        # Method 1
-        # Each row is a predictor and each column the error in that category during that prediction
-        # The following input vector is a test example
-        # Let's say predictor 1 has set 0.1 and 0.9 on a proposal. The winning KPI category adds -1, so 0.9-1
-        # Then the next category they set 0.3 and 0.7, then 0.3 -0.3
-        # All categories
-        # input_matrix = np.array(
-        #     [
-        #         [0.1, -0.1, 0.3, -0.3],
-        #         [0.5, -0.5, 0.4, -0.4],
-        #         [0.8, -0.8, 0.1, -0.1],
-        #         [0.25, -0.25, 0.33, -0.33],
-        #     ]
-        # )
+        return poll_kpi_prediction_history()

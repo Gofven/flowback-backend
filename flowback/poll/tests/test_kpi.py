@@ -5,7 +5,7 @@ from flowback.group.models import GroupKPI, GroupUser, Group, GroupKPIValue
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupKPIFactory, GroupKPIValueFactory
 from flowback.poll.models import Poll
 from flowback.poll.phases import PollProposal, PollProposalKPI, PollProposalKPIBet, PollProposalKPIVote
-from flowback.poll.tasks import poll_kpi_count
+from flowback.poll.tasks import poll_kpi_count, poll_kpi_prediction_history
 from flowback.poll.tests.factories import PollFactory, PollProposalFactory, PollProposalKPIBetFactory, \
     PollProposalKPIVoteFactory
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
@@ -186,6 +186,56 @@ class TestPollProposalKPI(APITestCase):
 
         poll_kpi_count(poll_id=poll_four.id, disable_dprint=False)
         print("\n\n")
+
+    def test_kpi_prediction_history_log(self):
+        poll = PollFactory(created_by=self.group_user_creator,
+                           poll_type=Poll.PollType.V2_SCORE,
+                           **generate_poll_phase_kwargs('prediction_vote'))
+        proposal = PollProposalFactory(poll=poll, created_by=self.group_user_creator)
+
+        PollProposalKPI.generate_kpis(proposal_id=proposal.id)
+        self.generate_kpi_bet(self.group_user_one, self.group_kpi_one, proposal, 22, 10)
+        self.generate_kpi_bet(self.group_user_two, self.group_kpi_one, proposal, 12, 5)
+        self.generate_kpi_vote(self.group_user_two, self.group_kpi_one, proposal, 22)
+
+        other_group = GroupFactory()
+        other_group_kpi = GroupKPIFactory(group=other_group)
+        GroupKPIValueFactory(kpi=other_group_kpi, value=99)
+        other_poll = PollFactory(created_by=other_group.group_user_creator,
+                                 poll_type=Poll.PollType.V2_SCORE,
+                                 **generate_poll_phase_kwargs('prediction_vote'))
+        other_proposal = PollProposalFactory(poll=other_poll, created_by=other_group.group_user_creator)
+        PollProposalKPI.generate_kpis(proposal_id=other_proposal.id)
+        self.generate_kpi_bet(other_group.group_user_creator, other_group_kpi, other_proposal, 99, 7)
+        self.generate_kpi_vote(other_group.group_user_creator, other_group_kpi, other_proposal, 99)
+
+        history = poll_kpi_prediction_history(group_id=self.group.id)
+        print(history)
+        logged_history = [
+            {
+                "group_id": item["outcome"].proposal_kpi.proposal.poll.created_by.group_id,
+                "poll_id": item["outcome"].proposal_kpi.proposal.poll_id,
+                "proposal_id": item["outcome"].proposal_kpi.proposal_id,
+                "kpi_id": item["outcome"].proposal_kpi.kpi_value.kpi_id,
+                "outcome_value": item["outcome"].proposal_kpi.kpi_value.value,
+                "bets": [
+                    {
+                        "group_user_id": bet.created_by_id,
+                        "value": bet.proposal_kpi.kpi_value.value,
+                        "weight": bet.weight,
+                    }
+                    for bet in item["bets"]
+                ],
+            }
+            for item in history
+        ]
+
+        print("KPI prediction history:", logged_history)
+
+        self.assertEqual(len(logged_history), 1)
+        self.assertEqual(logged_history[0]["group_id"], self.group.id)
+        self.assertEqual(logged_history[0]["outcome_value"], "22")
+        self.assertEqual(len(logged_history[0]["bets"]), 2)
 
     def test_proposal_kpi_list(self):
         # TODO block users from accessing kpis they are not permitted to access (e.g. poll for specific workgroup)
