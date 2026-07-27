@@ -1,11 +1,12 @@
 from rest_framework.test import APITestCase
+from django.test import override_settings
 
 from flowback.common.tests import generate_request
 from flowback.group.models import GroupKPI, GroupUser, Group, GroupKPIValue
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupKPIFactory, GroupKPIValueFactory
 from flowback.poll.models import Poll
 from flowback.poll.phases import PollProposal, PollProposalKPI, PollProposalKPIBet, PollProposalKPIVote
-from flowback.poll.tasks import poll_kpi_count, poll_kpi_prediction_history
+from flowback.poll.tasks import poll_kpi_count
 from flowback.poll.tests.factories import PollFactory, PollProposalFactory, PollProposalKPIBetFactory, \
     PollProposalKPIVoteFactory
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
@@ -187,55 +188,81 @@ class TestPollProposalKPI(APITestCase):
         poll_kpi_count(poll_id=poll_four.id, disable_dprint=False)
         print("\n\n")
 
-    def test_kpi_prediction_history_log(self):
+    @override_settings(FLOWBACK_ENABLE_NEW_KPI_SYSTEM=True)
+    def test_new_kpi_betting_queries_bets_for_each_winner(self):
         poll = PollFactory(created_by=self.group_user_creator,
                            poll_type=Poll.PollType.V2_SCORE,
                            **generate_poll_phase_kwargs('prediction_vote'))
         proposal = PollProposalFactory(poll=poll, created_by=self.group_user_creator)
 
         PollProposalKPI.generate_kpis(proposal_id=proposal.id)
-        self.generate_kpi_bet(self.group_user_one, self.group_kpi_one, proposal, 22, 10)
-        self.generate_kpi_bet(self.group_user_two, self.group_kpi_one, proposal, 12, 5)
-        self.generate_kpi_vote(self.group_user_two, self.group_kpi_one, proposal, 22)
+        self.generate_kpi_bet(
+            self.group_user_one, self.group_kpi_one, proposal, 22, 10
+        )
+        self.generate_kpi_bet(
+            self.group_user_two, self.group_kpi_one, proposal, 12, 5
+        )
+        self.generate_kpi_bet(
+            self.group_user_one, self.group_kpi_two, proposal, 99, 7
+        )
 
-        other_group = GroupFactory()
-        other_group_kpi = GroupKPIFactory(group=other_group)
-        GroupKPIValueFactory(kpi=other_group_kpi, value=99)
-        other_poll = PollFactory(created_by=other_group.group_user_creator,
-                                 poll_type=Poll.PollType.V2_SCORE,
-                                 **generate_poll_phase_kwargs('prediction_vote'))
-        other_proposal = PollProposalFactory(poll=other_poll, created_by=other_group.group_user_creator)
-        PollProposalKPI.generate_kpis(proposal_id=other_proposal.id)
-        self.generate_kpi_bet(other_group.group_user_creator, other_group_kpi, other_proposal, 99, 7)
-        self.generate_kpi_vote(other_group.group_user_creator, other_group_kpi, other_proposal, 99)
+        other_proposal = PollProposalFactory(
+            poll=poll, created_by=self.group_user_creator
+        )
+        self.generate_kpi_bet(
+            self.group_user_one, self.group_kpi_one, other_proposal, 22, 9
+        )
 
-        history = poll_kpi_prediction_history(group_id=self.group.id)
-        print(history)
-        logged_history = [
+        self.generate_kpi_vote(
+            self.group_user_creator, self.group_kpi_one, proposal, 22
+        )
+        self.generate_kpi_vote(
+            self.group_user_one, self.group_kpi_one, proposal, 22
+        )
+        self.generate_kpi_vote(
+            self.group_user_two, self.group_kpi_one, proposal, 12
+        )
+
+        histories = poll_kpi_count(poll_id=poll.id)
+        history = histories[0]
+        winner = history["winner"]
+        bets = list(history["bets"])
+        winner_votes = PollProposalKPIVote.objects.filter(
+            proposal_kpi=winner
+        ).count()
+        logged_bets = [
             {
-                "group_id": item["outcome"].proposal_kpi.proposal.poll.created_by.group_id,
-                "poll_id": item["outcome"].proposal_kpi.proposal.poll_id,
-                "proposal_id": item["outcome"].proposal_kpi.proposal_id,
-                "kpi_id": item["outcome"].proposal_kpi.kpi_value.kpi_id,
-                "outcome_value": item["outcome"].proposal_kpi.kpi_value.value,
-                "bets": [
-                    {
-                        "group_user_id": bet.created_by_id,
-                        "value": bet.proposal_kpi.kpi_value.value,
-                        "weight": bet.weight,
-                    }
-                    for bet in item["bets"]
-                ],
+                "group_user_id": bet.created_by_id,
+                "value": bet.proposal_kpi.kpi_value.value,
+                "weight": bet.weight,
             }
-            for item in history
+            for bet in bets
         ]
 
-        print("KPI prediction history:", logged_history)
+        print(
+            "Winning KPI:",
+            {
+                "kpi": winner.kpi_value.kpi.name,
+                "value": winner.kpi_value.value,
+                "votes": winner_votes,
+            },
+        )
+        print("Bets for winner's proposal/KPI:", logged_bets)
 
-        self.assertEqual(len(logged_history), 1)
-        self.assertEqual(logged_history[0]["group_id"], self.group.id)
-        self.assertEqual(logged_history[0]["outcome_value"], "22")
-        self.assertEqual(len(logged_history[0]["bets"]), 2)
+        self.assertEqual(len(histories), 1)
+        self.assertEqual(winner.kpi_value.value, "22")
+        self.assertEqual(winner_votes, 2)
+        self.assertSetEqual(
+            {
+                (bet.proposal_kpi.kpi_value.value, bet.weight)
+                for bet in bets
+            },
+            {("12", 5), ("22", 10)},
+        )
+
+    @override_settings(FLOWBACK_ENABLE_NEW_KPI_SYSTEM=False)
+    def test_old_kpi_betting_runs_when_new_system_is_disabled(self):
+        self.assertIsNone(poll_kpi_count(poll_id=self.poll.id))
 
     def test_proposal_kpi_list(self):
         # TODO block users from accessing kpis they are not permitted to access (e.g. poll for specific workgroup)

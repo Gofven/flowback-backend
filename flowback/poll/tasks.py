@@ -1,5 +1,6 @@
 import random
 from celery import shared_task
+from django.conf import settings
 from django.db import models
 from django.db.models import (
     Count,
@@ -43,7 +44,6 @@ from flowback.poll.phases import (
     PollProposal,
     PollProposalKPI,
     PollProposalKPIBet,
-    PollProposalKPIVote,
     PollVoting,
 )
 
@@ -132,6 +132,15 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
     winning_proposal_kpis = proposal_kpis.annotate(winner=pollproposalkpi_sq).filter(
         winner=F("id")
     )
+
+    if settings.FLOWBACK_ENABLE_NEW_KPI_SYSTEM:
+        return [
+            newer_kpi_betting(
+                winning_proposal_kpi=winning_proposal_kpi,
+            )
+            for winning_proposal_kpi in winning_proposal_kpis
+        ]
+
     dprint(
         "Winning KPIs",
         [
@@ -788,30 +797,65 @@ def poll_proposal_vote_count(poll_id: int) -> None:
         poll.poll_type_new.on_poll_finalized(winning_proposal=winning_proposal)
 
 
-def poll_kpi_prediction_history(group_id: int):
-    outcomes = PollProposalKPIVote.objects.filter(
-        proposal_kpi__proposal__poll__end_date__lte=timezone.now(),
-        proposal_kpi__proposal__poll__created_by__group_id=group_id,
-    )
-
-    history = []
-    for outcome in outcomes:
-        bets = PollProposalKPIBet.objects.filter(
-            proposal_kpi__proposal=outcome.proposal_kpi.proposal,
-            proposal_kpi__kpi_value__kpi=outcome.proposal_kpi.kpi_value.kpi,
+def poll_kpi_prediction_history(winning_proposal_kpi: PollProposalKPI):
+    return {
+        "winner": winning_proposal_kpi,
+        "bets": PollProposalKPIBet.objects.filter(
+            proposal_kpi__proposal=winning_proposal_kpi.proposal,
+            proposal_kpi__kpi_value__kpi=winning_proposal_kpi.kpi_value.kpi,
         ).select_related(
             "created_by",
             "proposal_kpi",
             "proposal_kpi__kpi_value",
             "proposal_kpi__kpi_value__kpi",
-        )
-        print(bets, outcome)
-        history.append({"outcome": outcome, "bets": bets})
-
-    return history
+        ),
+    }
 
 
-def newer_kpi_betting():
+def quadratic_programming_solver(covariance_matrix, test=False):
+    import cvxpy as cp
+
+    # The covariance matrix shape
+    n = covariance_matrix.shape[0]
+    # No negative probabilities
+    G = -np.identity(n)
+    h = np.zeros(n)
+    # All probabilities add to one
+    q = np.ones(n)
+
+    # Define and solve the CVXPY problem.
+    x = cp.Variable(n)
+    prob = cp.Problem(
+        # @ is matmul
+        # .T is transpose
+        # With method 1, the covariance matricies that can be inputed are always convex
+        cp.Minimize(cp.quad_form(x, covariance_matrix)),
+        [G @ x <= h, q.T @ x == 1],
+    )
+
+    # Convex case
+    try:
+        prob.solve()
+
+    # Concave case
+    except Exception:
+        print("Concave minimization")
+        # TODO: for Emil: extend the algorithm to include the concave minimization case
+
+    solution = x.value
+    optimal_value = prob.value
+    dual_solution = prob.constraints[0].dual_value
+
+    if test:
+        print("\nThe optimal value is", optimal_value)
+        print("A solution x is")
+        print(solution)
+
+    # solution is a vector (np.array) that sums up to 1.
+    return [solution, optimal_value, dual_solution]
+
+
+def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI):
     """
     This code was primarily written by Loke Hagberg 2026-06-12
     This work was made possible by my wonderful best friend: Emil Svenberg
@@ -834,47 +878,6 @@ def newer_kpi_betting():
     Long term TODO: Formal verification in an functional language (Haskell? F#? Scala?).
     Also a compiled program/binary with this can avoid numpy and cvxpy bloat in the rest of flowback without a microservice.
     """
-    import cvxpy as cp
-
-    def quadratic_programming_solver(covariance_matrix, test=False):
-        # The covariance matrix shape
-        n = covariance_matrix.shape[0]
-        # No negative probabilities
-        G = -np.identity(n)
-        h = np.zeros(n)
-        # All probabilities add to one
-        q = np.ones(n)
-
-        # Define and solve the CVXPY problem.
-        x = cp.Variable(n)
-        prob = cp.Problem(
-            # @ is matmul
-            # .T is transpose
-            # With method 1, the covariance matricies that can be inputed are always convex
-            cp.Minimize(cp.quad_form(x, covariance_matrix)),
-            [G @ x <= h, q.T @ x == 1],
-        )
-
-        try:
-            # Convex case
-            prob.solve()
-        except Exception:
-            # Concave case
-            print("Concave minimization")
-            # TODO: for Emil: extend the algorithm to include the concave minimization case
-
-        solution = x.value
-        optimal_value = prob.value
-        dual_solution = prob.constraints[0].dual_value
-
-        if test:
-            print("\nThe optimal value is", optimal_value)
-            print("A solution x is")
-            print(solution)
-
-        # solution is a vector (np.array) that sums up to 1.
-        return [solution, optimal_value, dual_solution]
-
     # The covariance matrix
 
     def method_1(input_matrix):
@@ -882,5 +885,6 @@ def newer_kpi_betting():
         P_1 = np.cov(input_matrix)
         result_1 = quadratic_programming_solver(P_1)[0]
 
-    def django_queries():
-        return poll_kpi_prediction_history()
+    return poll_kpi_prediction_history(
+        winning_proposal_kpi=winning_proposal_kpi
+    )
