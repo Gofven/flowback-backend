@@ -9,6 +9,7 @@ from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
 from flowback.user.models import User
 from flowback.user.serializers import BasicUserSerializer
+from flowback.chat.serializers import MessageSerializer
 
 
 def user_message_channel_permission(*, user: User, channel: MessageChannel):
@@ -157,16 +158,17 @@ def message_channel_topic_delete(*, channel_id: int, topic_id: int):
 
 
 def send_channel_info_message(participant: MessageChannelParticipant, message: str = None):
+    message = Message.objects.create(user=participant.user,
+                                     channel=participant.channel,
+                                     message=message,
+                                     type="info")
+
     if not TESTING:
         channel_layer = get_channel_layer()
 
-        async_to_sync(channel_layer.group_send)(
-            f"{participant.channel.id}",
-            dict(type="info",
-                 channel_id=participant.channel.id,
-                 message=message))
+        # Broadcast the full serialized message (including id and user) so
+        # clients can render the info message live without a reload.
+        data = dict(MessageSerializer(message).data)
+        data["type"] = "info"
 
-    Message.objects.create(user=participant.user,
-                           channel=participant.channel,
-                           message=message,
-                           type="info")
+        async_to_sync(channel_layer.group_send)(f"{participant.channel.id}", data)
