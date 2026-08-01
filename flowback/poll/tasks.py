@@ -815,6 +815,9 @@ def poll_kpi_prediction_history(winning_proposal_kpi: PollProposalKPI):
 def quadratic_programming_solver(covariance_matrix, test=False):
     import cvxpy as cp
 
+    if np.any((covariance_matrix < 0) | (covariance_matrix > 1)):
+        raise ValueError("covariance_matrix entries must be between 0 and 1 (inclusive)")
+
     # The covariance matrix shape
     n = covariance_matrix.shape[0]
     # No negative probabilities
@@ -885,6 +888,4 @@ def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI):
         P_1 = np.cov(input_matrix)
         result_1 = quadratic_programming_solver(P_1)[0]
 
-    return poll_kpi_prediction_history(
-        winning_proposal_kpi=winning_proposal_kpi
-    )
+    return poll_kpi_prediction_history(winning_proposal_kpi=winning_proposal_kpi)
