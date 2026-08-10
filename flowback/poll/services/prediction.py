@@ -1,7 +1,7 @@
 from typing import Union
 
 from django.db import models
-from django.db.models import Sum, Case, When, OuterRef, Subquery, Count
+from django.db.models import Sum, Case, When, OuterRef, Subquery, Count, QuerySet, Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -16,7 +16,7 @@ from ..phases import (PollPredictionBet,
                       PollProposalKPIBet,
                       PollProposalKPIVote)
 from ...common.services import get_object, model_update
-from ...group.models import GroupKPI
+from ...group.models import GroupKPI, Group, GroupUser
 from ...group.selectors.permission import group_user_permissions
 from ...user.models import User
 
@@ -321,3 +321,63 @@ def poll_proposal_kpi_vote(user_id: int,
     vote.save()
 
     return vote
+
+
+def longest_poll_prediction_kpi_group_user(group: Group,
+                                           users: list[User] | QuerySet[User]) -> GroupUser:
+    """
+    Returns user with most prediction bets cast (KPI V2_Score polls only)
+    :param group: The group users are within
+    :param users: List of users that will be counted
+    :return: GroupUser with most bets. This will always return a value
+        even when there are no users that are betting. In case of users having identical bet count,
+         it'll return the user with the lowest ID.
+    """
+
+    timestamp = timezone.now()
+
+    # List of eligible KPIs
+    prediction_count = Count('pollproposalkpibet',
+                             filter=Q(pollproposalkpibet__proposal_kpi__proposal__poll__end_date__lte=timestamp,
+                                      pollproposalkpibet__created_by__group=group,
+                                      pollproposalkpibet__proposal_kpi__proposal__poll__poll_type=Poll.PollType.V2_SCORE,
+                                      pollproposalkpibet__proposal_kpi__kpi_value__kpi__active=True))
+
+    longest_prediction_history_group_user = GroupUser.objects.filter(
+        group=group, user__in=users
+    ).annotate(prediction_count=prediction_count)
+
+    print(users)
+    print(longest_prediction_history_group_user.all().values_list('prediction_count'))
+
+    return longest_prediction_history_group_user.order_by('-prediction_count').first()
+
+
+def longest_poll_prediction_group_user(group: Group,
+                                       users: list[User] | QuerySet[User]) -> GroupUser:
+    """
+    Returns user with most prediction bets cast (Old Prediction Score polls only)
+    :param group: The group users are within
+    :param users: List of users that will be counted
+    :return: GroupUser with most bets. This will always return a value
+        even when there are no users that are betting. In case of users having identical bet count,
+         it'll return the user with the lowest ID.
+    """
+
+    timestamp = timezone.now()
+
+    # List of eligible KPIs
+    prediction_count = Count('pollpredictionbet',
+                             filter=Q(pollpredictionbet__prediction_statement__poll__end_date__lte=timestamp,
+                                      pollpredictionbet__created_by__group=group,
+                                      pollpredictionbet__prediction_statement__poll__poll_type=Poll.PollType.SCORE,
+                                      pollpredictionbet__prediction_statement__poll__active=True))
+
+    longest_prediction_history_group_user = GroupUser.objects.filter(
+        group=group, user__in=users
+    ).annotate(prediction_count=prediction_count)
+
+    print(users)
+    print(longest_prediction_history_group_user.all().values_list('prediction_count'))
+
+    return longest_prediction_history_group_user.order_by('-prediction_count').first()
