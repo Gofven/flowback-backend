@@ -323,15 +323,13 @@ def poll_proposal_kpi_vote(user_id: int,
     return vote
 
 
-def longest_poll_prediction_kpi_group_user(group: Group,
-                                           users: list[User] | QuerySet[User]) -> GroupUser:
+def longest_poll_prediction_kpi_group_users(group: Group,
+                                            users: list[User] | QuerySet[User]) -> QuerySet[GroupUser] | None:
     """
-    Returns user with most prediction bets cast (KPI V2_Score polls only)
+    Returns user(s) with most prediction bets cast (KPI V2_Score polls only)
     :param group: The group users are within
     :param users: List of users that will be counted
-    :return: GroupUser with most bets. This will always return a value
-        even when there are no users that are betting. In case of users having identical bet count,
-         it'll return the user with the lowest ID.
+    :return: GroupUsers with most bets.
     """
 
     timestamp = timezone.now()
@@ -347,21 +345,18 @@ def longest_poll_prediction_kpi_group_user(group: Group,
         group=group, user__in=users
     ).annotate(prediction_count=prediction_count)
 
-    print(users)
-    print(longest_prediction_history_group_user.all().values_list('prediction_count'))
+    result = longest_prediction_history_group_user.order_by('-prediction_count')
 
-    return longest_prediction_history_group_user.order_by('-prediction_count').first()
+    return None if not result.first() else result.filter(prediction_count=result.first().prediction_count)
 
 
 def longest_poll_prediction_group_user(group: Group,
-                                       users: list[User] | QuerySet[User]) -> GroupUser:
+                                       users: list[User] | QuerySet[User]) -> QuerySet[GroupUser] | None:
     """
     Returns user with most prediction bets cast (Old Prediction Score polls only)
     :param group: The group users are within
     :param users: List of users that will be counted
-    :return: GroupUser with most bets. This will always return a value
-        even when there are no users that are betting. In case of users having identical bet count,
-         it'll return the user with the lowest ID.
+    :return: GroupUsers with most bets.
     """
 
     timestamp = timezone.now()
@@ -377,7 +372,6 @@ def longest_poll_prediction_group_user(group: Group,
         group=group, user__in=users
     ).annotate(prediction_count=prediction_count)
 
-    print(users)
-    print(longest_prediction_history_group_user.all().values_list('prediction_count'))
+    result = longest_prediction_history_group_user.order_by('-prediction_count')
 
-    return longest_prediction_history_group_user.order_by('-prediction_count').first()
+    return None if not result.first() else result.filter(prediction_count=result.first().prediction_count)
