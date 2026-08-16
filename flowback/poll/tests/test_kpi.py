@@ -1,18 +1,40 @@
+from unittest import TestCase
+
+import numpy as np
 from rest_framework.test import APITestCase
 from django.test import override_settings
 
 from flowback.common.tests import generate_request
-from flowback.group.models import GroupKPI, GroupUser, Group, GroupKPIValue
+from flowback.group.models import GroupKPI, GroupUser, Group
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupKPIFactory, GroupKPIValueFactory
 from flowback.poll.models import Poll
 from flowback.poll.phases import PollProposal, PollProposalKPI, PollProposalKPIBet, PollProposalKPIVote
 from flowback.poll.tasks import poll_kpi_count
+from flowback.poll.tasks_new_kpi import bet_outcome_matrix
 from flowback.poll.tests.factories import PollFactory, PollProposalFactory, PollProposalKPIBetFactory, \
     PollProposalKPIVoteFactory
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
 from flowback.poll.views.prediction import PollProposalKPIBetAPI, PollProposalKPIVoteAPI, PollProposalKPIBetListAPI, \
     PollProposalKPIVoteListAPI, PollProposalKPIListAPI
 from flowback.poll.views.proposal import PollProposalCreateAPI
+
+
+class TestBetOutcomeMatrix(TestCase):
+    def test_comment_examples(self):
+        np.testing.assert_allclose(
+            bet_outcome_matrix([0.05, 0.05, 0.90], 2),
+            [[0.05, 0.05, -0.10], [-0.05, -0.05, 0.10]],
+        )
+
+        np.testing.assert_allclose(
+            bet_outcome_matrix(
+                [[0, 0, 1, 0, 0, 1],
+                 [0.33, 0.33, 0.34, 0.33, 0.33, 0.34]],
+                [2, 5],
+            ),
+            [[0, 0, 0, 0, 0, 0],
+             [0.33, 0.33, -0.66, 0.33, 0.33, -0.66]],
+        )
 
 
 class TestPollProposalKPI(APITestCase):
