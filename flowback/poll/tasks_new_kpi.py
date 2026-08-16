@@ -3,7 +3,10 @@ from django.db.models import (
     OuterRef,
     F,
     Subquery,
+    Window
 )
+from django.db.models.functions import Random, RowNumber
+
 from flowback.group.models import (
     Group,
 )
@@ -14,6 +17,8 @@ from flowback.poll.phases import (
 
 from flowback.poll.services.prediction import longest_poll_prediction_kpi_group_users
 import numpy as np
+import cvxpy as cp
+
 
 
 def newer_kpi_betting(group: Group):
@@ -75,16 +80,16 @@ def newer_kpi_betting(group: Group):
 
     longest_users = longest_poll_prediction_kpi_group_users(group, users_filter=None)
 
-    bets = PollProposalKPIBet.objects.filter(
+    bets_qs = PollProposalKPIBet.objects.filter(
         created_by__in=longest_users,
         proposal_kpi__pollproposalkpivote__isnull=False,
     ).distinct()
 
-    bets = normalize_bets(bets)
+    bets = normalize_bets(bets_qs)
 
-    winning_kpis = get_winning_kpi_values(group)
+    winning_kpis_qs = get_winning_kpi_values(group)
 
-    input_matrix = bet_outcome_matrix(bets, winning_kpis)
+    input_matrix = bet_outcome_matrix(bets, winning_kpis_qs)
 
     return method(input_matrix)
 
@@ -99,23 +104,25 @@ def normalize_bets(bets):
 
 
 def get_winning_kpi_values(group: Group):
-    winner = (
-        PollProposalKPI.objects
-        .filter(
-            proposal=OuterRef("proposal"),
-            kpi_value__kpi=OuterRef("kpi_value__kpi"),
-            proposal__poll__created_by__group=group
-        )
-        .annotate(votes=Count("pollproposalkpivote"))
-        .filter(votes__gt=0)
-        .order_by("-votes")
-        .values("id")[:1]
-    )
-
     winning_kpis = (
         PollProposalKPI.objects
-        .annotate(winner=Subquery(winner))
-        .filter(id=F("winner"))
+        .filter(proposal__poll__created_by__group=group)
+        .annotate(votes=Count("pollproposalkpivote"))
+        .filter(votes__gt=0)
+        .annotate(
+            winner_rank=Window(
+                expression=RowNumber(),
+                partition_by=[
+                    F("proposal_id"),
+                    F("kpi_value__kpi_id"),
+                ],
+                order_by=[
+                    F("votes").desc(),
+                    Random(),
+                ],
+            )
+        )
+        .filter(winner_rank=1)
     )
 
     return winning_kpis
@@ -138,8 +145,6 @@ def method(input_matrix):
 
 
 def quadratic_programming_solver(covariance_matrix, test=False):
-    import cvxpy as cp
-
     if np.any((covariance_matrix < 0) | (covariance_matrix > 1)):
         raise ValueError(
             "covariance_matrix entries must be between 0 and 1 (inclusive)"
