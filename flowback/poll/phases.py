@@ -18,6 +18,7 @@ from flowback.group.models import GroupUser, GroupUserDelegatePool, GroupTags, G
 from flowback.poll.models import Poll
 import pgtrigger
 
+
 class PollProposal(BaseModel):
     created_by = models.ForeignKey(GroupUser, on_delete=models.CASCADE)
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)

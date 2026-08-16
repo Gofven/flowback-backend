@@ -739,4 +739,4 @@ class PollPredictionStatementTest(APITestCase):
 
         # Test method returns user with longest prediction history
         users = list(GroupUser.objects.filter(group=self.group).values_list('user_id'))
-        self.assertEqual(longest_poll_prediction_group_user(self.group, users), fresh_users[0])
+        self.assertEqual(longest_poll_prediction_group_user(self.group, users).first(), fresh_users[0])
