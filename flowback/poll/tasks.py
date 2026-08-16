@@ -21,6 +21,7 @@ from django.utils import timezone
 from backend.settings import DEBUG, FLOWBACK_KPI_MAX_WEIGHT
 from flowback.common.services import get_object
 from flowback.group.models import (
+    Group,
     GroupTags,
     GroupUser,
     GroupUserDelegatePool,
@@ -47,6 +48,7 @@ from flowback.poll.phases import (
     PollVoting,
 )
 
+from flowback.poll.services.prediction import longest_poll_prediction_kpi_group_users
 import numpy as np
 
 from flowback.poll.notify import notify_poll
@@ -797,7 +799,7 @@ def poll_proposal_vote_count(poll_id: int) -> None:
         poll.poll_type_new.on_poll_finalized(winning_proposal=winning_proposal)
 
 
-def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI):
+def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI, group:Group):
     """
     This code was primarily written by Loke Hagberg 2026-06-12
     This work was made possible by my wonderful best friend: Emil Svenberg
@@ -835,7 +837,7 @@ def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI):
     # [0.05, 0.05, -0.1]
     # Betta - Outcome
     # [-0.05, -0.05, 0.1]
-    #
+
     # 2 polls och 2 predictors
     # Ordning av polls och evaluering borde inte spela roll
     # 0% 0% 100%
@@ -853,11 +855,17 @@ def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI):
     # Nånting om np arrays idk
     # tag 3 kolumner (i detta fall) ska inte spela roll
     # tag rader ska inte spela roll
+    longest_history = longest_poll_prediction_kpi_group_users(group, users_filter=None)
 
-    def method_1(input_matrix):
-        # Might be always convex
-        P_1 = np.cov(input_matrix)
-        result_1 = quadratic_programming_solver(P_1)[0]
+    bets = PollProposalKPIBet.objects.filter(
+        created_by__in=longest_history,
+        proposal_kpi__pollproposalkpivote__isnull=False,
+    ).distinct()
+
+    # def method_1(input_matrix):
+    #     # Might be always convex
+    #     P_1 = np.cov(input_matrix)
+    #     result_1 = quadratic_programming_solver(P_1)[0]
 
 
 def quadratic_programming_solver(covariance_matrix, test=False):
@@ -880,6 +888,7 @@ def quadratic_programming_solver(covariance_matrix, test=False):
     nonnegativity_constraint = (
         nonnegativity_coefficients @ predictor_weights <= nonnegativity_bounds
     )
+
     normalization_constraint = normalization_coefficients.T @ predictor_weights == 1
     optimization_problem = cp.Problem(
         # @ is matmul
