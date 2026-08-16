@@ -337,7 +337,6 @@ def longest_poll_prediction_kpi_group_users(group: Group,
     # List of eligible KPIs
     prediction_count = Count('pollproposalkpibet',
                              filter=Q(pollproposalkpibet__proposal_kpi__proposal__poll__end_date__lte=timestamp,
-                                      pollproposalkpibet__created_by__group=group,
                                       pollproposalkpibet__proposal_kpi__proposal__poll__poll_type=Poll.PollType.V2_SCORE,
                                       pollproposalkpibet__proposal_kpi__kpi_value__kpi__active=True))
 
@@ -364,7 +363,6 @@ def longest_poll_prediction_group_user(group: Group,
     # List of eligible KPIs
     prediction_count = Count('pollpredictionbet',
                              filter=Q(pollpredictionbet__prediction_statement__poll__end_date__lte=timestamp,
-                                      pollpredictionbet__created_by__group=group,
                                       pollpredictionbet__prediction_statement__poll__poll_type=Poll.PollType.SCORE,
                                       pollpredictionbet__prediction_statement__poll__active=True))
 
