@@ -39,39 +39,39 @@ def newer_kpi_betting(group: Group):
     Long term TODO: Formal verification in an functional language (Haskell? F#? Scala?).
     Also a compiled program/binary with this can avoid numpy and cvxpy bloat in the rest of flowback without a microservice.
     """
-    # Outcome värde 1 på vinnande KPI värden (baserat på pluralitetsröstning)
-    # Outcome värde 0 på andra KPI värden
-    # Ta random när lika
-    # Historiken lägs till när evaluering har skett. (HURRRR SKA MAN HITTA LÄNGSTA DÅ)
-    # Det är bara KPI på vinnande proposalen man tar med
+    # Outcome value 1 for winning KPI values (based on plurality voting)
+    # Outcome value 0 for other KPI values
+    # Choose randomly when tied
+    # History is added after evaluation. (HOW DO YOU FIND THE LONGEST HISTORY THEN?)
+    # Only include KPIs from the winning proposal
 
-    # Betta - Outcome
+    # Bet - Outcome
     # 1 predictor 1 poll
-    # Exempel: 1,2 5%, 3 90%
-    # Vinnande i tidigare historik 3
+    # Example: values 1 and 2 get 5%; value 3 gets 90%
+    # Winner in previous history: 3
     #
     # Outcome - Betts
     # [0.05, 0.05, -0.1]
-    # Betta - Outcome
+    # Bet - Outcome
     # [-0.05, -0.05, 0.1]
 
-    # 2 polls och 2 predictors
-    # Ordning av polls och evaluering borde inte spela roll
+    # 2 polls and 2 predictors
+    # Poll and evaluation order should not matter
     # 0% 0% 100%
     # 33% 33% 34%
-    # Evalueras 3
-    # Efter en poll
+    # Evaluated as 3
+    # After one poll
     # [0,    0,     0   ]
     # [0.33, 0.33, -0.66]
-    # Efter two poll
+    # After two polls
     # 0% 0% 100%
     # 33% 33% 34%
-    # Evalueras 3
+    # Evaluated as 3
     # [0,    0,     0,    0,    0,     0   ]
     # [0.33, 0.33, -0.66, 0.33, 0.33, -0.66]
-    # Nånting om np arrays idk
-    # tag 3 kolumner (i detta fall) ska inte spela roll
-    # tag rader ska inte spela roll
+    # Something about NumPy arrays, unclear
+    # Number of columns (3 in this case) should not matter
+    # Number of rows should not matter
 
     longest_users = longest_poll_prediction_kpi_group_users(group, users_filter=None)
 
@@ -80,7 +80,6 @@ def newer_kpi_betting(group: Group):
         proposal_kpi__pollproposalkpivote__isnull=False,
     ).distinct()
 
-    # for example: 90 --> 0.9
     bets = normalize_bets(bets)
 
     winning_kpis = get_winning_kpi_values(group)
@@ -90,20 +89,16 @@ def newer_kpi_betting(group: Group):
     return method(input_matrix)
 
 
+# For example: 90 --> 0.9
 def normalize_bets(bets):
-    weights = np.array(list(bets.values_list("weight", flat=True)), dtype=float)
-    return weights / weights.sum()
-
-
-def method(input_matrix):
-    # Might be always convex
-    P_1 = np.cov(input_matrix)
-    result = quadratic_programming_solver(P_1)[0]
-    return result
+    weights = np.array(
+        list(bets.values_list("weight", flat=True)),
+        dtype=float,
+    )
+    return weights / 100
 
 
 def get_winning_kpi_values(group: Group):
-
     winner = (
         PollProposalKPI.objects
         .filter(
@@ -133,6 +128,13 @@ def bet_outcome_matrix(bets, winner_index):
 
     difference = bets - outcome
     return np.array([difference, -difference]) if bets.ndim == 1 else difference
+
+
+def method(input_matrix):
+    # Might be always convex
+    P_1 = np.cov(input_matrix)
+    result = quadratic_programming_solver(P_1)[0]
+    return result
 
 
 def quadratic_programming_solver(covariance_matrix, test=False):
