@@ -797,67 +797,6 @@ def poll_proposal_vote_count(poll_id: int) -> None:
         poll.poll_type_new.on_poll_finalized(winning_proposal=winning_proposal)
 
 
-def poll_kpi_prediction_history(winning_proposal_kpi: PollProposalKPI):
-    return {
-        "winner": winning_proposal_kpi,
-        "bets": PollProposalKPIBet.objects.filter(
-            proposal_kpi__proposal=winning_proposal_kpi.proposal,
-            proposal_kpi__kpi_value__kpi=winning_proposal_kpi.kpi_value.kpi,
-        ).select_related(
-            "created_by",
-            "proposal_kpi",
-            "proposal_kpi__kpi_value",
-            "proposal_kpi__kpi_value__kpi",
-        ),
-    }
-
-
-def quadratic_programming_solver(covariance_matrix, test=False):
-    import cvxpy as cp
-
-    if np.any((covariance_matrix < 0) | (covariance_matrix > 1)):
-        raise ValueError("covariance_matrix entries must be between 0 and 1 (inclusive)")
-
-    # The covariance matrix shape
-    n = covariance_matrix.shape[0]
-    # No negative probabilities
-    G = -np.identity(n)
-    h = np.zeros(n)
-    # All probabilities add to one
-    q = np.ones(n)
-
-    # Define and solve the CVXPY problem.
-    x = cp.Variable(n)
-    prob = cp.Problem(
-        # @ is matmul
-        # .T is transpose
-        # With method 1, the covariance matricies that can be inputed are always convex
-        cp.Minimize(cp.quad_form(x, covariance_matrix)),
-        [G @ x <= h, q.T @ x == 1],
-    )
-
-    # Convex case
-    try:
-        prob.solve()
-
-    # Concave case
-    except Exception:
-        print("Concave minimization")
-        # TODO: for Emil: extend the algorithm to include the concave minimization case
-
-    solution = x.value
-    optimal_value = prob.value
-    dual_solution = prob.constraints[0].dual_value
-
-    if test:
-        print("\nThe optimal value is", optimal_value)
-        print("A solution x is")
-        print(solution)
-
-    # solution is a vector (np.array) that sums up to 1.
-    return [solution, optimal_value, dual_solution]
-
-
 def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI):
     """
     This code was primarily written by Loke Hagberg 2026-06-12
@@ -881,7 +820,6 @@ def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI):
     Long term TODO: Formal verification in an functional language (Haskell? F#? Scala?).
     Also a compiled program/binary with this can avoid numpy and cvxpy bloat in the rest of flowback without a microservice.
     """
-    # The covariance matrix
 
     def method_1(input_matrix):
         # Might be always convex
@@ -889,3 +827,71 @@ def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI):
         result_1 = quadratic_programming_solver(P_1)[0]
 
     return poll_kpi_prediction_history(winning_proposal_kpi=winning_proposal_kpi)
+
+
+def poll_kpi_prediction_history(winning_proposal_kpi: PollProposalKPI):
+    return {
+        "winner": winning_proposal_kpi,
+        "bets": PollProposalKPIBet.objects.filter(
+            proposal_kpi__proposal=winning_proposal_kpi.proposal,
+            proposal_kpi__kpi_value__kpi=winning_proposal_kpi.kpi_value.kpi,
+        ).select_related(
+            "created_by",
+            "proposal_kpi",
+            "proposal_kpi__kpi_value",
+            "proposal_kpi__kpi_value__kpi",
+        ),
+    }
+
+
+def quadratic_programming_solver(covariance_matrix, test=False):
+    import cvxpy as cp
+
+    if np.any((covariance_matrix < 0) | (covariance_matrix > 1)):
+        raise ValueError(
+            "covariance_matrix entries must be between 0 and 1 (inclusive)"
+        )
+
+    predictor_count = covariance_matrix.shape[0]
+    # No negative probabilities
+    nonnegativity_coefficients = -np.identity(predictor_count)
+    nonnegativity_bounds = np.zeros(predictor_count)
+    # All probabilities add to one
+    normalization_coefficients = np.ones(predictor_count)
+
+    # Define and solve the CVXPY problem.
+    predictor_weights = cp.Variable(predictor_count)
+    nonnegativity_constraint = (
+        nonnegativity_coefficients @ predictor_weights <= nonnegativity_bounds
+    )
+    normalization_constraint = (
+        normalization_coefficients.T @ predictor_weights == 1
+    )
+    optimization_problem = cp.Problem(
+        # @ is matmul
+        # .T is transpose
+        # With method 1, the covariance matricies that can be inputed are always convex
+        cp.Minimize(cp.quad_form(predictor_weights, covariance_matrix)),
+        [nonnegativity_constraint, normalization_constraint],
+    )
+
+    # Convex case
+    try:
+        optimization_problem.solve()
+
+    # Concave case
+    except Exception:
+        print("Concave minimization")
+        # TODO: for Emil: extend the algorithm to include the concave minimization case
+
+    weight_solution = predictor_weights.value
+    minimum_variance = optimization_problem.value
+    nonnegativity_dual_values = nonnegativity_constraint.dual_value
+
+    if test:
+        print("\nThe optimal value is", minimum_variance)
+        print("A solution x is")
+        print(weight_solution)
+
+    # weight_solution is a vector (np.array) that sums up to 1.
+    return [weight_solution, minimum_variance, nonnegativity_dual_values]
