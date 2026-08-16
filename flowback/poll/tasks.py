@@ -111,6 +111,16 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
     poll.status_prediction = 2
     poll.save()
 
+    if settings.FLOWBACK_ENABLE_NEW_KPI_SYSTEM:
+        return [
+            newer_kpi_betting(
+                group=poll.created_by.group
+            )
+        ]
+
+    # Old system
+    # TODO: Remove everything below!
+
     # Subquery to get the winning kpis per proposal
     pollproposalkpi_sq = (
         PollProposalKPI.objects.filter(
@@ -135,13 +145,6 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
         winner=F("id")
     )
 
-    if settings.FLOWBACK_ENABLE_NEW_KPI_SYSTEM:
-        return [
-            newer_kpi_betting(
-                group=poll.created_by.group
-            )
-            for winning_proposal_kpi in winning_proposal_kpis
-        ]
 
     dprint(
         "Winning KPIs",
@@ -863,11 +866,19 @@ def newer_kpi_betting(group:Group):
         proposal_kpi__pollproposalkpivote__isnull=False,
     ).distinct()
 
+    # for example: 90 --> 0.9
+    bets = normalize_bets(bets)
+
     winning_kpis = get_winning_kpi_values(group)
 
     input_matrix = bet_outcome_matrix(bets, winning_kpis)
 
     return method(input_matrix)
+
+
+def normalize_bets(bets):
+    weights = np.array(list(bets.values_list("weight", flat=True)), dtype=float)
+    return weights / weights.sum()
 
 
 def method(input_matrix):

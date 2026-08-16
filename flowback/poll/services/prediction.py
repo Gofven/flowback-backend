@@ -340,9 +340,18 @@ def longest_poll_prediction_kpi_group_users(group: Group,
                                     pollproposalkpibet__proposal_kpi__proposal__poll__poll_type=Poll.PollType.V2_SCORE,
                                     pollproposalkpibet__proposal_kpi__kpi_value__kpi__active=True))
 
-    longest_prediction_history_group_user = GroupUser.objects.filter(
-        group=group, user__in=users_filter
-    ).annotate(prediction_count=prediction_count)
+    longest_prediction_history_group_user = GroupUser.objects.filter(group=group)
+
+    if users_filter is not None:
+        longest_prediction_history_group_user = (
+            longest_prediction_history_group_user.filter(user__in=users_filter)
+        )
+
+    longest_prediction_history_group_user = (
+        longest_prediction_history_group_user.annotate(
+            prediction_count=prediction_count,
+        )
+    )
 
     result = longest_prediction_history_group_user.order_by('-prediction_count')
 
