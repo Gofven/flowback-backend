@@ -138,7 +138,7 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
     if settings.FLOWBACK_ENABLE_NEW_KPI_SYSTEM:
         return [
             newer_kpi_betting(
-                winning_proposal_kpi=winning_proposal_kpi,
+                group=poll.created_by.group
             )
             for winning_proposal_kpi in winning_proposal_kpis
         ]
@@ -799,7 +799,7 @@ def poll_proposal_vote_count(poll_id: int) -> None:
         poll.poll_type_new.on_poll_finalized(winning_proposal=winning_proposal)
 
 
-def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI, group:Group):
+def newer_kpi_betting(group:Group):
     """
     This code was primarily written by Loke Hagberg 2026-06-12
     This work was made possible by my wonderful best friend: Emil Svenberg
@@ -855,17 +855,59 @@ def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI, group:Group):
     # Nånting om np arrays idk
     # tag 3 kolumner (i detta fall) ska inte spela roll
     # tag rader ska inte spela roll
-    longest_history = longest_poll_prediction_kpi_group_users(group, users_filter=None)
+
+    longest_users = longest_poll_prediction_kpi_group_users(group, users_filter=None)
 
     bets = PollProposalKPIBet.objects.filter(
-        created_by__in=longest_history,
+        created_by__in=longest_users,
         proposal_kpi__pollproposalkpivote__isnull=False,
     ).distinct()
 
-    # def method_1(input_matrix):
-    #     # Might be always convex
-    #     P_1 = np.cov(input_matrix)
-    #     result_1 = quadratic_programming_solver(P_1)[0]
+    winning_kpis = get_winning_kpi_values(group)
+
+    input_matrix = bet_outcome_matrix(bets, winning_kpis)
+
+    return method(input_matrix)
+
+
+def method(input_matrix):
+    # Might be always convex
+    P_1 = np.cov(input_matrix)
+    result = quadratic_programming_solver(P_1)[0]
+    return result
+
+
+def get_winning_kpi_values(group:Group):
+
+    winner = (
+        PollProposalKPI.objects
+        .filter(
+            proposal=OuterRef("proposal"),
+            kpi_value__kpi=OuterRef("kpi_value__kpi"),
+            proposal__poll__created_by__group=group
+        )
+        .annotate(votes=Count("pollproposalkpivote"))
+        .filter(votes__gt=0)
+        .order_by("-votes")
+        .values("id")[:1]
+    )
+
+    winning_kpis = (
+        PollProposalKPI.objects
+        .annotate(winner=Subquery(winner))
+        .filter(id=F("winner"))
+    )
+
+    return winning_kpis
+
+
+def bet_outcome_matrix(bets, winner_index):
+    bets = np.asarray(bets, dtype=float)
+    outcome = np.zeros_like(bets)
+    outcome[winner_index] = 1
+
+    difference = bets - outcome
+    return np.array([difference, -difference])
 
 
 def quadratic_programming_solver(covariance_matrix, test=False):
