@@ -808,7 +808,7 @@ def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI):
     and fully overlapping track records are there multiple, pick one uniformly randomly.
 
     Example: If 1 predictor has participated 3 times on winning polls, and 5 predictors has participated 2 times, then this calculation
-    takes the 1 predictor only as input.
+    takes just 1 predictor as input (with history of 3).
 
     It is valuable to know what the value of the determinant is, one can use numpy.linalg.det(matrix) for that purpose
     Save all determinants as how near one is to a singular matrix the more sensitive the method chosen is to input data
@@ -820,28 +820,44 @@ def newer_kpi_betting(winning_proposal_kpi: PollProposalKPI):
     Long term TODO: Formal verification in an functional language (Haskell? F#? Scala?).
     Also a compiled program/binary with this can avoid numpy and cvxpy bloat in the rest of flowback without a microservice.
     """
+    # Outcome värde 1 på vinnande KPI värden (baserat på pluralitetsröstning)
+    # Outcome värde 0 på andra KPI värden
+    # Ta random när lika
+    # Historiken lägs till när evaluering har skett. (HURRRR SKA MAN HITTA LÄNGSTA DÅ)
+    # Det är bara KPI på vinnande proposalen man tar med
+
+    # Betta - Outcome
+    # 1 predictor 1 poll
+    # Exempel: 1,2 5%, 3 90%
+    # Vinnande i tidigare historik 3
+    #
+    # Outcome - Betts
+    # [0.05, 0.05, -0.1]
+    # Betta - Outcome
+    # [-0.05, -0.05, 0.1]
+    #
+    # 2 polls och 2 predictors
+    # Ordning av polls och evaluering borde inte spela roll
+    # 0% 0% 100%
+    # 33% 33% 34%
+    # Evalueras 3
+    # Efter en poll
+    # [0,    0,     0   ]
+    # [0.33, 0.33, -0.66]
+    # Efter two poll
+    # 0% 0% 100%
+    # 33% 33% 34%
+    # Evalueras 3
+    # [0,    0,     0,    0,    0,     0   ]
+    # [0.33, 0.33, -0.66, 0.33, 0.33, -0.66]
+    # Nånting om np arrays idk
+    # tag 3 kolumner (i detta fall) ska inte spela roll
+    # tag rader ska inte spela roll
 
     def method_1(input_matrix):
         # Might be always convex
         P_1 = np.cov(input_matrix)
         result_1 = quadratic_programming_solver(P_1)[0]
-
-    return poll_kpi_prediction_history(winning_proposal_kpi=winning_proposal_kpi)
-
-
-def poll_kpi_prediction_history(winning_proposal_kpi: PollProposalKPI):
-    return {
-        "winner": winning_proposal_kpi,
-        "bets": PollProposalKPIBet.objects.filter(
-            proposal_kpi__proposal=winning_proposal_kpi.proposal,
-            proposal_kpi__kpi_value__kpi=winning_proposal_kpi.kpi_value.kpi,
-        ).select_related(
-            "created_by",
-            "proposal_kpi",
-            "proposal_kpi__kpi_value",
-            "proposal_kpi__kpi_value__kpi",
-        ),
-    }
 
 
 def quadratic_programming_solver(covariance_matrix, test=False):
@@ -864,9 +880,7 @@ def quadratic_programming_solver(covariance_matrix, test=False):
     nonnegativity_constraint = (
         nonnegativity_coefficients @ predictor_weights <= nonnegativity_bounds
     )
-    normalization_constraint = (
-        normalization_coefficients.T @ predictor_weights == 1
-    )
+    normalization_constraint = normalization_coefficients.T @ predictor_weights == 1
     optimization_problem = cp.Problem(
         # @ is matmul
         # .T is transpose
