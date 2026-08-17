@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import numpy as np
 from rest_framework.test import APITestCase
 from django.test import override_settings
@@ -17,24 +15,6 @@ from flowback.poll.tests.utils import generate_poll_phase_kwargs
 from flowback.poll.views.prediction import PollProposalKPIBetAPI, PollProposalKPIVoteAPI, PollProposalKPIBetListAPI, \
     PollProposalKPIVoteListAPI, PollProposalKPIListAPI
 from flowback.poll.views.proposal import PollProposalCreateAPI
-
-
-class TestBetOutcomeMatrix(TestCase):
-    def test_comment_examples(self):
-        np.testing.assert_allclose(
-            bet_outcome_matrix([0.05, 0.05, 0.90], 2),
-            [[0.05, 0.05, -0.10], [-0.05, -0.05, 0.10]],
-        )
-
-        np.testing.assert_allclose(
-            bet_outcome_matrix(
-                [[0, 0, 1, 0, 0, 1],
-                 [0.33, 0.33, 0.34, 0.33, 0.33, 0.34]],
-                [2, 5],
-            ),
-            [[0, 0, 0, 0, 0, 0],
-             [0.33, 0.33, -0.66, 0.33, 0.33, -0.66]],
-        )
 
 
 class TestPollProposalKPI(APITestCase):
@@ -134,6 +114,47 @@ class TestPollProposalKPI(APITestCase):
                                           proposal_kpi=PollProposalKPI.objects.get(proposal=proposal,
                                                                                    kpi_value__kpi=group_kpi,
                                                                                    kpi_value__value=value))
+
+    def test_bet_outcome_matrix_matches_comment_example(self):
+        proposals = []
+        winners = []
+
+        for _ in range(2):
+            poll = self.generate_kpi_poll(group=self.group)
+            proposal = PollProposalFactory(poll=poll, created_by=self.group_user_creator)
+            PollProposalKPI.generate_kpis(proposal_id=proposal.id)
+            proposal_kpis = list(
+                PollProposalKPI.objects.filter(
+                    proposal=proposal,
+                    kpi_value__kpi=self.group_kpi_one,
+                ).order_by("id")
+            )
+
+            self.generate_kpi_bet(
+                self.group_user_one, self.group_kpi_one, proposal, 29, 100
+            )
+            for proposal_kpi, weight in zip(proposal_kpis, [33, 33, 34]):
+                PollProposalKPIBetFactory(
+                    created_by=self.group_user_two,
+                    proposal_kpi=proposal_kpi,
+                    weight=weight,
+                )
+
+            proposals.append(proposal)
+            winners.append(proposal_kpis[2])
+
+        matrix = bet_outcome_matrix(
+            PollProposalKPIBet.objects.filter(proposal_kpi__proposal__in=proposals),
+            PollProposalKPI.objects.filter(id__in=[winner.id for winner in winners]),
+        )
+
+        np.testing.assert_allclose(
+            matrix,
+            [
+                [0, 0, 0, 0, 0, 0],
+                [0.33, 0.33, -0.66, 0.33, 0.33, -0.66],
+            ],
+        )
 
     def test_kpi_combined_bet(self):
         # group_kpi_one, [12, 22, 29]

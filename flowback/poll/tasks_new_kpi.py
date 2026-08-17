@@ -2,10 +2,12 @@ from django.db.models import (
     Count,
     OuterRef,
     F,
+    QuerySet,
     Subquery,
     Window
 )
 from django.db.models.functions import Random, RowNumber
+from numpy.typing import NDArray
 
 from flowback.group.models import (
     Group,
@@ -82,25 +84,13 @@ def newer_kpi_betting(group: Group):
 
     bets_qs = PollProposalKPIBet.objects.filter(
         created_by__in=longest_users,
-        proposal_kpi__pollproposalkpivote__isnull=False,
     ).distinct()
-
-    bets = normalize_bets(bets_qs)
 
     winning_kpis_qs = get_winning_kpi_values(group)
 
-    input_matrix = bet_outcome_matrix(bets, winning_kpis_qs)
+    input_matrix = bet_outcome_matrix(bets_qs, winning_kpis_qs)
 
     return method(input_matrix)
-
-
-# For example: 90 --> 0.9
-def normalize_bets(bets):
-    weights = np.array(
-        list(bets.values_list("weight", flat=True)),
-        dtype=float,
-    )
-    return weights / 100
 
 
 def get_winning_kpi_values(group: Group):
@@ -128,23 +118,50 @@ def get_winning_kpi_values(group: Group):
     return winning_kpis
 
 
-def bet_outcome_matrix(bets, winner_index):
-    bets = np.asarray(bets, dtype=float)
-    outcome = np.zeros(bets.shape[-1])
-    outcome[winner_index] = 1
+def bet_outcome_matrix(
+    bets: QuerySet[PollProposalKPIBet],
+    winning_kpis: QuerySet[PollProposalKPI],
+) -> NDArray[np.float64]:
+    bets = list(bets)
+    winning_kpis = list(winning_kpis.order_by("proposal_id", "kpi_value__kpi_id"))
+    columns = [
+        proposal_kpi
+        for winner in winning_kpis
+        for proposal_kpi in PollProposalKPI.objects.filter(
+            proposal=winner.proposal,
+            kpi_value__kpi=winner.kpi_value.kpi,
+        ).order_by("id")
+    ]
+    bet_values = {
+        (bet.created_by_id, bet.proposal_kpi_id): bet.weight / 100
+        for bet in bets
+    }
+    predictor_ids = sorted({bet.created_by_id for bet in bets})
+    matrix = np.array(
+        [
+            [
+                bet_values.get((predictor_id, column.id), 0)
+                - (column in winning_kpis)
+                for column in columns
+            ]
+            for predictor_id in predictor_ids
+        ],
+        dtype=float,
+    )
 
-    difference = bets - outcome
-    return np.array([difference, -difference]) if bets.ndim == 1 else difference
+    return np.vstack((matrix, -matrix)) if len(matrix) == 1 else matrix
 
 
-def method(input_matrix):
+def method(input_matrix: NDArray[np.float64]):
     # Might be always convex
-    P_1 = np.cov(input_matrix)
-    result = quadratic_programming_solver(P_1)[0]
+    covariance_matrix = np.cov(input_matrix)
+    result = quadratic_programming_solver(covariance_matrix)[0]
     return result
 
 
-def quadratic_programming_solver(covariance_matrix, test=False):
+def quadratic_programming_solver(
+    covariance_matrix: NDArray[np.float64], test: bool = False
+):
     if np.any((covariance_matrix < 0) | (covariance_matrix > 1)):
         raise ValueError(
             "covariance_matrix entries must be between 0 and 1 (inclusive)"
@@ -180,6 +197,7 @@ def quadratic_programming_solver(covariance_matrix, test=False):
     except Exception:
         print("Concave minimization")
         # TODO: for Emil: extend the algorithm to include the concave minimization case
+        # Might not actually be needed tbh
 
     weight_solution = predictor_weights.value
     minimum_variance = optimization_problem.value
