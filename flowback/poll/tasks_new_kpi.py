@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.db.models import (
     Count,
     OuterRef,
@@ -23,7 +25,7 @@ import cvxpy as cp
 
 
 
-def newer_kpi_betting(group: Group):
+def newer_kpi_betting(group: Group) -> NDArray[np.float64] | None:
     """
     This code was primarily written by Loke Hagberg 2026-06-12
     This work was made possible by my wonderful best friend: Emil Svenberg
@@ -93,7 +95,7 @@ def newer_kpi_betting(group: Group):
     return method(input_matrix)
 
 
-def get_winning_kpi_values(group: Group):
+def get_winning_kpi_values(group: Group) -> QuerySet[PollProposalKPI]:
     winning_kpis = (
         PollProposalKPI.objects
         .filter(proposal__poll__created_by__group=group)
@@ -152,16 +154,16 @@ def bet_outcome_matrix(
     return np.vstack((matrix, -matrix)) if len(matrix) == 1 else matrix
 
 
-def method(input_matrix: NDArray[np.float64]):
+def method(input_matrix: NDArray[np.float64]) -> NDArray[np.float64] | None:
     # Might be always convex
     covariance_matrix = np.cov(input_matrix)
     result = quadratic_programming_solver(covariance_matrix)[0]
-    return result
+    return cast(NDArray[np.float64] | None, result)
 
 
 def quadratic_programming_solver(
     covariance_matrix: NDArray[np.float64], test: bool = False
-):
+) -> list[NDArray[np.float64] | float | None]:
     if np.any((covariance_matrix < 0) | (covariance_matrix > 1)):
         raise ValueError(
             "covariance_matrix entries must be between 0 and 1 (inclusive)"

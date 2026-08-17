@@ -112,12 +112,21 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
     poll.status_prediction = 2
     poll.save()
 
-    if settings.FLOWBACK_ENABLE_NEW_KPI_SYSTEM:
+    # if settings.FLOWBACK_ENABLE_NEW_KPI_SYSTEM:
+    if True:
         return [
             newer_kpi_betting(
                 group=poll.created_by.group
             )
         ]
+
+    poll.status_prediction = 1
+    poll.save()
+
+    notify_poll(
+    message="Poll prediction phase has ended and results have been counted",
+    action=NotificationChannel.Action.UPDATED,
+    poll=poll,
 
     # Old system
     # TODO: Remove everything below!
