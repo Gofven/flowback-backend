@@ -228,8 +228,12 @@ def quadratic_programming_solver(
 def weighted_kpi_vote_averages(
     votes: QuerySet[PollProposalKPIVote],
     weights: dict[int, float],
-) -> list[dict[str, int | float]]:
-    totals: dict[tuple[int, int], tuple[float, float]] = {}
+) -> list[dict[str, int | float | str]]:
+    # kpi_value.value is a free-text label (e.g. "good"/"bad"), not a magnitude, so a vote
+    # can't be averaged numerically. Instead each vote contributes its full weight to the
+    # specific value the voter picked, normalized against the kpi's total weight.
+    value_weights: dict[tuple[int, int, str], float] = {}
+    total_weights: dict[tuple[int, int], float] = {}
     for user_id, proposal_id, kpi_id, value in votes.filter(
         created_by_id__in=weights
     ).values_list(
@@ -238,21 +242,20 @@ def weighted_kpi_vote_averages(
         "proposal_kpi__kpi_value__kpi_id",
         "proposal_kpi__kpi_value__value",
     ):
-        key = (proposal_id, kpi_id)
-        weighted_sum, total_weight = totals.get(key, (0.0, 0.0))
         weight = weights[user_id]
-        totals[key] = (weighted_sum + float(value) * weight, total_weight + weight)
+        key = (proposal_id, kpi_id)
+        value_key = (proposal_id, kpi_id, value)
+        value_weights[value_key] = value_weights.get(value_key, 0.0) + weight
+        total_weights[key] = total_weights.get(key, 0.0) + weight
 
     return [
         {
             "proposal_id": proposal_id,
             "kpi_id": kpi_id,
-            "weighted_average": weighted_sum / total_weight,
+            "value": value,
+            "weighted_average": value_weight / total_weights[(proposal_id, kpi_id)],
         }
-        for (proposal_id, kpi_id), (weighted_sum, total_weight) in sorted(
-            totals.items()
-        )
-        if total_weight
+        for (proposal_id, kpi_id, value), value_weight in sorted(value_weights.items())
     ]
 
 

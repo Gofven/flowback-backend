@@ -186,8 +186,15 @@ class TestPollProposalKPI(APITestCase):
                 {
                     "proposal_id": proposal.id,
                     "kpi_id": self.group_kpi_one.id,
-                    "weighted_average": 19.5,
-                }
+                    "value": "12",
+                    "weighted_average": 0.25,
+                },
+                {
+                    "proposal_id": proposal.id,
+                    "kpi_id": self.group_kpi_one.id,
+                    "value": "22",
+                    "weighted_average": 0.75,
+                },
             ],
         )
 
@@ -337,7 +344,8 @@ class TestPollProposalKPI(APITestCase):
                 {
                     "proposal_id": proposal.id,
                     "kpi_id": self.group_kpi_one.id,
-                    "weighted_average": 22.0,
+                    "value": "22",
+                    "weighted_average": 1.0,
                 }
             ],
         )
