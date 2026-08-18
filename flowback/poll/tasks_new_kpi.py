@@ -17,6 +17,7 @@ from flowback.group.models import (
 from flowback.poll.phases import (
     PollProposalKPI,
     PollProposalKPIBet,
+    PollProposalKPIVote,
 )
 
 from flowback.poll.services.prediction import longest_poll_prediction_kpi_group_users
@@ -25,7 +26,7 @@ import cvxpy as cp
 
 
 
-def newer_kpi_betting(group: Group) -> NDArray[np.float64] | None:
+def newer_kpi_betting(group: Group) -> dict[int, float] | None:
     """
     This code was primarily written by Loke Hagberg 2026-06-12
     This work was made possible by my wonderful best friend: Emil Svenberg
@@ -87,12 +88,22 @@ def newer_kpi_betting(group: Group) -> NDArray[np.float64] | None:
     bets_qs = PollProposalKPIBet.objects.filter(
         created_by__in=longest_users,
     ).distinct()
+    predictor_ids = sorted(set(bets_qs.values_list("created_by_id", flat=True)))
 
     winning_kpis_qs = get_winning_kpi_values(group)
 
     input_matrix = bet_outcome_matrix(bets_qs, winning_kpis_qs)
+    if not predictor_ids or not input_matrix.size:
+        return None
+    if len(predictor_ids) == 1:
+        return {predictor_ids[0]: 1.0}
 
-    return method(input_matrix)
+    weights = method(input_matrix)
+    return (
+        None
+        if weights is None
+        else dict(zip(predictor_ids, map(float, weights), strict=True))
+    )
 
 
 def get_winning_kpi_values(group: Group) -> QuerySet[PollProposalKPI]:
@@ -212,3 +223,34 @@ def quadratic_programming_solver(
 
     # weight_solution is a vector (np.array) that sums up to 1.
     return [weight_solution, minimum_variance, nonnegativity_dual_values]
+
+
+def weighted_kpi_vote_averages(
+    votes: QuerySet[PollProposalKPIVote],
+    weights: dict[int, float],
+) -> list[dict[str, int | float]]:
+    totals: dict[tuple[int, int], tuple[float, float]] = {}
+    for user_id, proposal_id, kpi_id, value in votes.filter(
+        created_by_id__in=weights
+    ).values_list(
+        "created_by_id",
+        "proposal_kpi__proposal_id",
+        "proposal_kpi__kpi_value__kpi_id",
+        "proposal_kpi__kpi_value__value",
+    ):
+        key = (proposal_id, kpi_id)
+        weighted_sum, total_weight = totals.get(key, (0.0, 0.0))
+        weight = weights[user_id]
+        totals[key] = (weighted_sum + float(value) * weight, total_weight + weight)
+
+    return [
+        {
+            "proposal_id": proposal_id,
+            "kpi_id": kpi_id,
+            "weighted_average": weighted_sum / total_weight,
+        }
+        for (proposal_id, kpi_id), (weighted_sum, total_weight) in sorted(
+            totals.items()
+        )
+        if total_weight
+    ]

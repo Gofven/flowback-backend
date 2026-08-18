@@ -8,7 +8,7 @@ from flowback.group.tests.factories import GroupFactory, GroupUserFactory, Group
 from flowback.poll.models import Poll
 from flowback.poll.phases import PollProposal, PollProposalKPI, PollProposalKPIBet, PollProposalKPIVote
 from flowback.poll.tasks import poll_kpi_count
-from flowback.poll.tasks_new_kpi import bet_outcome_matrix
+from flowback.poll.tasks_new_kpi import bet_outcome_matrix, weighted_kpi_vote_averages
 from flowback.poll.tests.factories import PollFactory, PollProposalFactory, PollProposalKPIBetFactory, \
     PollProposalKPIVoteFactory
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
@@ -156,6 +156,37 @@ class TestPollProposalKPI(APITestCase):
             ],
         )
 
+    def test_weighted_kpi_vote_averages(self):
+        poll = self.generate_kpi_poll(group=self.group)
+        proposal = PollProposalFactory(
+            poll=poll, created_by=self.group_user_creator
+        )
+        PollProposalKPI.generate_kpis(proposal_id=proposal.id)
+        self.generate_kpi_vote(
+            self.group_user_one, self.group_kpi_one, proposal, 12
+        )
+        self.generate_kpi_vote(
+            self.group_user_two, self.group_kpi_one, proposal, 22
+        )
+
+        averages = weighted_kpi_vote_averages(
+            PollProposalKPIVote.objects.filter(
+                proposal_kpi__proposal__poll=poll
+            ),
+            {self.group_user_one.id: 0.25, self.group_user_two.id: 0.75},
+        )
+
+        self.assertEqual(
+            averages,
+            [
+                {
+                    "proposal_id": proposal.id,
+                    "kpi_id": self.group_kpi_one.id,
+                    "weighted_average": 19.5,
+                }
+            ],
+        )
+
     def test_kpi_combined_bet(self):
         # group_kpi_one, [12, 22, 29]
         # group_kpi_two, [19, 99, 218, 227, 310, 827]
@@ -232,7 +263,7 @@ class TestPollProposalKPI(APITestCase):
         print("\n\n")
 
     @override_settings(FLOWBACK_ENABLE_NEW_KPI_SYSTEM=True)
-    def test_new_kpi_betting_queries_bets_for_each_winner(self):
+    def test_new_kpi_betting_returns_weighted_vote_average(self):
         poll = PollFactory(created_by=self.group_user_creator,
                            poll_type=Poll.PollType.V2_SCORE,
                            **generate_poll_phase_kwargs('prediction_vote'))
@@ -266,46 +297,19 @@ class TestPollProposalKPI(APITestCase):
             self.group_user_two, self.group_kpi_one, proposal, 12
         )
 
-        histories = poll_kpi_count(poll_id=poll.id)
-        history = histories[0]
-        winner = history["winner"]
-        bets = list(history["bets"])
-        winner_votes = PollProposalKPIVote.objects.filter(
-            proposal_kpi=winner
-        ).count()
-        logged_bets = [
-            {
-                "group_user_id": bet.created_by_id,
-                "value": bet.proposal_kpi.kpi_value.value,
-                "weight": bet.weight,
-            }
-            for bet in bets
-        ]
-
-        print(
-            "Winning KPI:",
-            {
-                "kpi": winner.kpi_value.kpi.name,
-                "value": winner.kpi_value.value,
-                "votes": winner_votes,
-            },
-        )
-        print("Bets for winner's proposal/KPI:", logged_bets)
-
-        self.assertEqual(len(histories), 1)
-        self.assertEqual(winner.kpi_value.value, "22")
-        self.assertEqual(winner_votes, 2)
-        self.assertSetEqual(
-            {
-                (bet.proposal_kpi.kpi_value.value, bet.weight)
-                for bet in bets
-            },
-            {("12", 5), ("22", 10)},
+        self.assertEqual(
+            poll_kpi_count(poll_id=poll.id),
+            [
+                {
+                    "proposal_id": proposal.id,
+                    "kpi_id": self.group_kpi_one.id,
+                    "weighted_average": 22.0,
+                }
+            ],
         )
 
-    @override_settings(FLOWBACK_ENABLE_NEW_KPI_SYSTEM=False)
-    def test_old_kpi_betting_runs_when_new_system_is_disabled(self):
-        self.assertIsNone(poll_kpi_count(poll_id=self.poll.id))
+    def test_new_kpi_betting_returns_no_averages_without_history(self):
+        self.assertEqual(poll_kpi_count(poll_id=self.poll.id), [])
 
     def test_proposal_kpi_list(self):
         # TODO block users from accessing kpis they are not permitted to access (e.g. poll for specific workgroup)

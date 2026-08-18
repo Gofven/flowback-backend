@@ -45,11 +45,12 @@ from flowback.poll.phases import (
     PollProposal,
     PollProposalKPI,
     PollProposalKPIBet,
+    PollProposalKPIVote,
     PollVoting,
 )
 
 from flowback.poll.services.prediction import longest_poll_prediction_kpi_group_users
-from flowback.poll.tasks_new_kpi import newer_kpi_betting
+from flowback.poll.tasks_new_kpi import newer_kpi_betting, weighted_kpi_vote_averages
 import numpy as np
 
 from flowback.poll.notify import notify_poll
@@ -113,20 +114,25 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
     poll.save()
 
     # if settings.FLOWBACK_ENABLE_NEW_KPI_SYSTEM:
-    if True:
-        return [
-            newer_kpi_betting(
-                group=poll.created_by.group
-            )
-        ]
+    # if True:
+
+    weights = newer_kpi_betting(group=poll.created_by.group)
+
+    kpi_votes = PollProposalKPIVote.objects.filter(
+        proposal_kpi__proposal__poll=poll
+    )
+    weighted_averages = weighted_kpi_vote_averages(kpi_votes, weights or {})
 
     poll.status_prediction = 1
     poll.save()
 
     notify_poll(
-    message="Poll prediction phase has ended and results have been counted",
-    action=NotificationChannel.Action.UPDATED,
-    poll=poll,
+        message="Poll prediction phase has ended and results have been counted",
+        action=NotificationChannel.Action.UPDATED,
+        poll=poll,
+    )
+
+    return weighted_averages
 
     # Old system
     # TODO: Remove everything below!
