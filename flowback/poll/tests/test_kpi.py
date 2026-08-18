@@ -8,7 +8,11 @@ from flowback.group.tests.factories import GroupFactory, GroupUserFactory, Group
 from flowback.poll.models import Poll
 from flowback.poll.phases import PollProposal, PollProposalKPI, PollProposalKPIBet, PollProposalKPIVote
 from flowback.poll.tasks import poll_kpi_count
-from flowback.poll.tasks_new_kpi import bet_outcome_matrix, weighted_kpi_vote_averages
+from flowback.poll.tasks_new_kpi import (
+    bet_outcome_matrix,
+    update_kpi_combined_bets,
+    weighted_kpi_vote_averages,
+)
 from flowback.poll.tests.factories import PollFactory, PollProposalFactory, PollProposalKPIBetFactory, \
     PollProposalKPIVoteFactory
 from flowback.poll.tests.utils import generate_poll_phase_kwargs
@@ -187,6 +191,36 @@ class TestPollProposalKPI(APITestCase):
             ],
         )
 
+    def test_update_kpi_combined_bets(self):
+        poll = self.generate_kpi_poll(group=self.group)
+        proposal = PollProposalFactory(
+            poll=poll, created_by=self.group_user_creator
+        )
+        PollProposalKPI.generate_kpis(proposal_id=proposal.id)
+        self.generate_kpi_vote(
+            self.group_user_one, self.group_kpi_one, proposal, 12
+        )
+        self.generate_kpi_vote(
+            self.group_user_two, self.group_kpi_one, proposal, 22
+        )
+
+        update_kpi_combined_bets(
+            PollProposalKPIVote.objects.filter(
+                proposal_kpi__proposal__poll=poll
+            ),
+            {self.group_user_one.id: 0.25, self.group_user_two.id: 0.75},
+        )
+
+        combined_bets = dict(
+            PollProposalKPI.objects.filter(
+                proposal=proposal, kpi_value__kpi=self.group_kpi_one
+            ).values_list("kpi_value__value", "combined_bet")
+        )
+        self.assertEqual(float(combined_bets["12"]), 0.25)
+        self.assertEqual(float(combined_bets["22"]), 0.75)
+        self.assertEqual(float(combined_bets["29"]), 0)
+        self.assertEqual(sum(map(float, combined_bets.values())), 1)
+
     def test_kpi_combined_bet(self):
         # group_kpi_one, [12, 22, 29]
         # group_kpi_two, [19, 99, 218, 227, 310, 827]
@@ -307,9 +341,22 @@ class TestPollProposalKPI(APITestCase):
                 }
             ],
         )
+        combined_bets = dict(
+            PollProposalKPI.objects.filter(
+                proposal=proposal, kpi_value__kpi=self.group_kpi_one
+            ).values_list("kpi_value__value", "combined_bet")
+        )
+        self.assertEqual(float(combined_bets["12"]), 0)
+        self.assertEqual(float(combined_bets["22"]), 1)
+        self.assertEqual(float(combined_bets["29"]), 0)
 
     def test_new_kpi_betting_returns_no_averages_without_history(self):
         self.assertEqual(poll_kpi_count(poll_id=self.poll.id), [])
+        self.assertFalse(
+            PollProposalKPI.objects.filter(
+                proposal__poll=self.poll, combined_bet__isnull=False
+            ).exists()
+        )
 
     def test_proposal_kpi_list(self):
         # TODO block users from accessing kpis they are not permitted to access (e.g. poll for specific workgroup)

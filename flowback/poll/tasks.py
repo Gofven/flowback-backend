@@ -50,7 +50,11 @@ from flowback.poll.phases import (
 )
 
 from flowback.poll.services.prediction import longest_poll_prediction_kpi_group_users
-from flowback.poll.tasks_new_kpi import newer_kpi_betting, weighted_kpi_vote_averages
+from flowback.poll.tasks_new_kpi import (
+    newer_kpi_betting,
+    update_kpi_combined_bets,
+    weighted_kpi_vote_averages,
+)
 import numpy as np
 
 from flowback.poll.notify import notify_poll
@@ -122,6 +126,8 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
         proposal_kpi__proposal__poll=poll
     )
     weighted_averages = weighted_kpi_vote_averages(kpi_votes, weights or {})
+    PollProposalKPI.objects.filter(proposal__poll=poll).update(combined_bet=None)
+    update_kpi_combined_bets(kpi_votes, weights or {})
 
     poll.status_prediction = 1
     poll.save()

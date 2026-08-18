@@ -254,3 +254,38 @@ def weighted_kpi_vote_averages(
         )
         if total_weight
     ]
+
+
+def update_kpi_combined_bets(
+    votes: QuerySet[PollProposalKPIVote],
+    weights: dict[int, float],
+) -> None:
+    value_weights: dict[int, float] = {}
+    total_weights: dict[tuple[int, int], float] = {}
+    for user_id, proposal_kpi_id, proposal_id, kpi_id in votes.filter(
+        created_by_id__in=weights
+    ).values_list(
+        "created_by_id",
+        "proposal_kpi_id",
+        "proposal_kpi__proposal_id",
+        "proposal_kpi__kpi_value__kpi_id",
+    ):
+        weight = weights[user_id]
+        value_weights[proposal_kpi_id] = value_weights.get(proposal_kpi_id, 0) + weight
+        key = (proposal_id, kpi_id)
+        total_weights[key] = total_weights.get(key, 0) + weight
+
+    proposal_kpis = list(
+        PollProposalKPI.objects.filter(
+            proposal_id__in={proposal_id for proposal_id, _ in total_weights}
+        ).select_related("kpi_value")
+    )
+    changed = []
+    for proposal_kpi in proposal_kpis:
+        key = (proposal_kpi.proposal_id, proposal_kpi.kpi_value.kpi_id)
+        total_weight = total_weights.get(key)
+        if total_weight:
+            proposal_kpi.combined_bet = value_weights.get(proposal_kpi.id, 0) / total_weight
+            changed.append(proposal_kpi)
+
+    PollProposalKPI.objects.bulk_update(changed, ["combined_bet"])
