@@ -53,13 +53,14 @@ from flowback.poll.phases import (
 from flowback.poll.services.prediction import longest_poll_prediction_kpi_group_users
 from flowback.poll.tasks_new_kpi import (
     newer_kpi_betting,
-    update_kpi_combined_bets,
-    weighted_kpi_vote_averages,
+    update_kpi_combined_bets_from_bets,
 )
 import numpy as np
 
 from flowback.poll.notify import notify_poll
+import logging
 
+logger = logging.getLogger(__name__)
 
 @shared_task
 def poll_area_vote_count(poll_id: int):
@@ -118,18 +119,17 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
     poll.status_prediction = 2
     poll.save()
 
-    PollProposalKPI.objects.filter(proposal__poll=poll).update(combined_bet=None)
-
     weighted_averages = []
     for kpi in GroupKPI.objects.filter(group=poll.created_by.group, active=True):
         weights = newer_kpi_betting(group=poll.created_by.group, kpi=kpi)
 
-        kpi_votes = PollProposalKPIVote.objects.filter(
+        # Bets close together with this poll's own prediction_bet phase, so they're the
+        # only data available yet: this is what populates combined_bet for delegates.
+        kpi_bets = PollProposalKPIBet.objects.filter(
             proposal_kpi__proposal__poll=poll,
             proposal_kpi__kpi_value__kpi=kpi,
         )
-        weighted_averages += weighted_kpi_vote_averages(kpi_votes, weights or {})
-        update_kpi_combined_bets(kpi_votes, weights or {})
+        update_kpi_combined_bets_from_bets(kpi_bets, weights or {})
 
     poll.status_prediction = 1
     poll.save()

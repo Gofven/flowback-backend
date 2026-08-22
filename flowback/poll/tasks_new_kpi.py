@@ -171,7 +171,7 @@ def bet_outcome_matrix(
         dtype=float,
     )
 
-    return np.vstack((matrix, -matrix)) if len(matrix) == 1 else matrix
+    return matrix
 
 
 def method(input_matrix: NDArray[np.float64]) -> NDArray[np.float64] | None:
@@ -234,55 +234,29 @@ def quadratic_programming_solver(
     return [weight_solution, minimum_variance, nonnegativity_dual_values]
 
 
-def weighted_kpi_vote_averages(
-    votes: QuerySet[PollProposalKPIVote],
-    weights: dict[int, float],
-) -> list[dict[str, int | float | str]]:
-    # kpi_value.value is a free-text label (e.g. "good"/"bad"), not a magnitude, so a vote
-    # can't be averaged numerically. Instead each vote contributes its full weight to the
-    # specific value the voter picked, normalized against the kpi's total weight.
-    value_weights: dict[tuple[int, int, str], float] = {}
-    total_weights: dict[tuple[int, int], float] = {}
-    for user_id, proposal_id, kpi_id, value in votes.filter(
-        created_by_id__in=weights
-    ).values_list(
-        "created_by_id",
-        "proposal_kpi__proposal_id",
-        "proposal_kpi__kpi_value__kpi_id",
-        "proposal_kpi__kpi_value__value",
-    ):
-        weight = weights[user_id]
-        key = (proposal_id, kpi_id)
-        value_key = (proposal_id, kpi_id, value)
-        value_weights[value_key] = value_weights.get(value_key, 0.0) + weight
-        total_weights[key] = total_weights.get(key, 0.0) + weight
-
-    return [
-        {
-            "proposal_id": proposal_id,
-            "kpi_id": kpi_id,
-            "value": value,
-            "weighted_average": value_weight / total_weights[(proposal_id, kpi_id)],
-        }
-        for (proposal_id, kpi_id, value), value_weight in sorted(value_weights.items())
-    ]
-
-
-def update_kpi_combined_bets(
-    votes: QuerySet[PollProposalKPIVote],
+def update_kpi_combined_bets_from_bets(
+    bets: QuerySet[PollProposalKPIBet],
     weights: dict[int, float],
 ) -> None:
+    """
+    Computes combined_bet from predictor bets, available as soon as prediction_bet
+    phase ends. Votes (update_kpi_combined_bets) can't exist until the poll's own
+    result phase, long after delegate_vote already needs a populated combined_bet,
+    so this is the value delegates actually see; votes later refine older polls'
+    combined_bet once their outcomes are known.
+    """
     value_weights: dict[int, float] = {}
     total_weights: dict[tuple[int, int], float] = {}
-    for user_id, proposal_kpi_id, proposal_id, kpi_id in votes.filter(
+    for user_id, proposal_kpi_id, proposal_id, kpi_id, bet_weight in bets.filter(
         created_by_id__in=weights
     ).values_list(
         "created_by_id",
         "proposal_kpi_id",
         "proposal_kpi__proposal_id",
         "proposal_kpi__kpi_value__kpi_id",
+        "weight",
     ):
-        weight = weights[user_id]
+        weight = weights[user_id] * (bet_weight / 100)
         value_weights[proposal_kpi_id] = value_weights.get(proposal_kpi_id, 0) + weight
         key = (proposal_id, kpi_id)
         total_weights[key] = total_weights.get(key, 0) + weight
