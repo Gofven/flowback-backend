@@ -25,6 +25,7 @@ from flowback.group.models import (
     GroupTags,
     GroupUser,
     GroupUserDelegatePool,
+    GroupKPI,
     GroupKPIValue,
 )
 from flowback.group.selectors.permission import permission_q
@@ -117,17 +118,18 @@ def poll_kpi_count(poll_id: int, disable_dprint: bool = True):
     poll.status_prediction = 2
     poll.save()
 
-    # if settings.FLOWBACK_ENABLE_NEW_KPI_SYSTEM:
-    # if True:
-
-    weights = newer_kpi_betting(group=poll.created_by.group)
-
-    kpi_votes = PollProposalKPIVote.objects.filter(
-        proposal_kpi__proposal__poll=poll
-    )
-    weighted_averages = weighted_kpi_vote_averages(kpi_votes, weights or {})
     PollProposalKPI.objects.filter(proposal__poll=poll).update(combined_bet=None)
-    update_kpi_combined_bets(kpi_votes, weights or {})
+
+    weighted_averages = []
+    for kpi in GroupKPI.objects.filter(group=poll.created_by.group, active=True):
+        weights = newer_kpi_betting(group=poll.created_by.group, kpi=kpi)
+
+        kpi_votes = PollProposalKPIVote.objects.filter(
+            proposal_kpi__proposal__poll=poll,
+            proposal_kpi__kpi_value__kpi=kpi,
+        )
+        weighted_averages += weighted_kpi_vote_averages(kpi_votes, weights or {})
+        update_kpi_combined_bets(kpi_votes, weights or {})
 
     poll.status_prediction = 1
     poll.save()

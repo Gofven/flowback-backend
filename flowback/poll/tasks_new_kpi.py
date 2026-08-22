@@ -13,6 +13,7 @@ from numpy.typing import NDArray
 
 from flowback.group.models import (
     Group,
+    GroupKPI,
 )
 from flowback.poll.phases import (
     PollProposalKPI,
@@ -23,10 +24,11 @@ from flowback.poll.phases import (
 from flowback.poll.services.prediction import longest_poll_prediction_kpi_group_users
 import numpy as np
 import cvxpy as cp
+import logging
 
+logger = logging.getLogger(__name__)
 
-
-def newer_kpi_betting(group: Group) -> dict[int, float] | None:
+def newer_kpi_betting(group: Group, kpi: GroupKPI) -> dict[int, float] | None:
     """
     This code was primarily written by Loke Hagberg 2026-06-12
     This work was made possible by my wonderful best friend: Emil Svenberg
@@ -83,42 +85,49 @@ def newer_kpi_betting(group: Group) -> dict[int, float] | None:
     # Number of columns (3 in this case) should not matter
     # Number of rows should not matter
 
+    logger.info("starting new kpi calculations")
     longest_users = longest_poll_prediction_kpi_group_users(group, users_filter=None)
+    logger.info("longest_users: %s", longest_users)
 
     bets_qs = PollProposalKPIBet.objects.filter(
         created_by__in=longest_users,
     ).distinct()
-    predictor_ids = sorted(set(bets_qs.values_list("created_by_id", flat=True)))
 
-    winning_kpis_qs = get_winning_kpi_values(group)
+    logger.info("bets_qs: %s", bets_qs)
+
+    predictor_ids = sorted(set(bets_qs.values_list("created_by_id", flat=True)))
+    logger.info("predictor_ids: %s", predictor_ids)
+
+    winning_kpis_qs = get_winning_kpi_values(group, kpi)
+    logger.info("winning_kpis_qs: %s", winning_kpis_qs)
 
     input_matrix = bet_outcome_matrix(bets_qs, winning_kpis_qs)
+    logger.info("input_matrix: %s", input_matrix)
+
     if not predictor_ids or not input_matrix.size:
         return None
     if len(predictor_ids) == 1:
         return {predictor_ids[0]: 1.0}
 
     weights = method(input_matrix)
-    return (
-        None
-        if weights is None
-        else dict(zip(predictor_ids, map(float, weights), strict=True))
-    )
+    logger.info("weights: %s", weights)
+    if weights is None:
+        logger.warning("KPI calculation got None")
+        return None
+
+    return dict(zip(predictor_ids, map(float, weights), strict=True))
 
 
-def get_winning_kpi_values(group: Group) -> QuerySet[PollProposalKPI]:
+def get_winning_kpi_values(group: Group, kpi: GroupKPI) -> QuerySet[PollProposalKPI]:
     winning_kpis = (
         PollProposalKPI.objects
-        .filter(proposal__poll__created_by__group=group)
+        .filter(proposal__poll__created_by__group=group, kpi_value__kpi=kpi)
         .annotate(votes=Count("pollproposalkpivote"))
         .filter(votes__gt=0)
         .annotate(
             winner_rank=Window(
                 expression=RowNumber(),
-                partition_by=[
-                    F("proposal_id"),
-                    F("kpi_value__kpi_id"),
-                ],
+                partition_by=[F("proposal_id")],
                 order_by=[
                     F("votes").desc(),
                     Random(),
@@ -208,7 +217,7 @@ def quadratic_programming_solver(
 
     # Concave case
     except Exception:
-        print("Concave minimization")
+        logger.warning("Concave minimization, uncalculated results!")
         # TODO: for Emil: extend the algorithm to include the concave minimization case
         # Might not actually be needed tbh
 
