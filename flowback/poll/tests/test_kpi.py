@@ -52,7 +52,7 @@ class TestPollProposalKPI(APITestCase):
 
     def test_kpi_bet(self):
         values = [12, 22, 29]
-        weights = [19, 705, 2]
+        weights = [19, 79, 2]
 
         response = generate_request(api=PollProposalKPIBetAPI,
                                     user=self.group_user_one.user,
@@ -68,6 +68,17 @@ class TestPollProposalKPI(APITestCase):
                                                               proposal_kpi__kpi_value__value=values[i],
                                                               weight=weights[i]).exists(),
                             f"KPI bet with value {values[i]} and weight {weights[i]} does not exist!")
+
+    def test_kpi_bet_rejects_over_100_percent(self):
+        response = generate_request(api=PollProposalKPIBetAPI,
+                                    user=self.group_user_one.user,
+                                    url_params=dict(proposal_id=self.proposal_one.id),
+                                    data=dict(kpi_id=self.group_kpi_one.id,
+                                              values=[12, 22, 29],
+                                              weights=[50, 40, 11]))
+
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertFalse(PollProposalKPIBet.objects.filter(created_by=self.group_user_one).exists())
 
     def test_kpi_vote(self):
         bets = [(self.group_kpi_one, 12), (self.group_kpi_one, 22), (self.group_kpi_two, 99)]
