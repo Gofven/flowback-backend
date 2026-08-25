@@ -265,8 +265,8 @@ def poll_proposal_kpi_bet(user_id: int,
     if not len(values) == len(weights):
         raise ValidationError("Values have more or less values than weights.")
 
-    if sum(weights) > 100:
-        raise ValidationError("Total weight cannot exceed 100.")
+    if values and sum(weights) != 100:
+        raise ValidationError("Total weight must equal 100.")
 
     if any([i not in kpi.values for i in values]):
         raise ValidationError("One or more KPI values does not exist in the KPI")

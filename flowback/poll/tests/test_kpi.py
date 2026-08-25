@@ -80,6 +80,33 @@ class TestPollProposalKPI(APITestCase):
         self.assertEqual(response.status_code, 400, response.data)
         self.assertFalse(PollProposalKPIBet.objects.filter(created_by=self.group_user_one).exists())
 
+    def test_kpi_bet_rejects_under_100_percent(self):
+        response = generate_request(api=PollProposalKPIBetAPI,
+                                    user=self.group_user_one.user,
+                                    url_params=dict(proposal_id=self.proposal_one.id),
+                                    data=dict(kpi_id=self.group_kpi_one.id,
+                                              values=[12, 22, 29],
+                                              weights=[20, 30, 0]))
+
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertFalse(PollProposalKPIBet.objects.filter(created_by=self.group_user_one).exists())
+
+    def test_kpi_bet_allows_clearing_all_bets(self):
+        PollProposalKPIBetFactory(created_by=self.group_user_one,
+                                  proposal_kpi=PollProposalKPI.objects.get(proposal=self.proposal_one,
+                                                                           kpi_value__kpi=self.group_kpi_one,
+                                                                           kpi_value__value=12))
+
+        response = generate_request(api=PollProposalKPIBetAPI,
+                                    user=self.group_user_one.user,
+                                    url_params=dict(proposal_id=self.proposal_one.id),
+                                    data=dict(kpi_id=self.group_kpi_one.id,
+                                              values=[],
+                                              weights=[]))
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertFalse(PollProposalKPIBet.objects.filter(created_by=self.group_user_one).exists())
+
     def test_kpi_vote(self):
         bets = [(self.group_kpi_one, 12), (self.group_kpi_one, 22), (self.group_kpi_two, 99)]
         for i in range(3):
