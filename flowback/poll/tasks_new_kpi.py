@@ -184,6 +184,10 @@ def method(input_matrix: NDArray[np.float64]) -> NDArray[np.float64] | None:
 def quadratic_programming_solver(
     covariance_matrix: NDArray[np.float64], test: bool = False
 ) -> list[NDArray[np.float64] | float | None]:
+    if not np.all(np.isfinite(covariance_matrix)):
+        logger.warning("Cannot solve covariance matrix containing non-finite values")
+        return [None, None, None]
+
     if np.any((covariance_matrix < 0) | (covariance_matrix > 1)):
         raise ValueError(
             "covariance_matrix entries must be between 0 and 1 (inclusive)"

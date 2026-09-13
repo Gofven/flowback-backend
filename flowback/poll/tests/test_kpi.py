@@ -11,6 +11,7 @@ from flowback.poll.phases import PollProposal, PollProposalKPI, PollProposalKPIB
 from flowback.poll.tasks import poll_kpi_count
 from flowback.poll.tasks_new_kpi import (
     bet_outcome_matrix,
+    update_kpi_combined_bets_from_bets,
 )
 from flowback.poll.tests.factories import PollFactory, PollProposalFactory, PollProposalKPIBetFactory, \
     PollProposalKPIVoteFactory
@@ -226,11 +227,15 @@ class TestPollProposalKPI(APITestCase):
             poll=poll, created_by=self.group_user_creator
         )
         PollProposalKPI.generate_kpis(proposal_id=proposal.id)
-        self.generate_kpi_vote(
-            self.group_user_one, self.group_kpi_one, proposal, 12
+        self.generate_kpi_bet(
+            self.group_user_one, self.group_kpi_one, proposal, 12, 100
         )
-        self.generate_kpi_vote(
-            self.group_user_two, self.group_kpi_one, proposal, 22
+        self.generate_kpi_bet(
+            self.group_user_two, self.group_kpi_one, proposal, 22, 100
+        )
+        update_kpi_combined_bets_from_bets(
+            PollProposalKPIBet.objects.filter(proposal_kpi__proposal=proposal),
+            {self.group_user_one.id: 0.25, self.group_user_two.id: 0.75},
         )
 
         combined_bets = dict(
@@ -319,7 +324,7 @@ class TestPollProposalKPI(APITestCase):
         print("\n\n")
 
     @override_settings(FLOWBACK_ENABLE_NEW_KPI_SYSTEM=True)
-    def test_new_kpi_betting_returns_weighted_vote_average(self):
+    def test_new_kpi_betting_stores_combined_bets_and_returns_empty_list(self):
         poll = PollFactory(created_by=self.group_user_creator,
                            poll_type=Poll.PollType.V2_SCORE,
                            **generate_poll_phase_kwargs('prediction_vote'))
@@ -355,14 +360,7 @@ class TestPollProposalKPI(APITestCase):
 
         self.assertEqual(
             poll_kpi_count(poll_id=poll.id),
-            [
-                {
-                    "proposal_id": proposal.id,
-                    "kpi_id": self.group_kpi_one.id,
-                    "value": "22",
-                    "weighted_average": 1.0,
-                }
-            ],
+            [],
         )
         combined_bets = dict(
             PollProposalKPI.objects.filter(
