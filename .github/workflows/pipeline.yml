@@ -8,7 +8,7 @@ on:
 
 env:
   LINK: http://localhost:8085
-  TEST_PASS: ${{ secrets.TEST_PASS }}
+  TEST_PASS: TestPassword
   PUBLIC_POLL_VERSION: 2
 
 jobs:
@@ -76,6 +76,9 @@ jobs:
     needs: build
     timeout-minutes: 30
     runs-on: ubuntu-latest
+    env:
+      LINK: http://localhost:8085
+      TEST_PASS: TestPassword
     steps:
       - name: Checkout flowback-docker
         uses: actions/checkout@v4
@@ -90,12 +93,27 @@ jobs:
       - name: Load backend image
         run: docker load --input flowback-backend.tar
 
+      - name: Tag backend image for Compose services
+        run: |
+          docker tag "${{ secrets.DOCKERHUB_USERNAME || github.repository_owner }}/flowback-backend:latest" flowback-docker-flowback-backend:latest
+          docker tag "${{ secrets.DOCKERHUB_USERNAME || github.repository_owner }}/flowback-backend:latest" flowback-docker-flowback-celery-worker:latest
+          docker tag "${{ secrets.DOCKERHUB_USERNAME || github.repository_owner }}/flowback-backend:latest" flowback-docker-flowback-celery-beat:latest
+
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          repository: Kattenelvis/flowback-frontend
+          path: flowback-frontend
+
+      - name: Build frontend and Caddy images
+        working-directory: flowback-docker
+        run: docker compose build flowback-frontend caddy
+
       - name: Start Flowback stack
         working-directory: flowback-docker
         run: docker compose up -d --no-build --pull missing
-
-      - name: Checkout interface tests
-        uses: actions/checkout@v4
+      
+      - uses: actions/checkout@v4
         with:
           repository: Kattenelvis/flowback-interface-testing
           path: flowback-interface-testing
@@ -111,6 +129,10 @@ jobs:
       - name: Install Playwright Browsers
         working-directory: flowback-interface-testing
         run: npx playwright install --with-deps chromium
+
+      - name: Verify interface test configuration
+        working-directory: flowback-interface-testing
+        run: test -n "$TEST_PASS"
 
       - name: Run Smoke tests (basic login functionality)
         working-directory: flowback-interface-testing
