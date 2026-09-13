@@ -140,36 +140,46 @@ def get_winning_kpi_values(group: Group, kpi: GroupKPI) -> QuerySet[PollProposal
     return winning_kpis
 
 
+# Each group contains the proposal KPI values for a winning proposal KPI and a
+# trailing Other column. Every row is a predictor.
 def bet_outcome_matrix(
     bets: QuerySet[PollProposalKPIBet],
     winning_kpis: QuerySet[PollProposalKPI],
 ) -> NDArray[np.float64]:
     bets = list(bets)
     winning_kpis = list(winning_kpis.order_by("proposal_id", "kpi_value__kpi_id"))
-    columns = [
-        proposal_kpi
-        for winner in winning_kpis
-        for proposal_kpi in PollProposalKPI.objects.filter(
-            proposal=winner.proposal,
-            kpi_value__kpi=winner.kpi_value.kpi,
-        ).order_by("id")
-    ]
+
+    column_groups = []
+
+    for winner in winning_kpis:
+        proposal_kpis = list(
+            PollProposalKPI.objects.filter(
+                proposal=winner.proposal,
+                kpi_value__kpi=winner.kpi_value.kpi,
+            ).order_by("id")
+        )
+        column_groups.append((winner, proposal_kpis))
+
     bet_values = {
         (bet.created_by_id, bet.proposal_kpi_id): bet.weight / 100
         for bet in bets
     }
+
     predictor_ids = sorted({bet.created_by_id for bet in bets})
-    matrix = np.array(
-        [
-            [
-                bet_values.get((predictor_id, column.id), 0)
-                - (column in winning_kpis)
-                for column in columns
+    matrix_rows = []
+    for predictor_id in predictor_ids:
+        row = []
+        for winner, proposal_kpis in column_groups:
+            group_values = [
+                bet_values.get((predictor_id, proposal_kpi.id), 0)
+                - (proposal_kpi.id == winner.id)
+                for proposal_kpi in proposal_kpis
             ]
-            for predictor_id in predictor_ids
-        ],
-        dtype=float,
-    )
+            row.extend(group_values)
+            row.append(1 - sum(group_values))
+        matrix_rows.append(row)
+
+    matrix = np.array(matrix_rows, dtype=float)
 
     return matrix
 

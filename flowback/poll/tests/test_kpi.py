@@ -190,10 +190,34 @@ class TestPollProposalKPI(APITestCase):
         np.testing.assert_allclose(
             matrix,
             [
-                [0, 0, 0, 0, 0, 0],
-                [0.33, 0.33, -0.66, 0.33, 0.33, -0.66],
+                [0, 0, 0, 1, 0, 0, 0, 1],
+                [0.33, 0.33, -0.66, 1, 0.33, 0.33, -0.66, 1],
             ],
         )
+
+    def test_bet_outcome_matrix_adds_other_column_for_each_kpi_group(self):
+        poll = self.generate_kpi_poll(group=self.group)
+        proposal = PollProposalFactory(poll=poll, created_by=self.group_user_creator)
+        PollProposalKPI.generate_kpis(proposal_id=proposal.id)
+        proposal_kpis = list(
+            PollProposalKPI.objects.filter(
+                proposal=proposal,
+                kpi_value__kpi=self.group_kpi_one,
+            ).order_by("id")
+        )
+        winner = proposal_kpis[2]
+        PollProposalKPIBetFactory(
+            created_by=self.group_user_one,
+            proposal_kpi=winner,
+            weight=25,
+        )
+
+        matrix = bet_outcome_matrix(
+            PollProposalKPIBet.objects.filter(created_by=self.group_user_one),
+            PollProposalKPI.objects.filter(id=winner.id),
+        )
+
+        np.testing.assert_allclose(matrix, [[0, 0, -0.75, 1.75]])
 
     def test_update_kpi_combined_bets(self):
         poll = self.generate_kpi_poll(group=self.group)
