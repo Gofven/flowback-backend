@@ -80,16 +80,15 @@ class TestPollProposalKPI(APITestCase):
         self.assertEqual(response.status_code, 400, response.data)
         self.assertFalse(PollProposalKPIBet.objects.filter(created_by=self.group_user_one).exists())
 
-    def test_kpi_bet_rejects_under_100_percent(self):
+    def test_kpi_bet_allows_under_100_percent(self):
         response = generate_request(api=PollProposalKPIBetAPI,
                                     user=self.group_user_one.user,
                                     url_params=dict(proposal_id=self.proposal_one.id),
                                     data=dict(kpi_id=self.group_kpi_one.id,
-                                              values=[12, 22, 29],
-                                              weights=[20, 30, 0]))
+                                              values=[12, 22],
+                                              weights=[35, 50]))
 
-        self.assertEqual(response.status_code, 400, response.data)
-        self.assertFalse(PollProposalKPIBet.objects.filter(created_by=self.group_user_one).exists())
+        self.assertEqual(response.status_code, 200, response.data)
 
     def test_kpi_bet_allows_clearing_all_bets(self):
         PollProposalKPIBetFactory(created_by=self.group_user_one,
