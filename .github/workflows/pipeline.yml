@@ -105,6 +105,7 @@ jobs:
           repository: Kattenelvis/flowback-frontend
           path: flowback-frontend
 
+          ref: ${{ (github.ref == 'refs/heads/development' || github.base_ref == 'development') && 'dev' || 'master' }}
       - name: Build frontend and Caddy images
         working-directory: flowback-docker
         run: docker compose build flowback-frontend caddy
