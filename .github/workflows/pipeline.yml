@@ -106,7 +106,7 @@ jobs:
           path: flowback-frontend
 
           ref: ${{ (github.ref == 'refs/heads/development' || github.base_ref == 'development') && 'dev' || 'master' }}
-      - name: Build frontend and Caddy images
+      - name: Build images
         working-directory: flowback-docker
         run: docker compose build flowback-frontend caddy
 
@@ -142,7 +142,7 @@ jobs:
 
       - name: Run the rest of the tests
         working-directory: flowback-interface-testing
-        run: npx playwright test . --project chromium --retries 2 --workers 3 --reporter list
+        run: npx playwright test . --project chromium --retries 2 --workers 1 --reporter list
           --grep-invert "Smoke-Test"
 
       - name: Dump docker logs on failure
@@ -159,8 +159,8 @@ jobs:
 
   docker-publish:
     needs: frontend-tests
-    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     steps:
       - uses: actions/download-artifact@v4
         with:
