@@ -142,9 +142,10 @@ jobs:
             cd flowback/flowback-docker-testing
             docker compose pull && docker compose up -d
 
-  # Works only on main branch
+  # Production publishes only from development or master pushes.
   publish-prod:
     needs: publish-dev
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/development' || github.ref == 'refs/heads/master') }}
     timeout-minutes: 10
     runs-on: ubuntu-latest
     environment: production

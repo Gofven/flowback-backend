@@ -53,6 +53,7 @@ from flowback.poll.phases import (
 from flowback.poll.services.prediction import longest_poll_prediction_kpi_group_users
 from flowback.poll.tasks_new_kpi import (
     newer_kpi_betting,
+    quadratic_programming_solver,
     update_kpi_combined_bets_from_bets,
 )
 import numpy as np
