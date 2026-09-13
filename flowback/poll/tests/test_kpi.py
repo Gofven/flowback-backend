@@ -3,6 +3,7 @@ from rest_framework.test import APITestCase
 from django.test import override_settings
 
 from flowback.common.tests import generate_request
+from flowback.group.services.kpi import group_kpi_create
 from flowback.group.models import GroupKPI, GroupUser, Group
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory, GroupKPIFactory, GroupKPIValueFactory
 from flowback.poll.models import Poll
@@ -68,6 +69,30 @@ class TestPollProposalKPI(APITestCase):
                                                               proposal_kpi__kpi_value__value=values[i],
                                                               weight=weights[i]).exists(),
                             f"KPI bet with value {values[i]} and weight {weights[i]} does not exist!")
+
+    def test_created_kpi_other_supports_bets_and_outcome_votes(self):
+        kpi = group_kpi_create(user_id=self.group_user_creator.user_id,
+                               group_id=self.group.id, name="Outcome", values=["yes"])
+        response = generate_request(api=PollProposalKPIBetAPI,
+                                    user=self.group_user_one.user,
+                                    url_params=dict(proposal_id=self.proposal_one.id),
+                                    data=dict(kpi_id=kpi.id, values=["yes", "other"], weights=[60, 40]))
+
+        self.assertEqual(response.status_code, 200, response.data)
+        other = PollProposalKPI.objects.get(proposal=self.proposal_one,
+                                            kpi_value__kpi=kpi, kpi_value__value="other")
+        self.assertTrue(PollProposalKPIBet.objects.filter(
+            created_by=self.group_user_one, proposal_kpi=other, weight=40).exists())
+
+        Poll.objects.filter(id=self.poll.id).update(**generate_poll_phase_kwargs('prediction_vote'))
+        response = generate_request(api=PollProposalKPIVoteAPI,
+                                    user=self.group_user_two.user,
+                                    url_params=dict(proposal_id=self.proposal_one.id),
+                                    data=dict(kpi_id=kpi.id, vote="other"))
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertTrue(PollProposalKPIVote.objects.filter(
+            created_by=self.group_user_two, proposal_kpi=other).exists())
 
     def test_kpi_bet_rejects_over_100_percent(self):
         response = generate_request(api=PollProposalKPIBetAPI,

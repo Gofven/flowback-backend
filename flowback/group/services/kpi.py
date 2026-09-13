@@ -1,9 +1,11 @@
+from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
 from .permission import group_user_permissions
 from ..models import GroupKPI, GroupKPIValue
 
 
+@transaction.atomic
 def group_kpi_create(user_id: int, group_id: int, name: str, values: list[str], description: str = None):
     group_user_permissions(user=user_id, group=group_id, permissions=['admin'])
 
@@ -14,6 +16,7 @@ def group_kpi_create(user_id: int, group_id: int, name: str, values: list[str], 
     kpi.full_clean()
     kpi.save()
 
+    values = [*values, "other"] if "other" not in values else values
     kpi_values = [GroupKPIValue(kpi=kpi, value=i) for i in values]
     GroupKPIValue.objects.bulk_create(kpi_values)
 
