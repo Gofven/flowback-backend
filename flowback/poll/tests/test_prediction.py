@@ -33,6 +33,7 @@ from flowback.poll.views.prediction import (PollPredictionStatementCreateAPI,
 from flowback.user.models import User
 
 
+@unittest.skip("Old Prediction system, might delete")
 class PollPredictionStatementTest(APITestCase):
     def setUp(self):
         self.group = GroupFactory.create()

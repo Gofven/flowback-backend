@@ -44,3 +44,17 @@ class TestQuadraticProgrammingSolver(TestCase):
             ),
             expected_optimal_value=3.514995119900657e-50,
         )
+
+    def test_covariance_matrix_entry_above_one_is_rejected(self):
+        with self.assertRaises(ValueError):
+            quadratic_programming_solver(np.array([[1.0, 2.0], [2.0, 1.0]]))
+
+    def test_nan_covariance_matrix_returns_unavailable_outputs(self):
+        for predictor_count in (2, 3):
+            with self.subTest(predictor_count=predictor_count):
+                covariance_matrix = np.eye(predictor_count)
+                covariance_matrix[0, 1] = covariance_matrix[1, 0] = np.nan
+                self.assertEqual(
+                    quadratic_programming_solver(covariance_matrix),
+                    [None, None, None],
+                )

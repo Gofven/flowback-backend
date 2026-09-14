@@ -8,7 +8,7 @@ on:
 
 env:
   LINK: http://localhost:8085
-  TEST_PASS: ${{ secrets.TEST_PASS }}
+  TEST_PASS: TestPassword
   PUBLIC_POLL_VERSION: 2
 
 jobs:
@@ -59,20 +59,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
 
       - uses: docker/build-push-action@v6
         with:
-          push: ${{ github.event_name == 'push' }}
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/flowback-backend:latest
+          outputs: type=docker,dest=/tmp/flowback-backend.tar
+          tags: ${{ secrets.DOCKERHUB_USERNAME || github.repository_owner }}/flowback-backend:latest
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flowback-backend-image
+          path: /tmp/flowback-backend.tar
+          retention-days: 1
 
   frontend-tests:
     needs: build
     timeout-minutes: 30
     runs-on: ubuntu-latest
+    env:
+      LINK: http://localhost:8085
+      TEST_PASS: TestPassword
     steps:
       - name: Checkout flowback-docker
         uses: actions/checkout@v4
@@ -80,14 +86,35 @@ jobs:
           repository: Kattenelvis/flowback-docker
           path: flowback-docker
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: flowback-backend-image
+
+      - name: Load backend image
+        run: docker load --input flowback-backend.tar
+
+      - name: Tag backend image for Compose services
+        run: |
+          docker tag "${{ secrets.DOCKERHUB_USERNAME || github.repository_owner }}/flowback-backend:latest" flowback-docker-flowback-backend:latest
+          docker tag "${{ secrets.DOCKERHUB_USERNAME || github.repository_owner }}/flowback-backend:latest" flowback-docker-flowback-celery-worker:latest
+          docker tag "${{ secrets.DOCKERHUB_USERNAME || github.repository_owner }}/flowback-backend:latest" flowback-docker-flowback-celery-beat:latest
+
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          repository: Kattenelvis/flowback-frontend
+          path: flowback-frontend
+
+          ref: ${{ (github.ref == 'refs/heads/development' || github.base_ref == 'development') && 'dev' || 'master' }}
+      - name: Build images
+        working-directory: flowback-docker
+        run: docker compose build flowback-frontend caddy
+
       - name: Start Flowback stack
         working-directory: flowback-docker
-        run: |
-          docker compose pull
-          docker compose up -d
-
-      - name: Checkout interface tests
-        uses: actions/checkout@v4
+        run: docker compose up -d --no-build --pull missing
+      
+      - uses: actions/checkout@v4
         with:
           repository: Kattenelvis/flowback-interface-testing
           path: flowback-interface-testing
@@ -104,6 +131,10 @@ jobs:
         working-directory: flowback-interface-testing
         run: npx playwright install --with-deps chromium
 
+      - name: Verify interface test configuration
+        working-directory: flowback-interface-testing
+        run: test -n "$TEST_PASS"
+
       - name: Run Smoke tests (basic login functionality)
         working-directory: flowback-interface-testing
         run: npx playwright test -g "Smoke-Test" --project chromium --retries 1
@@ -111,7 +142,7 @@ jobs:
 
       - name: Run the rest of the tests
         working-directory: flowback-interface-testing
-        run: npx playwright test . --project chromium --retries 2 --workers 3 --reporter list
+        run: npx playwright test . --project chromium --retries 2 --workers 1 --reporter list
           --grep-invert "Smoke-Test"
 
       - name: Dump docker logs on failure
@@ -126,8 +157,28 @@ jobs:
           path: flowback-interface-testing/playwright-report/
           retention-days: 30
 
-  publish-dev:
+  docker-publish:
     needs: frontend-tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: flowback-backend-image
+
+      - name: Load backend image
+        run: docker load --input flowback-backend.tar
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publish backend image
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/flowback-backend:latest
+
+  publish-dev:
+    needs: docker-publish
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
@@ -142,9 +193,10 @@ jobs:
             cd flowback/flowback-docker-testing
             docker compose pull && docker compose up -d
 
-  # Works only on main branch
+  # Production publishes only from development or master pushes.
   publish-prod:
     needs: publish-dev
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/development' || github.ref == 'refs/heads/master') }}
     timeout-minutes: 10
     runs-on: ubuntu-latest
     environment: production
@@ -157,5 +209,5 @@ jobs:
           key: ${{ secrets.KEY }}
           port: 22
           script: |
-            cd flowback/flowback-docker
+            cd flowback/flowback-docker-prod
             docker compose pull && docker compose up -d
