@@ -87,7 +87,11 @@ def newer_kpi_betting(group: Group, kpi: GroupKPI) -> dict[int, float] | None:
 
     logger.info("starting new kpi calculations")
     longest_users = longest_poll_prediction_kpi_group_users(group, users_filter=None)
-    logger.info("longest_users: %s", longest_users)
+    logger.info(
+        "longest_users selected: found=%s count=%d",
+        longest_users is not None,
+        0 if longest_users is None else longest_users.count(),
+    )
 
     bets_qs = PollProposalKPIBet.objects.filter(
         created_by__in=longest_users,
