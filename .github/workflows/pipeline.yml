@@ -13,6 +13,8 @@ env:
 
 jobs:
   backend-tests:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -55,6 +57,8 @@ jobs:
 
   build:
     needs: backend-tests
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,6 +78,8 @@ jobs:
 
   frontend-tests:
     needs: build
+    permissions:
+      contents: read
     timeout-minutes: 30
     runs-on: ubuntu-latest
     env:
@@ -159,6 +165,7 @@ jobs:
 
   docker-publish:
     needs: frontend-tests
+    permissions: {}
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     steps:
@@ -179,6 +186,7 @@ jobs:
 
   publish-dev:
     needs: docker-publish
+    permissions: {}
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
@@ -196,6 +204,7 @@ jobs:
   # Production publishes only from development or master pushes.
   publish-prod:
     needs: publish-dev
+    permissions: {}
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/development' || github.ref == 'refs/heads/master') }}
     timeout-minutes: 10
     runs-on: ubuntu-latest
