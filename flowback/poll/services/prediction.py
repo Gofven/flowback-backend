@@ -1,17 +1,22 @@
 from typing import Union
 
 from django.db import models
-from django.db.models import Sum, Case, When, F, OuterRef, Subquery, Count
+from django.db.models import Sum, Case, When, OuterRef, Subquery, Count, QuerySet, Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from backend.settings import FLOWBACK_PREDICTION_VOTE_ON_RESULT_PHASE
-from ..models import (PollPredictionBet,
+from ..models import Poll
+from ..phases import (PollPredictionBet,
                       PollPredictionStatement,
                       PollPredictionStatementSegment,
                       PollPredictionStatementVote,
-                      Poll, PollProposal)
+                      PollProposal,
+                      PollProposalKPI,
+                      PollProposalKPIBet,
+                      PollProposalKPIVote)
 from ...common.services import get_object, model_update
+from ...group.models import GroupKPI, Group, GroupUser
 from ...group.selectors.permission import group_user_permissions
 from ...user.models import User
 
@@ -228,3 +233,156 @@ def update_poll_prediction_statement_outcomes(poll_prediction_statement_ids: lis
                            output_field=models.BooleanField())).values("outcome_score")
 
     qs_filter.update(outcome=Subquery(outcome_score))
+
+
+def poll_proposal_kpi_bet(user_id: int,
+                          proposal_id: int,
+                          kpi_id: int,
+                          values: list[int],
+                          weights: list[int]) -> list[PollProposalKPIBet]:
+    """
+    Creates KPI bets in buk
+    :param user_id: User id
+    :param proposal_id: PollProposal id
+    :param kpi_id: GroupKPI id
+    :param values: List of GroupKPI values, must exist in GroupKPI
+    :param weights: List of weights (bets). Index of weights correspond to the index of value for betting.
+    :return: List of new KPI ids or empty list
+    """
+
+    proposal = PollProposal.objects.get(id=proposal_id, poll__active=True)
+    group_user = group_user_permissions(user=user_id,
+                                        group=proposal.created_by.group,
+                                        work_group=proposal.poll.work_group,
+                                        permissions=['admin', 'allow_vote'])
+    kpi = GroupKPI.objects.get(id=kpi_id, group_id=group_user.group.id, active=True)
+
+    if proposal.poll.poll_type != Poll.PollType.V2_SCORE:
+        raise ValidationError('Poll does not support KPI')
+
+    proposal.poll.check_phase('dynamic', 'prediction_bet')
+
+    if not len(values) == len(weights):
+        raise ValidationError("Values have more or less values than weights.")
+
+    if sum(weights) > 100:
+        raise ValidationError("Total weight cannot exceed 100.")
+
+    if any([i not in kpi.values for i in values]):
+        raise ValidationError("One or more KPI values does not exist in the KPI")
+
+    # Generate missing KPI entries for proposals created before this KPI was added
+    PollProposalKPI.generate_kpis(proposal_id=proposal.id)
+
+    PollProposalKPIBet.objects.filter(created_by=group_user, proposal_kpi__proposal=proposal,
+                                      proposal_kpi__kpi_value__kpi=kpi).delete()
+
+    if len(values) == 0:
+        return []
+
+    staged = []
+    for i in range(len(values)):
+        if weights[i] > 0:
+            staged.append(PollProposalKPIBet(created_by=group_user,
+                                             weight=weights[i],
+                                             proposal_kpi=PollProposalKPI.objects.get(proposal=proposal,
+                                                                                      kpi_value__kpi=kpi,
+                                                                                      kpi_value__value=values[i])))
+
+    bets = PollProposalKPIBet.objects.bulk_create(objs=staged)
+    return bets
+
+
+def poll_proposal_kpi_vote(user_id: int,
+                           proposal_id: int,
+                           kpi_id: int,
+                           vote: str = None) -> PollProposalKPIVote | None:
+    proposal = PollProposal.objects.get(id=proposal_id, poll__active=True)
+    group_user = group_user_permissions(user=user_id, group=proposal.created_by.group, permissions=['admin',
+                                                                                                    'allow_vote'])
+
+    kpi = GroupKPI.objects.get(id=kpi_id, group=group_user.group, active=True)
+
+    if proposal.poll.poll_type != Poll.PollType.V2_SCORE:
+        raise ValidationError('Poll does not support KPI')
+
+    proposal.poll.check_phase('result')
+
+    proposal_kpi = PollProposalKPI.objects.get(proposal=proposal, kpi_value__kpi=kpi, kpi_value__value=vote)
+
+    PollProposalKPIVote.objects.filter(created_by=group_user,
+                                       proposal_kpi__proposal=proposal,
+                                       proposal_kpi__kpi_value__kpi=kpi
+                                       ).delete()
+
+    if not vote:
+        return None
+
+    vote = PollProposalKPIVote(created_by=group_user, proposal_kpi=proposal_kpi)
+
+    vote.full_clean()
+    vote.save()
+
+    return vote
+
+
+def longest_poll_prediction_kpi_group_users(group: Group,
+                                            users_filter: list[User] | QuerySet[User]) -> QuerySet[GroupUser] | None:
+    """
+    Returns user(s) with most prediction bets cast (KPI V2_Score polls only)
+    :param group: The group users are within
+    :param users: List of users that will be counted
+    :return: GroupUsers with most bets.
+    """
+
+    timestamp = timezone.now()
+
+    # List of eligible KPIs
+    prediction_count = Count('pollproposalkpibet',
+                            filter=Q(pollproposalkpibet__proposal_kpi__proposal__poll__end_date__lte=timestamp,
+                                    pollproposalkpibet__proposal_kpi__proposal__poll__poll_type=Poll.PollType.V2_SCORE,
+                                    pollproposalkpibet__proposal_kpi__kpi_value__kpi__active=True))
+
+    longest_prediction_history_group_user = GroupUser.objects.filter(group=group)
+
+    if users_filter is not None:
+        longest_prediction_history_group_user = (
+            longest_prediction_history_group_user.filter(user__in=users_filter)
+        )
+
+    longest_prediction_history_group_user = (
+        longest_prediction_history_group_user.annotate(
+            prediction_count=prediction_count,
+        )
+    )
+
+    result = longest_prediction_history_group_user.order_by('-prediction_count')
+
+    return None if not result.first() else result.filter(prediction_count=result.first().prediction_count)
+
+
+def longest_poll_prediction_group_user(group: Group,
+                                       users: list[User] | QuerySet[User]) -> QuerySet[GroupUser] | None:
+    """
+    Returns user with most prediction bets cast (Old Prediction Score polls only)
+    :param group: The group users are within
+    :param users: List of users that will be counted
+    :return: GroupUsers with most bets.
+    """
+
+    timestamp = timezone.now()
+
+    # List of eligible KPIs
+    prediction_count = Count('pollpredictionbet',
+                            filter=Q(pollpredictionbet__prediction_statement__poll__end_date__lte=timestamp,
+                                    pollpredictionbet__prediction_statement__poll__poll_type=Poll.PollType.SCORE,
+                                    pollproposalkpibet__proposal_kpi__pollproposalkpivote__isnull=False,
+                                    pollpredictionbet__prediction_statement__poll__active=True))
+
+    longest_prediction_history_group_user = GroupUser.objects.filter(
+        group=group, user__in=users
+    ).annotate(prediction_count=prediction_count)
+
+    result = longest_prediction_history_group_user.order_by('-prediction_count')
+
+    return None if not result.first() else result.filter(prediction_count=result.first().prediction_count)

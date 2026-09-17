@@ -1,14 +1,15 @@
 from rest_framework.exceptions import ValidationError
 
+from backend.settings import TESTING
 from flowback.chat.models import MessageChannel, Message, MessageChannelParticipant, MessageFileCollection, \
     MessageChannelTopic
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from backend.settings import TESTING
 from flowback.common.services import get_object, model_update
 from flowback.files.services import upload_collection
 from flowback.user.models import User
 from flowback.user.serializers import BasicUserSerializer
+from flowback.chat.serializers import MessageSerializer
 
 
 def user_message_channel_permission(*, user: User, channel: MessageChannel):
@@ -100,6 +101,7 @@ def message_channel_userdata_update(*, user_id: int, channel_id: int, **data):
     channel = get_object(MessageChannel, id=channel_id)
 
     participant = get_object(MessageChannelParticipant, user=user, channel=channel, active=True)
+
     response = model_update(instance=participant,
                             fields=['timestamp', 'closed_at'],
                             data=data)
@@ -117,6 +119,7 @@ def message_channel_create(*, origin_name: str, title: str = None):
 
 def message_channel_delete(*, channel_id: int):
     channel = get_object(MessageChannel, id=channel_id)
+    MessageChannelParticipant.objects.filter(channel_id=channel_id).update(active=False)  # To avoid leave messages
     channel.delete()
 
 
@@ -128,25 +131,6 @@ def message_channel_join(*, user_id: int, channel_id: int):
                                             channel=channel)
     participant.full_clean()
     participant.save()
-
-    # Notify relevant user channels via ChatConsumer that a user joined
-    if TESTING:
-        channel_layer = get_channel_layer()
-
-        payload = dict(
-            type="message",
-            message=f"User {user.username} joined the channel",
-            method="message_channel_join",
-            channel_id=channel.id,
-            channel_title=channel.title,
-            users=BasicUserSerializer(channel.users.all(), many=True).data,
-            origin_name=channel.origin_name,
-            user_id=user.id,
-            username=user.username,
-        )
-
-        for user in channel.users.all():
-            async_to_sync(channel_layer.group_send)(f"user_{user.id}", payload)
 
     return participant
 
@@ -171,3 +155,20 @@ def message_channel_topic_create(*, channel_id: int, topic_name: str, hidden: bo
 def message_channel_topic_delete(*, channel_id: int, topic_id: int):
     topic = get_object(MessageChannel, channel_id=channel_id, id=topic_id)
     topic.delete()
+
+
+def send_channel_info_message(participant: MessageChannelParticipant, message: str = None):
+    message = Message.objects.create(user=participant.user,
+                                     channel=participant.channel,
+                                     message=message,
+                                     type="info")
+
+    if not TESTING:
+        channel_layer = get_channel_layer()
+
+        # Broadcast the full serialized message (including id and user) so
+        # clients can render the info message live without a reload.
+        data = dict(MessageSerializer(message).data)
+        data["type"] = "info"
+
+        async_to_sync(channel_layer.group_send)(f"{participant.channel.id}", data)

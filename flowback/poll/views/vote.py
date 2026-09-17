@@ -1,18 +1,17 @@
 from drf_spectacular.utils import extend_schema
 
 from rest_framework import serializers, status
-from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView, Response
 
 from flowback.common.pagination import LimitOffsetPagination, get_paginated_response
 from flowback.common.services import get_object
 
-from flowback.poll.models import Poll, PollVotingTypeRanking, PollVotingTypeForAgainst, PollVotingTypeCardinal
+from flowback.poll.models import Poll
+from flowback.poll.selectors.vote import poll_vote_list, delegate_poll_vote_list
+from flowback.poll.serializers import PollSerializer
+from flowback.poll.services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
 
-from ..selectors.vote import poll_vote_list, delegate_poll_vote_list
-from ..serializers import PollSerializer
-from ..services.vote import poll_proposal_vote_update, poll_proposal_delegate_vote_update
-from ...group.serializers import GroupUserSerializer
+from flowback.group.serializers import GroupUserSerializer
 
 
 @extend_schema(tags=['poll/vote'])
@@ -27,39 +26,6 @@ class PollProposalVoteListAPI(APIView):
         delegate_pool_id = serializers.IntegerField(required=False)
         delegate_user_id = serializers.IntegerField(required=False)
 
-    class OutputSerializerTypeRanking(serializers.ModelSerializer):
-        author = GroupUserSerializer(source='author.created_by', hide_relevant_users=True)
-
-        class Meta:
-            model = PollVotingTypeRanking
-            fields = ('author',
-                      'author_delegate',
-                      'proposal',
-                      'priority',
-                      'score')
-
-    class OutputSerializerTypeCardinal(serializers.ModelSerializer):
-        author = GroupUserSerializer(source='author.created_by', hide_relevant_users=True)
-
-        class Meta:
-            model = PollVotingTypeCardinal
-            fields = ('author',
-                      'author_delegate',
-                      'proposal',
-                      'score',
-                      'raw_score')
-
-    class OutputSerializerTypeForAgainst(serializers.ModelSerializer):
-        author = GroupUserSerializer(source='author.created_by', hide_relevant_users=True)
-
-        class Meta:
-            model = PollVotingTypeForAgainst
-            fields = ('author',
-                      'author_delegate',
-                      'proposal',
-                      'vote',
-                      'score')
-
     def get(self, request, poll: int):
         poll = get_object(Poll, id=poll)
         filter_serializer = self.FilterSerializer(data=request.query_params)
@@ -70,18 +36,9 @@ class PollProposalVoteListAPI(APIView):
                                delegates=delegates,
                                filters=filter_serializer.validated_data)
 
-        if poll.poll_type == Poll.PollType.SCHEDULE:
-            output_serializer = self.OutputSerializerTypeForAgainst
-        elif poll.poll_type == Poll.PollType.RANKING:
-            output_serializer = self.OutputSerializerTypeRanking
-        elif poll.poll_type == Poll.PollType.CARDINAL:
-            output_serializer = self.OutputSerializerTypeCardinal
-        else:
-            raise ValidationError('Unknown poll type')
-
         return get_paginated_response(
             pagination_class=self.Pagination,
-            serializer_class=output_serializer,
+            serializer_class=poll.poll_type_new.vote_output_serializer_class(),
             queryset=votes,
             request=request,
             view=self
@@ -103,17 +60,6 @@ class DelegatePollVoteListAPI(APIView):
         poll = PollSerializer()
         vote = serializers.SerializerMethodField()
 
-        class VoteRankingOutputSerializer(serializers.Serializer):
-            proposal_id = serializers.IntegerField()
-            proposal_title = serializers.CharField(source='proposal.title')
-            proposal_description = serializers.CharField(source='proposal.description')
-            proposal_created_by = GroupUserSerializer(source='proposal.created_by', hide_relevant_users=True)
-            priority = serializers.IntegerField()
-            score = serializers.IntegerField()
-
-            class Meta:
-                ordering = ['priority']
-
         class VoteCardinalOutputSerializer(serializers.Serializer):
             proposal_id = serializers.IntegerField()
             proposal_title = serializers.CharField(source='proposal.title')
@@ -125,46 +71,13 @@ class DelegatePollVoteListAPI(APIView):
             class Meta:
                 ordering = ['priority']
 
-        class VoteForAgainstOutputSerializer(serializers.Serializer):
-            proposal_id = serializers.IntegerField()
-            proposal_title = serializers.CharField(source='proposal.title')
-            proposal_description = serializers.CharField(source='proposal.description')
-            proposal_created_by = GroupUserSerializer(source='proposal.created_by', hide_relevant_users=True)
-            score = serializers.IntegerField()
-            total_delegators = serializers.IntegerField()
-
-            class Meta:
-                ordering = ['vote']
-
         def get_vote(self, obj):
-            poll_type = obj.poll.poll_type
+            serializer = self.VoteCardinalOutputSerializer(obj.pollvotingtypecardinal_set,
+                                                            many=True,
+                                                            allow_null=True,
+                                                            required=False)
 
-            if poll_type == Poll.PollType.RANKING:
-                serializer = self.VoteRankingOutputSerializer(obj.pollvotingtyperanking_set,
-                                                              many=True,
-                                                              allow_null=True,
-                                                              required=False)
-
-                return serializer.data
-
-            elif poll_type == Poll.PollType.FOR_AGAINST:
-                serializer = self.VoteForAgainstOutputSerializer(obj.pollvotingtypeforagainst_set,
-                                                                 many=True,
-                                                                 allow_null=True,
-                                                                 required=False)
-
-                return serializer.data
-
-            elif poll_type == Poll.PollType.CARDINAL:
-                serializer = self.VoteCardinalOutputSerializer(obj.pollvotingtypecardinal_set,
-                                                               many=True,
-                                                               allow_null=True,
-                                                               required=False)
-
-                return serializer.data
-
-            else:
-                return None
+            return serializer.data
 
     def get(self, request):
         serializer = self.InputSerializer(data=request.query_params)
@@ -181,60 +94,21 @@ class DelegatePollVoteListAPI(APIView):
         )
 
 
-# TODO change serializer based upon poll type
 @extend_schema(tags=['poll/vote'])
 class PollProposalVoteUpdateAPI(APIView):
-    # For Ranking, Schedule
-    class InputSerializerDefault(serializers.Serializer):
-        proposals = serializers.ListField(child=serializers.IntegerField())
-
-    class InputSerializerCardinal(serializers.Serializer):
-        proposals = serializers.ListField(child=serializers.IntegerField())
-        scores = serializers.ListField(child=serializers.IntegerField())
-
     def post(self, request, poll: int):
         poll = get_object(Poll, id=poll)
-
-        if poll.poll_type in (Poll.PollType.SCHEDULE, Poll.PollType.RANKING):
-            input_serializer = self.InputSerializerDefault
-        elif poll.poll_type == Poll.PollType.CARDINAL:
-            input_serializer = self.InputSerializerCardinal
-        else:
-            raise ValidationError('Unknown poll type')
-
-        serializer = input_serializer(data=request.data)
+        serializer = poll.poll_type_new.vote_input_serializer_class()(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll_proposal_vote_update(user_id=request.user.id, poll_id=poll.id, data=serializer.validated_data)
         return Response(status=status.HTTP_200_OK)
 
 
-# TODO change serializer based upon poll type
 @extend_schema(tags=['poll/vote'])
 class PollProposalDelegateVoteUpdateAPI(APIView):
-    # For Ranking, Schedule
-    class InputSerializerDefault(serializers.Serializer):
-        votes = serializers.ListField(child=serializers.IntegerField())
-
-    class InputSerializerRanking(serializers.Serializer):
-        proposals = serializers.ListField(child=serializers.IntegerField())
-
-    class InputSerializerCardinal(serializers.Serializer):
-        proposals = serializers.ListField(child=serializers.IntegerField())
-        scores = serializers.ListField(child=serializers.IntegerField())
-
     def post(self, request, poll: int):
         poll = get_object(Poll, id=poll)
-
-        if poll.poll_type == Poll.PollType.SCHEDULE:
-            input_serializer = self.InputSerializerDefault
-        elif poll.poll_type == Poll.PollType.RANKING:
-            input_serializer = self.InputSerializerRanking
-        elif poll.poll_type == Poll.PollType.CARDINAL:
-            input_serializer = self.InputSerializerCardinal
-        else:
-            raise ValidationError('Unknown poll type')
-
-        serializer = input_serializer(data=request.data)
+        serializer = poll.poll_type_new.delegate_vote_input_serializer_class()(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll_proposal_delegate_vote_update(user_id=request.user.id, poll_id=poll.id, data=serializer.validated_data)
         return Response(status=status.HTTP_200_OK)

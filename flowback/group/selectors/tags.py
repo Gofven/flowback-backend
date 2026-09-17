@@ -5,7 +5,7 @@ from django.db.models.functions import Abs
 
 from flowback.group.models import GroupTags
 from flowback.group.selectors.permission import group_user_permissions
-from flowback.poll.models import PollPredictionStatement
+from flowback.poll.phases import PollPredictionStatement
 from flowback.poll.services.prediction import update_poll_prediction_statement_outcomes
 from flowback.user.models import User
 

@@ -8,7 +8,7 @@ VERSION = "1.0.0"
 
 env = environ.Env(DEBUG=(bool, True),
                   DEBUG_REGISTER_BYPASS_EMAIL_VERIFICATION=(bool, False),
-                  LOGGING=(str, 'NONE'),
+                  LOGGING=(str, 'INFO'),
                   SECURE_PROXY_SSL_HEADERS=(bool, False),
                   DJANGO_SECRET=str,
                   FLOWBACK_URL=(str, None),
@@ -49,8 +49,13 @@ env = environ.Env(DEBUG=(bool, True),
                   FLOWBACK_SCORE_VOTE_FLOOR=(int, 0),
                   FLOWBACK_KANBAN_PRIORITY_LIMIT=(int, 5),
                   FLOWBACK_PREDICTION_VOTE_ON_RESULT_PHASE=(bool, False),
-                  FLOWBACK_KANBAN_LANES=(list, ['Backlog', 'Chosen For Execution', 'In Progress', 'Evaluation', 'Finished'])
+                  FLOWBACK_KPI_MAX_WEIGHT=(int, 100),
+                  FLOWBACK_ENABLE_NEW_KPI_SYSTEM=(bool, False),
+                  FLOWBACK_POLL_VERSION_LOCK=(int, 1),
+                  FLOWBACK_KANBAN_LANES=(list, ['Backlog', 'Chosen For Execution', 'In Progress', 'Evaluation', 'Finished']),
                   )
+
+APPEND_SLASH = False
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -134,8 +139,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'knox',
     'django_extensions',
-    'rest_framework.authtoken',
     'django_celery_beat',
     'pgtrigger',
     'oidc_provider',
@@ -159,7 +164,7 @@ CELERY_BROKER_URL = f"redis://{env('FLOWBACK_REDIS_HOST')}:{env('FLOWBACK_REDIS_
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'flowback.common.documentation.CustomAutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication'
+        'knox.auth.TokenAuthentication'
     ],
     'DEFAULT_PERMISSION_CLASSES': (
         env('FLOWBACK_DEFAULT_PERMISSION'),
@@ -286,7 +291,7 @@ else:
 
 DATABASES = {'default': db_data}
 
-if TESTING:
+if TESTING and not env('FLOWBACK_PSQL_NAME'):
     with (open(PG_PASS) as pgpass):
         data = pgpass.readlines()[0].replace('\n', '').split(':')
         DATABASES['default']['NAME'] = data[2]
@@ -336,6 +341,9 @@ FLOWBACK_SCORE_VOTE_FLOOR = env('FLOWBACK_SCORE_VOTE_FLOOR')
 FLOWBACK_ALLOW_DYNAMIC_POLL = env('FLOWBACK_ALLOW_DYNAMIC_POLL')
 FLOWBACK_PREDICTION_VOTE_ON_RESULT_PHASE = env('FLOWBACK_PREDICTION_VOTE_ON_RESULT_PHASE')
 FLOWBACK_PREDICTION_HISTORY_LIMIT = env('FLOWBACK_PREDICTION_HISTORY_LIMIT')
+FLOWBACK_KPI_MAX_WEIGHT = env('FLOWBACK_KPI_MAX_WEIGHT')
+FLOWBACK_ENABLE_NEW_KPI_SYSTEM = env('FLOWBACK_ENABLE_NEW_KPI_SYSTEM')
+FLOWBACK_POLL_VERSION_LOCK = env('FLOWBACK_POLL_VERSION_LOCK')
 
 # Group related settings
 FLOWBACK_ALLOW_GROUP_CREATION = env('FLOWBACK_ALLOW_GROUP_CREATION')
@@ -358,6 +366,10 @@ if env('LOGGING') in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
                 "filename": "general.log",
             },
         },
+        "root": {
+            "handlers": ["file"],
+            "level": env('LOGGING'),
+        },
         "loggers": {
             "django": {
                 "handlers": ["file"],
@@ -369,6 +381,8 @@ if env('LOGGING') in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
 
     if DEBUG:
         LOGGING['handlers']['console'] = {'class': 'logging.StreamHandler'}
+        LOGGING['root']['handlers'].append('console')
+        LOGGING['loggers']['django']['handlers'].append('console')
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/

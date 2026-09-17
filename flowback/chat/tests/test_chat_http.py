@@ -137,7 +137,7 @@ class ChatTestHTTP(APITestCase):
         force_authenticate(request, user=user)
         response = view(request, channel_id=self.message_channel.id)
 
-        self.assertEqual(response.data.get('count'), 10)
+        self.assertEqual(response.data.get('count'), 13)
 
     def test_message_channel_preview(self):
         # Test if there's correct amount of messages
@@ -186,8 +186,8 @@ class ChatTestHTTP(APITestCase):
                 self.assertTrue(response.data['results'][i]['timestamp'])
                 self.assertEqual(len(response.data['results'][(2 * i) + 1]['participants']), 2,
                                  [(i['timestamp'], len(i['participants'])) for i in response.data['results']])
-                self.assertGreater(response.data['results'][i - 1]['created_at'],
-                                   response.data['results'][i]['created_at'])
+                self.assertGreater(response.data['results'][i - 1]['timestamp'],
+                                   response.data['results'][i]['timestamp'])
 
             # Check if one channel is shown
             force_authenticate(request_two, user=channel_participant_one.user)
@@ -198,8 +198,8 @@ class ChatTestHTTP(APITestCase):
                 self.assertTrue(response.data['results'][i]['timestamp'])
                 self.assertEqual(len(response.data['results'][2 * (i - 1)]['participants']), 3,
                                  [(i['timestamp'], len(i['participants'])) for i in response.data['results']])
-                self.assertGreater(response.data['results'][i - 1]['created_at'],
-                                   response.data['results'][i]['created_at'])
+                self.assertGreater(response.data['results'][i - 1]['timestamp'],
+                                   response.data['results'][i]['timestamp'])
 
             force_authenticate(request_three, user=channel_participant_one.user)
             response = view(request_three)

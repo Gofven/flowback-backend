@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import Poll, PollProposal, PollPredictionBet, PollPhaseTemplate, PollAreaStatement, PollAreaStatementVote, PollAreaStatementSegment
+from .models import Poll
+from .phases import (PollAreaStatement,
+                     PollAreaStatementSegment,
+                     PollAreaStatementVote,
+                     PollPhaseTemplate,
+                     PollPredictionBet,
+                     PollProposal,
+                     PollProposalKPI,
+                     PollProposalKPIBet,
+                     PollProposalKPIVote)
 
 
 @admin.register(Poll)
@@ -86,3 +95,18 @@ class PollAreaStatementSegmentAdmin(admin.ModelAdmin):
     list_filter = ('tag', 'created_at')
     search_fields = ('poll_area_statement__poll__title', 'tag__name')
     date_hierarchy = 'created_at'
+
+
+@admin.register(PollProposalKPI)
+class PollProposalKPIAdmin(admin.ModelAdmin):
+    list_display = ('proposal', 'kpi_value', 'combined_bet')
+
+
+@admin.register(PollProposalKPIBet)
+class PollProposalKPIBetAdmin(admin.ModelAdmin):
+    list_display = ('created_by', 'proposal_kpi', 'weight')
+
+
+@admin.register(PollProposalKPIVote)
+class PollProposalKPIVoteAdmin(admin.ModelAdmin):
+    list_display = ('created_by', 'proposal_kpi')

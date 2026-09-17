@@ -8,8 +8,6 @@ from flowback.user.views.report import ReportCreateAPI
 
 
 class UserTest(APITestCase):
-    reset_sequences = True
-
     def setUp(self):
         self.users = [UserFactory() for x in range(3)]
         self.reports = [ReportFactory() for x in range(3)]

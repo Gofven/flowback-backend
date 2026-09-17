@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q
 from django.db.models.signals import post_save, post_delete, pre_save
@@ -101,7 +102,7 @@ class Group(BaseModel, NotifiableModel, ScheduleModel):
     kanban = models.ForeignKey(Kanban, null=True, blank=True, on_delete=models.PROTECT)
     chat = models.ForeignKey(MessageChannel, on_delete=models.PROTECT)
     group_folder = models.ForeignKey(GroupFolder, null=True, blank=True, on_delete=models.SET_NULL)
-    blockchain_id = models.PositiveIntegerField(null=True, blank=True, help_text='User-Defined Blockchain ID')
+    blockchain_id = models.PositiveIntegerField(null=True, blank=True, unique=True, help_text='User-Defined Blockchain ID')
 
     jitsi_room = models.UUIDField(unique=True, default=uuid.uuid4)
 
@@ -240,9 +241,14 @@ class Group(BaseModel, NotifiableModel, ScheduleModel):
 
     @classmethod
     def post_delete(cls, instance, *args, **kwargs):
-        instance.kanban.delete()
-        instance.chat.delete()
-        instance.schedule.delete()
+        if instance.kanban:
+            instance.kanban.delete()
+
+        if instance.chat:
+            instance.chat.delete()
+
+        if instance.schedule:
+            instance.schedule.delete()
 
 
 pre_save.connect(Group.pre_save, sender=Group)
@@ -257,8 +263,6 @@ class GroupTags(BaseModel):
     description = models.TextField(null=True, blank=True, validators=[FieldNotBlankValidator])
     group = models.ForeignKey('Group', on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
-
-    # interval_mean_absolute_error = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'Group tags'
@@ -323,7 +327,7 @@ class GroupUser(BaseModel):
                 instance.group.schedule.add_user(user=instance.user)
 
                 instance.chat_participant.active = True
-                instance.chat_participant.save()
+                instance.chat_participant.save(update_fields=['active'])
 
             else:
                 instance.group.schedule.remove_user(user=instance.user)
@@ -332,7 +336,7 @@ class GroupUser(BaseModel):
                                                   target_id=instance.group.kanban_id).delete()
 
                 instance.chat_participant.active = False
-                instance.chat_participant.save()
+                instance.chat_participant.save(update_fields=['active'])
 
                 if instance.group.notification_channel:
                     instance.group.notification_channel.unsubscribe_all(user=instance.user)
@@ -344,7 +348,7 @@ class GroupUser(BaseModel):
 
         if instance.chat_participant:
             instance.chat_participant.active = False
-            instance.chat_participant.save()
+            instance.chat_participant.save(update_fields=['active'])
 
         if instance.group.notification_channel:
             instance.group.notification_channel.unsubscribe_all(user=instance.user)
@@ -552,3 +556,19 @@ class GroupUserDelegator(BaseModel):
 
     class Meta:
         unique_together = ('delegator', 'delegate_pool', 'group')
+
+
+class GroupKPI(BaseModel):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+
+    @property
+    def values(self) -> list[int]:
+        return list(GroupKPIValue.objects.filter(kpi_id=self.id).values_list('value', flat=True))
+
+
+class GroupKPIValue(BaseModel):
+    value = models.CharField()
+    kpi = models.ForeignKey(GroupKPI, on_delete=models.CASCADE)

@@ -35,7 +35,7 @@ class GroupUserTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 4)
         self.assertEqual(response.data['results'][0].get('delegate_pool_id'), None)
-        self.assertEqual(response.data['results'][1].get('delegate_pool_id'), True)
+        self.assertTrue(response.data['results'][1].get('delegate_pool_id'))
         self.assertEqual(response.data['results'][2].get('delegate_pool_id'), None)
         self.assertEqual(response.data['results'][3].get('delegate_pool_id'), None)
 
@@ -46,7 +46,7 @@ class GroupUserTest(APITestCase):
                                     data=dict(is_delegate=True))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
-        self.assertEqual(response.data['results'][0].get('delegate_pool_id'), True)
+        self.assertTrue(response.data['results'][0].get('delegate_pool_id'))
 
     def test_group_user_leave_cleans_up_subscriptions(self):
         # Arrange: pick a non-creator group user
@@ -70,10 +70,13 @@ class GroupUserTest(APITestCase):
         self.assertFalse(member.active)
 
         # Kanban subscription removed
-        self.assertFalse(KanbanSubscription.objects.filter(kanban=member.user.kanban, target=self.group.kanban).exists())
+        self.assertFalse(KanbanSubscription.objects.filter(kanban=member.user.kanban,
+                                                           target=self.group.kanban).exists())
 
         # Chat participant removed
-        self.assertFalse(MessageChannelParticipant.objects.filter(id=member.chat_participant_id, active=True).exists())
+        self.assertFalse(MessageChannelParticipant.objects.filter(id=member.chat_participant_id,
+                                                                  active=True).exists())
 
         # Notification subscriptions to this group's channel removed
-        self.assertFalse(NotificationSubscription.objects.filter(channel__in=self.group.notification_channel.descendants(include_self=True)).exists())
+        self.assertFalse(NotificationSubscription.objects.filter(
+            channel__in=self.group.notification_channel.descendants(include_self=True)).exists())

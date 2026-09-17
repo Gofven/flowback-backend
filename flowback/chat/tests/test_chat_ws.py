@@ -1,10 +1,13 @@
+import unittest
+
 from asgiref.sync import sync_to_async
 from channels.testing import WebsocketCommunicator
-from rest_framework.authtoken.models import Token
+from knox.models import AuthToken
 from rest_framework.test import APITransactionTestCase
 
 from backend.middleware import TokenAuthMiddleware
 from flowback.chat.consumers import ChatConsumer
+from flowback.chat.models import MessageChannel, Message
 from flowback.chat.tests.factories import MessageChannelFactory, MessageChannelParticipantFactory
 from flowback.group.models import GroupUser
 from flowback.group.tests.factories import GroupFactory, GroupUserFactory
@@ -13,6 +16,7 @@ from flowback.user.services import user_get_chat_channel
 from flowback.user.tests.factories import UserFactory
 
 
+# Note: testing this requires uncommenting a field in flowback/chat/signals.py temporarily
 class TestChatWebsocket(APITransactionTestCase):
     def setUp(self):
         self.user_one = UserFactory()
@@ -30,15 +34,20 @@ class TestChatWebsocket(APITransactionTestCase):
         self.group_user_two = GroupUserFactory(group=self.group, user=self.user_two)
         self.group_user_three = GroupUserFactory(group=self.group, user=self.user_three)
 
+    @sync_to_async(thread_sensitive=True)
+    def get_auth_token(self, user: User):
+        instance, token = AuthToken.objects.create(user=user)
+        return token
+
     async def connect(self, user: User | UserFactory) -> WebsocketCommunicator:
         """
         Communicates with the websocket
         Remember to disconnect using communicator.disconnect()
         :return: WebsocketCommunicator
         """
-        user_one_token, created = await Token.objects.aget_or_create(user=user)
+        token = await self.get_auth_token(user=user)
         application = TokenAuthMiddleware(ChatConsumer.as_asgi())
-        communicator = WebsocketCommunicator(application, f"/chat/ws?token={user_one_token.key}")
+        communicator = WebsocketCommunicator(application, f"/chat/ws?token={token}")
         connected, subprotocol = await communicator.connect()
         self.assertTrue(connected)
         return communicator
@@ -109,6 +118,9 @@ class TestChatWebsocket(APITransactionTestCase):
         await communicator_three.disconnect()
         await communication_four.disconnect()
 
+    @unittest.skip("Testing Message Join requires async tests to be running, which makes other tests incompatible, "
+                   "additionally users won't be able to know whether they joined the channel or not "
+                   "due to missing send_channel_info_message for users private message channel")
     async def test_send_message_user_get_chat_channel(self):
         communicator_one = await self.connect(user=self.user_three)
         communicator_two = await self.connect(user=self.user_four)
@@ -123,12 +135,14 @@ class TestChatWebsocket(APITransactionTestCase):
         await communicator_two.disconnect()
 
     async def test_send_message_group(self):
-        def message_check(data):
+        def message_check(data, message):
             self.assertNotEqual(data.get('status'), 'error', data)
             self.assertEqual(data.get('message'), message.get('message'))
             self.assertEqual(data.get('channel_id'), message.get('channel_id'))
-            self.assertTrue(data.get('user'))
-            self.assertEqual(data['user'].get('username'), self.user_one.username)
+
+            if not data.get('type') == 'info':
+                self.assertTrue(data.get('user'))
+                self.assertEqual(data['user'].get('username'), self.user_one.username)
 
         communicator_one = await self.connect(user=self.user_one)
         communicator_two = await self.connect(user=self.user_two)
@@ -136,20 +150,32 @@ class TestChatWebsocket(APITransactionTestCase):
         communicator_four = await self.connect(user=self.user_four)
 
         # Message
-        message = dict(channel_id=self.group_message_channel.id, message="test message", method="message_create")
-        await communicator_one.send_json_to(message)
+        msg = dict(channel_id=self.group_message_channel.id, message="test message", method="message_create")
+        await communicator_one.send_json_to(msg)
 
         response = await communicator_one.receive_json_from(timeout=5)
-        message_check(response)
+        message_check(response, msg)
 
         response = await communicator_two.receive_json_from(timeout=5)
-        message_check(response)
+        message_check(response, msg)
 
         response = await communicator_three.receive_json_from(timeout=5)
-        message_check(response)
+        message_check(response, msg)
 
         with self.assertRaises(TimeoutError):
             await communicator_four.receive_json_from(timeout=1)
+
+        joined_msg = dict(channel_id=self.group_message_channel.id, message=f"User {self.user_four.username} joined the channel", method="message_create")
+        group_user_four = await sync_to_async(GroupUserFactory)(group=self.group, user=self.user_four)
+
+        response = await communicator_one.receive_json_from(timeout=5)
+        message_check(response, joined_msg)
+
+        leave_msg = dict(channel_id=self.group_message_channel.id, message=f"User {self.user_four.username} left the channel", method="message_create")
+        await GroupUser.objects.filter(id=group_user_four.id).adelete()
+
+        response = await communicator_one.receive_json_from(timeout=5)
+        message_check(response, leave_msg)
 
         await communicator_one.disconnect()
         await communicator_two.disconnect()

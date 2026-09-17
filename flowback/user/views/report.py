@@ -11,6 +11,9 @@ from flowback.user.services import report_create, report_update
 @extend_schema(tags=['user'])
 class ReportCreateAPI(APIView):
     class InputSerializer(serializers.ModelSerializer):
+        group_id = serializers.IntegerField(required=False)
+        post_id = serializers.IntegerField(required=False)
+        post_type = serializers.CharField(required=False)
         class Meta:
             model = Report
             fields = ('title', 'description', 'group_id', 'post_id', 'post_type')
@@ -26,9 +29,13 @@ class ReportCreateAPI(APIView):
 @extend_schema(tags=['user'])
 class ReportUpdateAPI(APIView):
     class InputSerializer(serializers.ModelSerializer):
+        group_id = serializers.IntegerField(required=False)
+        post_id = serializers.IntegerField(required=False)
+        post_type = serializers.CharField(required=False)
+
         class Meta:
             model = Report
-            fields = ('title', 'description', 'action_description', 'group_id', 'post_id', 'post_type')
+            fields = ('title', 'description', 'action_description')
 
     def post(self, request, report_id: int):
         serializer = self.InputSerializer(data=request.data)

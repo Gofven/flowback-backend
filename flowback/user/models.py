@@ -11,7 +11,6 @@ from django.utils import timezone
 from django.utils.functional import classproperty
 from django.utils.translation import gettext_lazy as _
 
-from rest_framework.authtoken.models import Token
 from flowback.chat.models import MessageChannelParticipant
 from flowback.common.models import BaseModel
 from flowback.common.validators import FieldNotBlankValidator
@@ -33,8 +32,6 @@ class CustomUserManager(BaseUserManager):
         user.full_clean()
         user.save()
 
-        Token.objects.create(user=user)
-
         return user
 
     def create_superuser(self, *, username, email, password):
@@ -50,8 +47,6 @@ class CustomUserManager(BaseUserManager):
         user.full_clean()
         user.save(using=self._db)
 
-        Token.objects.create(user=user)
-
         return user
 
 
@@ -66,7 +61,7 @@ class User(AbstractBaseUser, PermissionsMixin, NotifiableModel, ScheduleModel):
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
-    username = models.CharField(max_length=120, validators=[UnicodeUsernameValidator(), FieldNotBlankValidator], unique=True)
+    username = models.CharField(max_length=50, validators=[UnicodeUsernameValidator(), FieldNotBlankValidator], unique=True)
     profile_image = models.ImageField(null=True, blank=True, upload_to='user/profile_image')
     banner_image = models.ImageField(null=True, blank=True, upload_to='user/banner_image')
     email_notifications = models.BooleanField(default=False)
@@ -90,6 +85,10 @@ class User(AbstractBaseUser, PermissionsMixin, NotifiableModel, ScheduleModel):
     @classproperty
     def message_channel_origin(self) -> str:
         return "user"
+
+    @classproperty
+    def message_channel_group_origin(self) -> str:
+        return "user_group"
 
     NOTIFICATION_DATA_FIELDS = (('user_id', int, 'The ID of the user'),
                                 ('username', str, "The user's username"))

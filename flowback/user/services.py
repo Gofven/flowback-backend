@@ -12,7 +12,7 @@ from rest_framework.exceptions import ValidationError
 
 from backend.settings import DEFAULT_FROM_EMAIL, URL_USER_CREATE, URL_USER_FORGOT_PASSWORD, EMAIL_HOST
 from flowback.chat.models import MessageChannel, MessageChannelParticipant
-from flowback.chat.services import message_channel_create, message_channel_join
+from flowback.chat.services import message_channel_create, message_channel_join, send_channel_info_message
 from flowback.common.services import model_update, get_object
 from flowback.kanban.services import KanbanManager
 from flowback.notification.models import NotificationChannel
@@ -66,13 +66,9 @@ def user_create_verify(*, username: str, verification_code: str, password: str):
 
     validate_password(password)
 
-    user = User.objects.create_user(username=username,
-                                    email=onboard_user.email,
-                                    password=password)
+    user = User.objects.create_user(username=username, email=onboard_user.email, password=password)
 
-    model_update(instance=onboard_user,
-                 fields=['is_verified'],
-                 data=dict(is_verified=True))
+    model_update(instance=onboard_user, fields=['is_verified'], data=dict(is_verified=True))
 
     return user
 
@@ -109,24 +105,29 @@ def user_forgot_password_verify(*, verification_code: str, password: str):
     user.set_password(password)
     user.save()
 
-    model_update(instance=password_reset,
-                 fields=['is_verified'],
-                 data=dict(is_verified=True))
+    model_update(instance=password_reset, fields=['is_verified'], data=dict(is_verified=True))
 
     return user
 
 
 def user_update(*, user: User, data) -> User:
-    non_side_effects_fields = ['username', 'email',
-                               'profile_image', 'banner_image', 'bio',
-                               'website', 'email_notifications',
-                               'dark_theme', 'contact_email',
-                               'contact_phone',
-                               'user_config', 'public_status', 'chat_status']
+    non_side_effects_fields = [
+        'username',
+        'email',
+        'profile_image',
+        'banner_image',
+        'bio',
+        'website',
+        'email_notifications',
+        'dark_theme',
+        'contact_email',
+        'contact_phone',
+        'user_config',
+        'public_status',
+        'chat_status'
+    ]
 
-    user, has_updated = model_update(instance=user,
-                                     fields=non_side_effects_fields,
-                                     data=data)
+    user, has_updated = model_update(instance=user, fields=non_side_effects_fields, data=data)
 
     return user
 
@@ -176,17 +177,32 @@ def user_kanban_entry_create(*,
 
 
 def user_kanban_entry_update(*, user_id: int, entry_id: int, data):
-    return user_kanban.kanban_entry_update(origin_id=user_id,
-                                           entry_id=entry_id,
-                                           data=data)
+    return user_kanban.kanban_entry_update(origin_id=user_id, entry_id=entry_id, data=data)
 
 
 def user_kanban_entry_delete(*, user_id: int, entry_id: int):
-    return user_kanban.kanban_entry_delete(origin_id=user_id,
-                                           entry_id=entry_id)
+    return user_kanban.kanban_entry_delete(origin_id=user_id, entry_id=entry_id)
 
 
-def user_get_chat_channel(fetched_by: User, target_user_ids: int | list[int], preview: bool = False) -> MessageChannel:
+def user_get_chat_channel(fetched_by: User,
+                          target_user_ids: int | list[int],
+                          preview: bool = False,
+                          title: str = "",
+                          is_group: bool = False) -> MessageChannel:
+
+    def generate_title(users):
+        channel_title = ""
+        for i, user in enumerate(users):
+            if len(channel_title + user.username) > 50:
+                channel_title += (f"{' and' if channel_title else ''} "
+                                  f"{users.count() - i} "
+                                  f"other(s)...")
+                break
+            else:
+                channel_title += f", {user.username}" if i > 0 else user.username
+
+        return channel_title
+
     if len(target_user_ids) > 25:
         raise ValidationError("Cannot invite more than 25 users to group.")
 
@@ -204,10 +220,17 @@ def user_get_chat_channel(fetched_by: User, target_user_ids: int | list[int], pr
     if len(target_user_ids) == 1 and fetched_by.id == target_user_ids[0]:
         raise ValidationError("Cannot create a chat with yourself")
 
+    # A channel is a group when explicitly requested (e.g. "+ New Group") or when it
+    # has more than two participants. Groups always use the group origin, invite
+    # participants (instead of silently auto-joining a DM partner), and must not
+    # reuse an existing direct-message channel between the same people.
+    group_channel = is_group or target_users.count() > 2
+    desired_origin = (User.message_channel_group_origin if group_channel else User.message_channel_origin)
+
     try:
         # Find a channel where all users are in the same chat
-        channel = MessageChannel.objects.annotate(count=Count('users')).filter(
-            count=target_users.count())
+        channel = MessageChannel.objects.annotate(count=Count('users')).filter(count=target_users.count(),
+                                                                               origin_name=desired_origin)
 
         for u in target_users:
             channel = channel.filter(users=u.id)
@@ -220,37 +243,35 @@ def user_get_chat_channel(fetched_by: User, target_user_ids: int | list[int], pr
         for u in target_users:
             UserChatInvite.objects.filter(user=u, message_channel=channel, rejected=True).update(rejected=None)
 
+        # The requesting user opening the channel counts as accepting their own
+        # pending invite, otherwise they can neither read nor send messages in
+        # the channel they just asked for.
+        own_invite = UserChatInvite.objects.filter(user=fetched_by, message_channel=channel,
+                                                   rejected=None).first()
+        if own_invite:
+            own_invite.rejected = False
+            own_invite.save()
+
     except MessageChannel.DoesNotExist:
         if preview:
             raise ValidationError("MessageChannel does not exist between the participants")
 
-        title = ""
-        for i, u in enumerate(target_users):
-            if len(title + u.username) > 50:
-                title += (f"{' and' if title else ''} "
-                          f"{target_users.count() - i} "
-                          f"other{'s' if target_users.count() - i != 1 else ''}...")
-                break
+        if title == "":
+            title = generate_title(target_users)
 
-            else:
-                title += f", {u.username}" if i > 0 else u.username
-
-        channel = message_channel_create(origin_name=f"{User.message_channel_origin}"
-                                                     f"{'_group' if target_users.count() > 2 else ''}",
-                                         title=title if target_users.count() > 1 else None)
+        channel = message_channel_create(origin_name=desired_origin, title=title)
 
         # In the future, make this a bulk_create statement
         share_groups = False
 
-        if target_users.count() <= 2:
+        if not group_channel:
             share_groups = User.objects.filter(group__groupuser__user__in=target_users).exists()
 
         for u in target_users:
             u_is_public = u.chat_status == User.PublicStatus.PUBLIC
             u_is_group_only = u.chat_status == User.PublicStatus.GROUP_ONLY
 
-            if (((u_is_public or (u_is_group_only and share_groups)) and target_users.count() <= 2)
-                    or u.id == fetched_by.id
+            if ((not group_channel and (u_is_public or (u_is_group_only and share_groups))) or u.id == fetched_by.id
                     or fetched_by.is_superuser == True):
                 message_channel_join(user_id=u.id, channel_id=channel.id)
 
@@ -289,25 +310,35 @@ def user_chat_invite(user_id: int, invite_id: int, accept: bool = True):
     invite.save()
 
 
-def user_chat_channel_update(*, user_id: int, channel_id: int, **data: dict):
-    if MessageChannelParticipant.objects.filter(channel_id=channel_id,
-                                                user_id=user_id,
-                                                active=True,
-                                                channel__origin_name__in=[User.message_channel_origin,
-                                                                          f'{User.message_channel_origin}_group']
-                                                ).exists():
-        channel, has_updated = model_update(instance=MessageChannel.objects.get(id=channel_id),
-                                            fields=['title'],
-                                            data=data)
+def user_chat_channel_update(*, user_id: int, channel_id: int, **data: dict) -> MessageChannel | None:
+    participant = MessageChannelParticipant.objects.get(
+        channel_id=channel_id,
+        user_id=user_id,
+        active=True,
+        channel__origin_name__in=[User.message_channel_origin, User.message_channel_group_origin])
 
-        return channel
+    channel, has_updated = model_update(instance=MessageChannel.objects.get(id=channel_id), fields=['title'], data=data)
+
+    send_channel_info_message(participant, message=f"Channel changed name to {channel.title}")
+
+    return channel
 
 
-def report_create(*, user_id: int, title: str, description: str, group_id: int, post_id: int, post_type: str):
+def report_create(*,
+                  user_id: int,
+                  title: str,
+                  description: str,
+                  group_id: int = None,
+                  post_id: int = None,
+                  post_type: str = None):
     user = get_object(User, id=user_id)
 
-    report = Report(user=user, title=title, description=description, group_id=group_id,
-                    post_id=post_id, post_type=post_type)
+    report = Report(user=user,
+                    title=title,
+                    description=description,
+                    group_id=group_id,
+                    post_id=post_id,
+                    post_type=post_type)
     report.full_clean()
     report.save()
 

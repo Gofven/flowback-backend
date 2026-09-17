@@ -2,7 +2,8 @@ from rest_framework.exceptions import ValidationError
 
 from flowback.common.services import get_object
 from flowback.group.selectors.permission import group_user_permissions
-from flowback.poll.models import PollAreaStatement, PollAreaStatementSegment, PollAreaStatementVote, Poll
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollAreaStatement, PollAreaStatementSegment, PollAreaStatementVote
 
 
 def poll_area_statement_create(user_id: int, poll_id: int, tags: list[int]):

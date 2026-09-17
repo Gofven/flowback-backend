@@ -47,7 +47,7 @@ class Schedule(BaseModel):
         if not tag and not self.default_tag:
             raise ValidationError("Schedule must either have a tag or a default tag.")
 
-        tag, created = ScheduleTag.objects.get_or_create(schedule=self, name=tag if tag else self.default_tag)
+        tag, created = ScheduleTag.objects.get_or_create(schedule=self, name=tag if tag else self.default_tag.name)
         event = ScheduleEvent(title=title,
                               description=description,
                               start_date=start_date,
@@ -215,6 +215,9 @@ class ScheduleTag(BaseModel, NotifiableModel):
     schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
     name = models.CharField(max_length=100, validators=[FieldNotBlankValidator])
 
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['schedule', 'name'], name='scheduleuniquenameconstraint')]
+
     @classmethod
     def post_save(cls, instance, created, *args, **kwargs):
         if not created:
@@ -255,6 +258,7 @@ class ScheduleEvent(BaseModel, NotifiableModel):
     created_by = GenericForeignKey('content_type', 'object_id')
 
     repeat_frequency = models.IntegerField(null=True, blank=True, choices=Frequency.choices)
+    repeat_frequency_end_date = models.DateTimeField(null=True, blank=True)
 
     NOTIFICATION_DATA_FIELDS = (('id', int),
                                 ('title', str),
@@ -417,16 +421,28 @@ class ScheduleEvent(BaseModel, NotifiableModel):
                 cron_data['month_of_year'] = instance.end_date.month
                 cron_data['day_of_month'] = instance.end_date.day
 
-            cron_schedule = CrontabSchedule.objects.get_or_create(minute=instance.end_date.minute,
-                                                                  hour=instance.end_date.hour,
-                                                                  **cron_data)[0]
+            crontabs = CrontabSchedule.objects.filter(minute=instance.end_date.minute,
+                                                      hour=instance.end_date.hour,
+                                                      **cron_data)
+
+            if crontabs.exists():
+                cron_schedule = crontabs.first()
+
+            else:
+                cron_schedule = CrontabSchedule(minute=instance.end_date.minute,
+                                                hour=instance.end_date.hour,
+                                                **cron_data)
+
+                cron_schedule.full_clean()
+                cron_schedule.save()
 
             # If not created, update the instance task with a new crontab schedule
             task = PeriodicTask.objects.filter(name=f"schedule_event_{instance.id}").first()
             if task:
-                if task.crontab != cron_schedule:
+                if task.crontab != cron_schedule and task.expires != instance.repeat_frequency_end_date:
                     task.start_date = instance.start_date
                     task.crontab = cron_schedule
+                    task.expires = instance.repeat_frequency_end_date
                     task.save()
 
             else:
@@ -434,7 +450,8 @@ class ScheduleEvent(BaseModel, NotifiableModel):
                                                             task="schedule.tasks.event_notify",
                                                             kwargs=json.dumps(dict(event_id=instance.id)),
                                                             crontab=cron_schedule,
-                                                            start_time=instance.start_date)
+                                                            start_time=instance.start_date,
+                                                            expires=instance.repeat_frequency_end_date)
                 periodic_task.full_clean()
                 periodic_task.save()
 
@@ -456,6 +473,9 @@ class ScheduleEventSubscription(BaseModel):
                       help_text="A list of user-defined tags")
     locked = models.BooleanField(default=True, help_text="If set to true and user unsubscribes from the tag related "
                                                          "to the event, the event will remain subscribed.")
+
+    class Meta:
+        constraints = [models.UniqueConstraint('event', 'schedule_user', name='eventscheduleuser_unique')]
 
     @classmethod
     def post_save(cls, instance, *args, **kwargs):

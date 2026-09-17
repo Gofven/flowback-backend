@@ -205,7 +205,7 @@ class GroupNotificationTest(TestCase):
         """Test that notify_group_poll creates a notification in the database"""
         # Create a poll with a work group
         poll = PollFactory(
-            created_by=self.group_user,
+            created_by=GroupUserFactory(group=self.group),
             title="Test Poll",
             work_group=self.work_group
         )
@@ -213,7 +213,8 @@ class GroupNotificationTest(TestCase):
         # Call the function
         message = "Test poll message"
         action = NotificationChannel.Action.CREATED
-        notify_group_poll(message, action, poll)
+        print(notify_group_poll(message, action, poll))
+        print(Notification.objects.all())
 
         # Assert that a notification was created in the database
         self.assertTrue(
@@ -230,7 +231,7 @@ class GroupNotificationTest(TestCase):
         """Test notify_group_poll when work_group is None"""
         # Create a poll without a work group
         poll = PollFactory(
-            created_by=self.group_user,
+            created_by=GroupUserFactory(group=self.group),
             title="Test Poll Without Work Group",
             work_group=None
         )

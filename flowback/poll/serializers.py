@@ -2,7 +2,8 @@ from rest_framework import serializers
 
 from flowback.files.serializers import FileSerializer, FileCollectionListSerializerMixin
 from flowback.group.serializers import GroupUserSerializer
-from flowback.poll.models import PollProposal, Poll
+from flowback.poll.models import Poll
+from flowback.poll.phases import PollProposal
 
 
 class PollSerializer(FileCollectionListSerializerMixin, serializers.Serializer):
@@ -21,7 +22,7 @@ class PollSerializer(FileCollectionListSerializerMixin, serializers.Serializer):
 
     title = serializers.CharField()
     description = serializers.CharField()
-    poll_type = serializers.IntegerField()
+    poll_type = serializers.ChoiceField(choices=Poll.PollType.choices)
     allow_fast_forward = serializers.BooleanField()
     public = serializers.BooleanField()
 
@@ -46,6 +47,12 @@ class PollSerializer(FileCollectionListSerializerMixin, serializers.Serializer):
     quorum = serializers.IntegerField(allow_null=True)
 
 
+class PollProposalKPISerializer(serializers.Serializer):
+    proposal_id = serializers.IntegerField()
+    kpi_value_id = serializers.IntegerField()
+    combined_bet = serializers.DecimalField(max_digits=8, decimal_places=7, allow_null=True)
+
+
 class PollProposalSerializer(FileCollectionListSerializerMixin, serializers.Serializer):
     id = serializers.IntegerField()
     created_by = GroupUserSerializer(required=False)
@@ -60,23 +67,16 @@ class PollProposalSerializer(FileCollectionListSerializerMixin, serializers.Seri
     end_date = serializers.SerializerMethodField(help_text="A datetime field or None (if poll is not a schedule)")
     preliminary_score = serializers.SerializerMethodField(required=False)
 
+    projected_winners = PollProposalKPISerializer(many=True, source='pollproposalkpi_set')
+
     def get_start_date(self, obj):
         proposal = PollProposal.objects.get(id=obj.id)
-        if proposal.poll.poll_type == Poll.PollType.SCHEDULE:
-            return proposal.pollproposaltypeschedule.event_start_date
-
-        return None
+        return proposal.poll.poll_type_new.proposal_start_date(proposal)
 
     def get_end_date(self, obj):
         proposal = PollProposal.objects.get(id=obj.id)
-        if proposal.poll.poll_type == Poll.PollType.SCHEDULE:
-            return proposal.pollproposaltypeschedule.event_end_date
-
-        return None
+        return proposal.poll.poll_type_new.proposal_end_date(proposal)
 
     def get_preliminary_score(self, obj):
         proposal = PollProposal.objects.get(id=obj.id)
-        if proposal.poll.poll_type == Poll.PollType.SCHEDULE:
-            return proposal.pollproposaltypeschedule.preliminary_score
-
-        return None
+        return proposal.poll.poll_type_new.proposal_preliminary_score(proposal)
