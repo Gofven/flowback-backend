@@ -93,7 +93,7 @@ def newer_kpi_betting(group: Group, kpi: GroupKPI) -> dict[int, float] | None:
         created_by__in=longest_users,
     ).distinct()
 
-    logger.info("bets_qs: %s", bets_qs)
+    logger.info("Loaded %d KPI bets", bets_qs.count())
 
     predictor_ids = sorted(set(bets_qs.values_list("created_by_id", flat=True)))
     logger.info("predictor_ids: %s", predictor_ids)
